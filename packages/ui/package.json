@@ -40,7 +40,7 @@
 		"packageManager": {
 			"name": "pnpm",
 			"version": "10.7.0",
-			"onFail": "error"
+			"onFail": "warn"
 		},
 		"runtime": {
 			"name": "node",
