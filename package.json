@@ -1,0 +1,51 @@
+{
+	"name": "@bomb.sh/ui-workspace",
+	"version": "0.0.0",
+	"keywords": [
+		"bombshell",
+		"cli"
+	],
+	"homepage": "https://bomb.sh/docs/ui",
+	"license": "MIT",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"dev": "bsh dev",
+		"build": "bsh build",
+		"format": "bsh format",
+		"lint": "bsh lint",
+		"test": "bsh test"
+	},
+	"devDependencies": {
+		"@bomb.sh/tools": "^0.5.1"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "10.7.0",
+			"onFail": "error"
+		},
+		"runtime": {
+			"name": "node",
+			"version": "22.14.0",
+			"onFail": "error"
+		}
+	}
+}
