@@ -10,4 +10,4 @@ jobs:
     uses: bombshell-dev/automation/.github/workflows/preview.yml@main
     secrets: inherit
     with:
-      publish: '.'
+      publish: "./packages/*"
