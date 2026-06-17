@@ -28,7 +28,7 @@
 	},
 	"scripts": {
 		"dev": "bsh dev",
-		"build": "bsh build",
+		"build": "pnpm --filter \"@clack/*\" run build",
 		"format": "bsh format",
 		"lint": "bsh lint",
 		"test": "bsh test"
