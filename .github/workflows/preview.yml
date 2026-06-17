@@ -9,10 +9,5 @@ jobs:
     if: github.repository_owner == 'bombshell-dev'
     uses: bombshell-dev/automation/.github/workflows/preview.yml@main
     secrets: inherit
-    # TODO these shouldn't be required but are currently, remove
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
     with:
       publish: "./packages/*"
