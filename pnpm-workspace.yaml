@@ -2,4 +2,4 @@ packages:
   - 'packages/*'
 
 catalog:
-  clayterm: latest
+  '@bomb.sh/tty': '^0.7.0'

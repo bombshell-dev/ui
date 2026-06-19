@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@bomb.sh/tty':
+      specifier: ^0.7.0
+      version: 0.7.0
+
 importers:
 
   .:
@@ -11,6 +17,15 @@ importers:
       '@bomb.sh/tools':
         specifier: ^0.5.1
         version: 0.5.1(oxc-resolver@11.20.0)(vite@8.0.16(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/freedom:
+    dependencies:
+      '@bomb.sh/tty':
+        specifier: 'catalog:'
+        version: 0.7.0
+      effection:
+        specifier: ^4.1.0-alpha.7
+        version: 4.1.0-alpha.9
 
   packages/ui:
     devDependencies:
@@ -47,6 +62,10 @@ packages:
   '@bomb.sh/tools@0.5.1':
     resolution: {integrity: sha512-qHZZflnOMcnljBYKo7+IYwRk70vOMd1DqyBtRM7V4ml8dS6CdScrKBp9KyWnEB8tf/MBjnwUDD8A7umg7tO62g==}
     hasBin: true
+
+  '@bomb.sh/tty@0.7.0':
+    resolution: {integrity: sha512-htTavc3o84vR6uSoyF+Y9u81GG8NoTJkwOovahcNOY4nVeiM86vodCHdPvAXoj2ucmx04frpwMrOJ4ipLSSJfw==}
+    engines: {node: '>= 22'}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -867,6 +886,10 @@ packages:
       oxc-resolver:
         optional: true
 
+  effection@4.1.0-alpha.9:
+    resolution: {integrity: sha512-vjZ2RRoXagbjuPin21TCusmO6VScPT7Kru/LWiE8t78MsQJA8qRmzaGTGw2PFIiHcfzrrXpgMvHXUy0aW3/Uhg==}
+    engines: {node: '>= 16'}
+
   empathic@2.0.1:
     resolution: {integrity: sha512-YGRs8knHhKHVShLkFET/rWAU8kmHbOV5LwN938RHI0pljAJ1Gf6SzXsSmRaEzcXTtOOmVqJ5+WtQPL5uigY50Q==}
     engines: {node: '>=14'}
@@ -1372,6 +1395,8 @@ snapshots:
       - vite
       - vite-plus
       - vue-tsc
+
+  '@bomb.sh/tty@0.7.0': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -1890,6 +1915,8 @@ snapshots:
   dts-resolver@2.1.3(oxc-resolver@11.20.0):
     optionalDependencies:
       oxc-resolver: 11.20.0
+
+  effection@4.1.0-alpha.9: {}
 
   empathic@2.0.1: {}
 
