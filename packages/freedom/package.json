@@ -1,0 +1,40 @@
+{
+	"name": "@clack/ui-freedom",
+	"version": "0.0.0",
+	"keywords": [
+		"bombshell",
+		"cli"
+	],
+	"homepage": "https://bomb.sh/docs/freedom",
+	"license": "ISC",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"dev": "bsh dev",
+		"build": "bsh build",
+		"format": "bsh format",
+		"lint": "bsh lint",
+		"test": "bsh test"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "catalog:",
+		"effection": "^4.1.0-alpha.7"
+	}
+}
