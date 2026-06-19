@@ -1,0 +1,30 @@
+{
+  "name": "@frontside/freedom",
+  "exports": "./mod.ts",
+  "license": "ISC",
+  "publish": { "include": ["lib", "mod.ts", "README.md"] },
+  "lock": false,
+  "tasks": {
+    "test": "deno test",
+    "build:npm": "deno run -A tasks/build-npm.ts",
+    "build:jsr": "deno run -A tasks/build-jsr.ts"
+  },
+  "lint": {
+    "rules": { "exclude": ["prefer-const", "require-yield"] },
+    "exclude": ["build"],
+    "plugins": ["lint/prefer-let.ts"]
+  },
+  "fmt": {},
+  "test": {},
+  "compilerOptions": {
+    "lib": ["deno.ns", "esnext", "dom", "dom.iterable", "deno.unstable"]
+  },
+  "imports": {
+    "effection": "jsr:@effection/effection@4.1.0-alpha.7",
+    "effection/experimental": "jsr:@effection/effection@4.1.0-alpha.7/experimental",
+    "@std/testing": "jsr:@std/testing@1",
+    "@std/expect": "jsr:@std/expect@1",
+    "dnt": "jsr:@deno/dnt@0.42.3"
+  },
+  "version": "0.0.0"
+}
