@@ -54,17 +54,20 @@ function box<T>(op: () => Operation<T>): Operation<Result<T>> {
 }
 
 export class NodeImpl implements Node {
+	readonly id: string;
+	readonly name: string;
+	readonly _parent: NodeImpl | undefined;
 	_props: Record<string, JsonValue> = {};
 	_children: Set<NodeImpl> = new Set();
 	_sortFn: ((a: Node, b: Node) => number) | undefined = undefined;
 	_channel: Channel<CallEval, never> = createChannel<CallEval, never>();
 	data: NodeData = new NodeDataImpl();
 
-	constructor(
-		readonly id: string,
-		readonly name: string,
-		readonly _parent: NodeImpl | undefined,
-	) {}
+	constructor(id: string, name: string, _parent: NodeImpl | undefined) {
+		this.id = id;
+		this.name = name;
+		this._parent = _parent;
+	}
 
 	get props(): Record<string, JsonValue> {
 		return Object.freeze({ ...this._props });

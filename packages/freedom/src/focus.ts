@@ -1,5 +1,5 @@
-import type { Api, Operation } from 'effection';
-import { createApi } from 'effection/experimental';
+import type { Operation } from 'effection';
+import { createApi, type Api } from '@effectionx/context-api';
 import type { Node } from './types.ts';
 import { FreedomApi, set } from './freedom.ts';
 import { NodeContext, type NodeImpl } from './node.ts';
@@ -56,8 +56,8 @@ export const FocusApi: Api<Focus> = createApi<Focus>('freedom:focus', {
 		let idx = nodes.findIndex((n) => n.props.focused === true);
 		if (idx === -1) return;
 
-		let old = nodes[idx];
-		let next = nodes[(idx + 1) % nodes.length];
+		let old = nodes[idx]!;
+		let next = nodes[(idx + 1) % nodes.length]!;
 
 		yield* setFocused(old, false, self);
 		yield* setFocused(next, true, self);
@@ -72,8 +72,8 @@ export const FocusApi: Api<Focus> = createApi<Focus>('freedom:focus', {
 		let idx = nodes.findIndex((n) => n.props.focused === true);
 		if (idx === -1) return;
 
-		let old = nodes[idx];
-		let prev = nodes[(idx - 1 + nodes.length) % nodes.length];
+		let old = nodes[idx]!;
+		let prev = nodes[(idx - 1 + nodes.length) % nodes.length]!;
 
 		yield* setFocused(old, false, self);
 		yield* setFocused(prev, true, self);

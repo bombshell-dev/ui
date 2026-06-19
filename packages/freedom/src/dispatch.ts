@@ -1,5 +1,5 @@
-import type { Api, Operation, Result } from 'effection';
-import { createApi } from 'effection/experimental';
+import type { Operation, Result } from 'effection';
+import { createApi, type Api } from '@effectionx/context-api';
 import type { Node } from './types.ts';
 import { TreeContext } from './state.ts';
 

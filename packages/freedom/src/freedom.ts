@@ -1,5 +1,5 @@
-import { type Api, type Operation, spawn, suspend, withResolvers } from 'effection';
-import { createApi } from 'effection/experimental';
+import { type Operation, spawn, suspend, withResolvers } from 'effection';
+import { createApi, type Api } from '@effectionx/context-api';
 import { type Component, createNodeData, type JsonValue, type Node } from './types.ts';
 import { NodeContext, NodeImpl, spawnEvalLoop } from './node.ts';
 import { TreeContext } from './state.ts';
