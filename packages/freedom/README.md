@@ -36,3 +36,8 @@ function* app(): Operation<void> {
 	// ... rest of app
 }
 ```
+
+## History
+
+This was [originally created within Frontside](https://github.com/thefrontside/freedom) 
+to experiment with focus management and imported into this repo to further push experiments in TTY.
