@@ -1,5 +1,5 @@
-import { describe, it } from "../test/suite.ts";
-import { expect } from "../test/helpers.ts";
+import { describe, it } from "./suite.ts";
+import { expect } from "./helpers.ts";
 import { run } from "effection";
 import {
   advance,
@@ -11,7 +11,7 @@ import {
   set,
   useFocus,
   useTree,
-} from "../mod.ts";
+} from "../src/index.ts";
 
 describe("Focus installation", () => {
   it("FI1-FI3: useFocus sets root as focused", async () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "../test/suite.ts";
+import { describe, expect, it } from "./suite.ts";
 import { run, sleep } from "effection";
 import {
   append,
@@ -11,7 +11,7 @@ import {
   update,
   useNode,
   useTree,
-} from "../mod.ts";
+} from "../src/index.ts";
 
 describe("JsonValue validation", () => {
   it("JV1-JV12: accepts valid JsonValues", async () => {
