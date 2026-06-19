@@ -36,5 +36,8 @@
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:",
 		"effection": "^4.1.0-alpha.7"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0"
 	}
 }
