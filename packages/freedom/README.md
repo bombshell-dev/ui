@@ -32,7 +32,7 @@ Install focus in the root component:
 
 ```ts
 function* app(): Operation<void> {
-  yield* useFocus();
-  // ... rest of app
+	yield* useFocus();
+	// ... rest of app
 }
 ```

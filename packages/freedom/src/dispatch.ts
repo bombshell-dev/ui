@@ -1,23 +1,20 @@
-import type { Api, Operation, Result } from "effection";
-import { createApi } from "effection/experimental";
-import type { Node } from "./types.ts";
-import { TreeContext } from "./state.ts";
+import type { Api, Operation, Result } from 'effection';
+import { createApi } from 'effection/experimental';
+import type { Node } from './types.ts';
+import { TreeContext } from './state.ts';
 
 export interface Dispatch {
-  dispatch(event: unknown): Operation<Result<true>>;
-  getNodeById(id: string): Operation<Node | undefined>;
+	dispatch(event: unknown): Operation<Result<true>>;
+	getNodeById(id: string): Operation<Node | undefined>;
 }
 
-export const DispatchApi: Api<Dispatch> = createApi<Dispatch>(
-  "freedom:dispatch",
-  {
-    *dispatch(_event: unknown): Operation<Result<true>> {
-      return { ok: false, error: new Error("unhandled") };
-    },
+export const DispatchApi: Api<Dispatch> = createApi<Dispatch>('freedom:dispatch', {
+	*dispatch(_event: unknown): Operation<Result<true>> {
+		return { ok: false, error: new Error('unhandled') };
+	},
 
-    *getNodeById(id: string): Operation<Node | undefined> {
-      let tree = yield* TreeContext.expect();
-      return tree.nodes.get(id);
-    },
-  },
-);
+	*getNodeById(id: string): Operation<Node | undefined> {
+		let tree = yield* TreeContext.expect();
+		return tree.nodes.get(id);
+	},
+});

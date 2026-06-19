@@ -197,14 +197,14 @@ Each node has:
 
 ```ts
 interface Node {
-  readonly id: string;
-  readonly name: string;
-  readonly props: Record<string, JsonValue>;
-  readonly children: Iterable<Node>;
-  readonly parent: Node | undefined;
-  readonly data: NodeData;
-  eval<T>(op: () => Operation<T>): Operation<Result<T>>;
-  remove(): Operation<void>;
+	readonly id: string;
+	readonly name: string;
+	readonly props: Record<string, JsonValue>;
+	readonly children: Iterable<Node>;
+	readonly parent: Node | undefined;
+	readonly data: NodeData;
+	eval<T>(op: () => Operation<T>): Operation<Result<T>>;
+	remove(): Operation<void>;
 }
 ```
 
@@ -337,20 +337,17 @@ needed because the node reference provides direct access to its data.
 
 ```ts
 interface NodeDataKey<T> {
-  readonly symbol: symbol;
-  readonly defaultValue?: T;
+	readonly symbol: symbol;
+	readonly defaultValue?: T;
 }
 
 interface NodeData {
-  get<T>(key: NodeDataKey<T>): T | undefined;
-  set<T>(key: NodeDataKey<T>, value: T): void;
-  expect<T>(key: NodeDataKey<T>): T;
+	get<T>(key: NodeDataKey<T>): T | undefined;
+	set<T>(key: NodeDataKey<T>, value: T): void;
+	expect<T>(key: NodeDataKey<T>): T;
 }
 
-function createNodeData<T>(
-  name: string,
-  defaultValue?: T,
-): NodeDataKey<T>;
+function createNodeData<T>(name: string, defaultValue?: T): NodeDataKey<T>;
 ```
 
 D1. `createNodeData(name, defaultValue?)` creates a typed data key backed by a
@@ -371,14 +368,14 @@ The Node interface is extended:
 
 ```ts
 interface Node {
-  readonly id: string;
-  readonly name: string;
-  readonly props: Record<string, JsonValue>;
-  readonly children: Iterable<Node>;
-  readonly parent: Node | undefined;
-  readonly data: NodeData;
-  eval<T>(op: () => Operation<T>): Operation<Result<T>>;
-  remove(): Operation<void>;
+	readonly id: string;
+	readonly name: string;
+	readonly props: Record<string, JsonValue>;
+	readonly children: Iterable<Node>;
+	readonly parent: Node | undefined;
+	readonly data: NodeData;
+	eval<T>(op: () => Operation<T>): Operation<Result<T>>;
+	remove(): Operation<void>;
 }
 ```
 
@@ -615,29 +612,26 @@ provide TypeScript type narrowing:
 ```ts
 // Definition (in the app's event layer, NOT in Freedom)
 function onkeydown(
-  handler: (
-    event: KeydownEvent,
-    next: (event: KeydownEvent) => Operation<void>,
-  ) => Operation<void>,
+	handler: (event: KeydownEvent, next: (event: KeydownEvent) => Operation<void>) => Operation<void>,
 ): Operation<void> {
-  return keyboard.around({
-    *keydown([event], next) {
-      return yield* handler(event, (e) => next(e));
-    },
-  });
+	return keyboard.around({
+		*keydown([event], next) {
+			return yield* handler(event, (e) => next(e));
+		},
+	});
 }
 
 // Usage in a component
 function* searchBox(): Operation<void> {
-  yield* set("query", "");
+	yield* set('query', '');
 
-  yield* onkeydown(function* (event, next) {
-    if (event.key === "Enter") {
-      yield* update("query", () => event.text);
-    } else {
-      yield* next(event);
-    }
-  });
+	yield* onkeydown(function* (event, next) {
+		if (event.key === 'Enter') {
+			yield* update('query', () => event.text);
+		} else {
+			yield* next(event);
+		}
+	});
 }
 ```
 
@@ -677,8 +671,7 @@ notifications when the tree changes.
 T5. `createTree(root: Component): Operation<Tree>` creates a tree. It: 1.
 Creates the root Effection scope. 2. Creates the event Signal. 3. Creates the
 root node. 4. Runs the root component within the root node's scope. 5. Spawns
-the event loop, which dispatches events through the root node via `root.eval()`.
-6. Returns the Tree.
+the event loop, which dispatches events through the root node via `root.eval()`. 6. Returns the Tree.
 
 T6. `createTree` returns once the root node's eval loop is ready to accept
 operations. The root component runs concurrently within the root node's scope —
