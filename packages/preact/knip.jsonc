@@ -1,0 +1,7 @@
+{
+	"$schema": "https://unpkg.com/knip@5/schema.json",
+	// react-shim's default export re-exports preact/compat to back the `react`
+	// alias (`import React from 'react'`). That consumer is a build/test alias,
+	// not a traceable import, so knip can't see the usage — ignore the file.
+	"ignore": ["src/react-shim.ts"]
+}

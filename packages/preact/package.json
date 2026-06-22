@@ -1,0 +1,46 @@
+{
+	"name": "@clack/ui-preact",
+	"version": "0.0.0",
+	"description": "Preact binding for @clack/ui",
+	"keywords": [
+		"bombshell",
+		"cli",
+		"preact",
+		"tui"
+	],
+	"homepage": "https://bomb.sh/docs/ui",
+	"license": "MIT",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "bsh build --dts",
+		"format": "bsh format",
+		"lint": "bsh lint"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*",
+		"preact": "^10.0.0"
+	},
+	"devDependencies": {
+		"@bomb.sh/tools": "latest",
+		"@types/node": "^22.14.0"
+	}
+}

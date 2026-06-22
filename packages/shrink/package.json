@@ -1,0 +1,63 @@
+{
+	"name": "@clack/ui-shrink",
+	"version": "0.0.0",
+	"description": "ink-compatible drop-in built on @clack/ui + Preact",
+	"keywords": [
+		"bombshell",
+		"cli",
+		"ink",
+		"tui"
+	],
+	"homepage": "https://bomb.sh/docs/ui",
+	"license": "MIT",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"build": "bsh build --dts",
+		"format": "bsh format",
+		"lint": "bsh lint"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*",
+		"@clack/ui-preact": "workspace:*",
+		"chalk": "^5.0.0",
+		"is-in-ci": "^1.0.0",
+		"preact": "^10.0.0",
+		"strip-ansi": "^7.0.0"
+	},
+	"devDependencies": {
+		"@sinonjs/fake-timers": "^11.0.0",
+		"@types/node": "^22.14.0",
+		"@types/sinon": "^17.0.0",
+		"ansi-escapes": "^6.0.0",
+		"boxen": "^8.0.0",
+		"cli-boxes": "^4.0.1",
+		"delay": "^6.0.0",
+		"indent-string": "^5.0.0",
+		"sinon": "^17.0.0",
+		"slice-ansi": "^9.0.0",
+		"string-width": "^8.2.1",
+		"tsx": "^4.0.0",
+		"typescript": "^5.0.0",
+		"vitest": "^4.1.2"
+	}
+}

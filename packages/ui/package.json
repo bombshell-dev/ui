@@ -19,7 +19,12 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./dist/index.js"
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./dom": {
+			"types": "./dist/dom.d.mts",
+			"import": "./dist/dom.mjs"
 		},
 		"./package.json": "./package.json"
 	},
@@ -28,13 +33,19 @@
 	},
 	"scripts": {
 		"dev": "bsh dev",
-		"build": "bsh build",
+		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
 		"test": "bsh test"
 	},
+	"dependencies": {
+		"chalk": "^5.0.0",
+		"clayterm": "link:../../../clayterm/.worktrees/spike-ink/build/npm",
+		"strip-ansi": "^7.0.0"
+	},
 	"devDependencies": {
-		"@bomb.sh/tools": "latest"
+		"@bomb.sh/tools": "latest",
+		"@types/node": "^22.14.0"
 	},
 	"devEngines": {
 		"packageManager": {
