@@ -19,7 +19,8 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./dist/index.js"
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs"
 		},
 		"./package.json": "./package.json"
 	},
@@ -28,13 +29,13 @@
 	},
 	"scripts": {
 		"dev": "bsh dev",
-		"build": "bsh build",
+		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
 		"test": "bsh test"
 	},
 	"devDependencies": {
-		"@bomb.sh/tools": "^0.5.3",
+		"@bomb.sh/tools": "^0.5.4",
 		"vitest": "^4.1.9"
 	},
 	"devEngines": {
