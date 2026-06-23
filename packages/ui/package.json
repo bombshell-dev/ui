@@ -47,5 +47,8 @@
 			"version": "^22.14.0",
 			"onFail": "error"
 		}
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0"
 	}
 }
