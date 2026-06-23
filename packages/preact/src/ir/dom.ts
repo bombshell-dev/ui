@@ -129,8 +129,3 @@ export class Document extends Element {
 		return text;
 	}
 }
-
-/** Create a fresh, minimally-viable document. */
-export function createDocument(): Document {
-	return new Document();
-}
