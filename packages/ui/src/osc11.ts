@@ -70,3 +70,77 @@ export function luminance(color: Rgb): number {
 export function isDark(color: Rgb, threshold = 0.5): boolean {
 	return luminance(color) < threshold;
 }
+
+export interface QueryBackgroundColorOptions {
+	/** Read stream for the response. Default: process.stdin. */
+	input?: NodeJS.ReadStream;
+	/** Write stream for the query. Default: process.stdout. */
+	output?: NodeJS.WriteStream;
+	/** Milliseconds before giving up. Default: 100. */
+	timeout?: number;
+	/** Optional abort signal. */
+	signal?: AbortSignal;
+}
+
+/**
+ * Query the terminal's background color via OSC 11.
+ *
+ * Resolves the parsed color, or undefined on timeout, non-TTY, abort, or
+ * unparsable response. Never rejects for environmental reasons.
+ *
+ * Consumes stdin while waiting, so run it as a one-shot probe at startup
+ * before the main input loop takes over.
+ */
+export function queryBackgroundColor(
+	options: QueryBackgroundColorOptions = {},
+): Promise<Rgb | undefined> {
+	const { input = process.stdin, output = process.stdout, timeout = 100, signal } = options;
+
+	return new Promise<Rgb | undefined>((resolve) => {
+		if (!input.isTTY || !output.isTTY) {
+			resolve(undefined);
+			return;
+		}
+
+		let buffer = new Uint8Array(0);
+		let settled = false;
+		const prevRaw = input.isRaw;
+		const wasPaused = input.isPaused();
+
+		function finish(result: Rgb | undefined): void {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			input.off('data', onData);
+			signal?.removeEventListener('abort', onAbort);
+			input.setRawMode(prevRaw);
+			if (wasPaused) input.pause();
+			resolve(result);
+		}
+
+		const onData = (chunk: Buffer): void => {
+			const next = new Uint8Array(buffer.length + chunk.length);
+			next.set(buffer);
+			next.set(chunk, buffer.length);
+			buffer = next;
+			const color = parseColorResponse(buffer);
+			if (color) finish(color);
+		};
+
+		const onAbort = (): void => finish(undefined);
+		const timer = setTimeout(() => finish(undefined), timeout);
+
+		if (signal) {
+			if (signal.aborted) {
+				finish(undefined);
+				return;
+			}
+			signal.addEventListener('abort', onAbort);
+		}
+
+		input.setRawMode(true);
+		input.resume();
+		input.on('data', onData);
+		output.write(BACKGROUND_COLOR_QUERY);
+	});
+}

@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { BACKGROUND_COLOR_QUERY, isDark, luminance, parseColorResponse } from './osc11.js';
+import { createMocks } from '@bomb.sh/tools/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+	BACKGROUND_COLOR_QUERY,
+	isDark,
+	luminance,
+	parseColorResponse,
+	queryBackgroundColor,
+} from './osc11.js';
 
 describe('BACKGROUND_COLOR_QUERY', () => {
 	it('is the OSC 11 request sequence ESC ] 11 ; ? BEL', () => {
@@ -102,5 +109,84 @@ describe('luminance / isDark', () => {
 		const gray = { r: 128, g: 128, b: 128 };
 		expect(isDark(gray, 0.9)).toBe(true);
 		expect(isDark(gray, 0.1)).toBe(false);
+	});
+});
+
+describe('queryBackgroundColor', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('writes the query and resolves the parsed reply', async () => {
+		const { input, output } = createMocks({
+			input: { isTTY: true },
+			output: { isTTY: true },
+		});
+		const promise = queryBackgroundColor({
+			input: input as unknown as NodeJS.ReadStream,
+			output: output as unknown as NodeJS.WriteStream,
+		});
+		// The data listener is attached synchronously; emit the reply.
+		input.emit('data', Buffer.from('\x1b]11;rgb:1c1c/1c1c/1c1c\x07'));
+		expect(await promise).toEqual({ r: 28, g: 28, b: 28 });
+		expect(output.buffer.join('')).toContain(']11;?');
+	});
+
+	it('resolves undefined when output is not a TTY', async () => {
+		const { input, output } = createMocks({
+			input: { isTTY: true },
+			output: { isTTY: false },
+		});
+		expect(
+			await queryBackgroundColor({
+				input: input as unknown as NodeJS.ReadStream,
+				output: output as unknown as NodeJS.WriteStream,
+			}),
+		).toBeUndefined();
+		expect(output.buffer.join('')).toBe('');
+	});
+
+	it('resolves undefined on timeout', async () => {
+		vi.useFakeTimers();
+		const { input, output } = createMocks({
+			input: { isTTY: true },
+			output: { isTTY: true },
+		});
+		const promise = queryBackgroundColor({
+			input: input as unknown as NodeJS.ReadStream,
+			output: output as unknown as NodeJS.WriteStream,
+			timeout: 50,
+		});
+		await vi.advanceTimersByTimeAsync(50);
+		expect(await promise).toBeUndefined();
+	});
+
+	it('resolves undefined when the signal is aborted', async () => {
+		const { input, output } = createMocks({
+			input: { isTTY: true },
+			output: { isTTY: true },
+		});
+		const controller = new AbortController();
+		const promise = queryBackgroundColor({
+			input: input as unknown as NodeJS.ReadStream,
+			output: output as unknown as NodeJS.WriteStream,
+			signal: controller.signal,
+		});
+		controller.abort();
+		expect(await promise).toBeUndefined();
+	});
+
+	it('resolves undefined when the signal is already aborted', async () => {
+		const { input, output } = createMocks({
+			input: { isTTY: true },
+			output: { isTTY: true },
+		});
+		const result = await queryBackgroundColor({
+			input: input as unknown as NodeJS.ReadStream,
+			output: output as unknown as NodeJS.WriteStream,
+			signal: AbortSignal.abort(),
+		});
+		expect(result).toBeUndefined();
+		expect(output.buffer.join('')).toBe('');
 	});
 });
