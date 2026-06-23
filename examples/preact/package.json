@@ -1,0 +1,12 @@
+{
+    "name": "@examples/preact",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "start": "node src/index.ts"
+    },
+    "dependencies": {
+        "preact": "11.0.0-beta.1",
+        "@clack/ui-preact": "workspace:*"
+    }
+}

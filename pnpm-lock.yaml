@@ -10,7 +10,22 @@ importers:
     devDependencies:
       '@bomb.sh/tools':
         specifier: ^0.5.1
-        version: 0.5.1(@types/node@26.0.0)(oxc-resolver@11.20.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.5.1(@types/node@26.0.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
+
+  examples/basic:
+    dependencies:
+      '@clack/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+
+  examples/preact:
+    dependencies:
+      '@clack/ui-preact':
+        specifier: workspace:*
+        version: link:../../packages/preact
+      preact:
+        specifier: 11.0.0-beta.1
+        version: 11.0.0-beta.1
 
   packages/preact:
     dependencies:
@@ -20,13 +35,19 @@ importers:
     devDependencies:
       '@bomb.sh/tools':
         specifier: ^0.5.3
-        version: 0.5.3(@types/node@26.0.0)(oxc-resolver@11.20.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.5.3(@types/node@26.0.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
       '@types/node':
         specifier: ^26.0.0
         version: 26.0.0
       preact:
         specifier: 11.0.0-beta.1
         version: 11.0.0-beta.1
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/ui:
     dependencies:
@@ -36,7 +57,16 @@ importers:
     devDependencies:
       '@bomb.sh/tools':
         specifier: latest
-        version: 0.5.3(@types/node@26.0.0)(oxc-resolver@11.20.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.5.3(@types/node@22.20.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
 
 packages:
 
@@ -777,6 +807,9 @@ packages:
   '@types/jsesc@2.5.1':
     resolution: {integrity: sha512-9VN+6yxLOPLOav+7PwjZbxiID2bVaeq0ED4qSQmdQTdjnXJSaCVKTR58t15oqH1H5t8Ng2ZX1SabJVoN9Q34bw==}
 
+  '@types/node@22.20.0':
+    resolution: {integrity: sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==}
+
   '@types/node@26.0.0':
     resolution: {integrity: sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA==}
 
@@ -1213,6 +1246,11 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   ultramatter@0.0.4:
     resolution: {integrity: sha512-1f/hO3mR+/Hgue4eInOF/Qm/wzDqwhYha4DxM0hre9YIUyso3fE2XtrAU6B4njLqTC8CM49EZaYgsVSa+dXHGw==}
 
@@ -1222,6 +1260,9 @@ packages:
 
   unconfig-core@7.5.0:
     resolution: {integrity: sha512-Su3FauozOGP44ZmKdHy2oE6LPjk51M/TRRjHv2HNCWiDvfvCoxC2lno6jevMA91MYAdCdwP05QnWdWpSbncX/w==}
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
@@ -1368,7 +1409,7 @@ snapshots:
 
   '@bomb.sh/args@0.3.1': {}
 
-  '@bomb.sh/tools@0.5.1(@types/node@26.0.0)(oxc-resolver@11.20.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))':
+  '@bomb.sh/tools@0.5.1(@types/node@26.0.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@bomb.sh/args': 0.3.1
       '@humanfs/node': 0.16.8
@@ -1379,7 +1420,7 @@ snapshots:
       oxlint: 1.69.0
       publint: 0.3.21
       tinyexec: 1.2.4
-      tsdown: 0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)
+      tsdown: 0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)(typescript@6.0.3)
       ultramatter: 0.0.4
       vitest: 4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
       vitest-ansi-serializer: 0.2.1(vitest@4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0)))
@@ -1410,7 +1451,7 @@ snapshots:
       - vite-plus
       - vue-tsc
 
-  '@bomb.sh/tools@0.5.3(@types/node@26.0.0)(oxc-resolver@11.20.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))':
+  '@bomb.sh/tools@0.5.3(@types/node@22.20.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@bomb.sh/args': 0.3.1
       '@humanfs/node': 0.16.8
@@ -1421,7 +1462,49 @@ snapshots:
       oxlint: 1.69.0
       publint: 0.3.21
       tinyexec: 1.2.4
-      tsdown: 0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)
+      tsdown: 0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)(typescript@6.0.3)
+      ultramatter: 0.0.4
+      vitest: 4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      vitest-ansi-serializer: 0.2.1(vitest@4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)))
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@edge-runtime/vm'
+      - '@opentelemetry/api'
+      - '@ts-macro/tsc'
+      - '@tsdown/css'
+      - '@tsdown/exe'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - '@vitest/browser-playwright'
+      - '@vitest/browser-preview'
+      - '@vitest/browser-webdriverio'
+      - '@vitest/coverage-istanbul'
+      - '@vitest/coverage-v8'
+      - '@vitest/ui'
+      - happy-dom
+      - jsdom
+      - msw
+      - oxc-resolver
+      - oxlint-tsgolint
+      - synckit
+      - typescript
+      - unplugin-unused
+      - vite
+      - vite-plus
+      - vue-tsc
+
+  '@bomb.sh/tools@0.5.3(@types/node@26.0.0)(oxc-resolver@11.20.0)(typescript@6.0.3)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))':
+    dependencies:
+      '@bomb.sh/args': 0.3.1
+      '@humanfs/node': 0.16.8
+      '@humanfs/types': 0.15.0
+      '@typescript/native-preview': 7.0.0-dev.20260427.1
+      knip: 6.16.1
+      oxfmt: 0.47.0
+      oxlint: 1.69.0
+      publint: 0.3.21
+      tinyexec: 1.2.4
+      tsdown: 0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)(typescript@6.0.3)
       ultramatter: 0.0.4
       vitest: 4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
       vitest-ansi-serializer: 0.2.1(vitest@4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0)))
@@ -1874,6 +1957,10 @@ snapshots:
 
   '@types/jsesc@2.5.1': {}
 
+  '@types/node@22.20.0':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/node@26.0.0':
     dependencies:
       undici-types: 8.3.0
@@ -1917,6 +2004,14 @@ snapshots:
       '@vitest/utils': 4.1.8
       chai: 6.2.2
       tinyrainbow: 3.1.0
+
+  '@vitest/mocker@4.1.8(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))':
+    dependencies:
+      '@vitest/spy': 4.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
 
   '@vitest/mocker@4.1.8(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
@@ -2208,7 +2303,7 @@ snapshots:
 
   resolve-pkg-maps@1.0.0: {}
 
-  rolldown-plugin-dts@0.23.2(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(rolldown@1.0.0-rc.17):
+  rolldown-plugin-dts@0.23.2(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(rolldown@1.0.0-rc.17)(typescript@6.0.3):
     dependencies:
       '@babel/generator': 8.0.0-rc.3
       '@babel/helper-validator-identifier': 8.0.0-rc.3
@@ -2223,6 +2318,7 @@ snapshots:
       rolldown: 1.0.0-rc.17
     optionalDependencies:
       '@typescript/native-preview': 7.0.0-dev.20260427.1
+      typescript: 6.0.3
     transitivePeerDependencies:
       - oxc-resolver
 
@@ -2301,7 +2397,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tsdown@0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21):
+  tsdown@0.21.10(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(publint@0.3.21)(typescript@6.0.3):
     dependencies:
       ansis: 4.3.1
       cac: 7.0.0
@@ -2312,7 +2408,7 @@ snapshots:
       obug: 2.1.2
       picomatch: 4.0.4
       rolldown: 1.0.0-rc.17
-      rolldown-plugin-dts: 0.23.2(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(rolldown@1.0.0-rc.17)
+      rolldown-plugin-dts: 0.23.2(@typescript/native-preview@7.0.0-dev.20260427.1)(oxc-resolver@11.20.0)(rolldown@1.0.0-rc.17)(typescript@6.0.3)
       semver: 7.8.4
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
@@ -2321,6 +2417,7 @@ snapshots:
       unrun: 0.2.39
     optionalDependencies:
       publint: 0.3.21
+      typescript: 6.0.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'
       - '@typescript/native-preview'
@@ -2331,6 +2428,8 @@ snapshots:
   tslib@2.8.1:
     optional: true
 
+  typescript@6.0.3: {}
+
   ultramatter@0.0.4: {}
 
   unbash@3.0.0: {}
@@ -2340,11 +2439,26 @@ snapshots:
       '@quansync/fs': 1.0.0
       quansync: 1.0.0
 
+  undici-types@6.21.0: {}
+
   undici-types@8.3.0: {}
 
   unrun@0.2.39:
     dependencies:
       rolldown: 1.0.0-rc.17
+
+  vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.15
+      rolldown: 1.0.3
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 22.20.0
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      yaml: 2.9.0
 
   vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
@@ -2359,9 +2473,40 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.0
 
+  vitest-ansi-serializer@0.2.1(vitest@4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))):
+    dependencies:
+      vitest: 4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+
   vitest-ansi-serializer@0.2.1(vitest@4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))):
     dependencies:
       vitest: 4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0))
+
+  vitest@4.1.8(@types/node@22.20.0)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)):
+    dependencies:
+      '@vitest/expect': 4.1.8
+      '@vitest/mocker': 4.1.8(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.8
+      '@vitest/runner': 4.1.8
+      '@vitest/snapshot': 4.1.8
+      '@vitest/spy': 4.1.8
+      '@vitest/utils': 4.1.8
+      es-module-lexer: 2.1.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.2
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.2.4
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.0
+      vite: 8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 22.20.0
+    transitivePeerDependencies:
+      - msw
 
   vitest@4.1.8(@types/node@26.0.0)(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
