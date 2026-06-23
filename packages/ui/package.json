@@ -34,7 +34,8 @@
 		"test": "bsh test"
 	},
 	"devDependencies": {
-		"@bomb.sh/tools": "latest"
+		"@bomb.sh/tools": "^0.5.3",
+		"vitest": "^4.1.9"
 	},
 	"devEngines": {
 		"packageManager": {
@@ -47,5 +48,9 @@
 			"version": "^22.14.0",
 			"onFail": "error"
 		}
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@types/node": "^22.20.0"
 	}
 }
