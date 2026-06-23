@@ -1,7 +1,4 @@
-/**
- * Minimal DOM implementation, trimmed to the exact surface of Preact 11
- */
-
+// Minimal DOM, trimmed to the exact surface Preact 11 touches.
 const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;

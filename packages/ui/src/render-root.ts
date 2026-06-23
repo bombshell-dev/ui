@@ -11,17 +11,7 @@ export interface RenderRootOptions {
 	height?: number;
 }
 
-/**
- * Owns a `@bomb.sh/tty` terminal and turns an op-producing closure into written
- * output. Framework bindings supply a `produce` function (e.g. one that walks
- * their host tree via `toOps`) and call {@link RenderRoot.requestUpdate}
- * whenever the tree changes.
- *
- * Each `requestUpdate` hands the *entire* op stream to `Term.render`, which
- * diffs internally — so this re-walks and re-renders in full on every update.
- * That is intentional for proving the bindings out; coalescing happens at the
- * binding's commit hook, and finer-grained diffing is a later optimization.
- */
+/** Owns a tty terminal; each {@link RenderRoot.requestUpdate} re-renders the full op stream (diffing happens in `Term.render`). */
 export class RenderRoot {
 	#produce: () => Op[];
 	#output: WriteStream;
@@ -62,11 +52,7 @@ export interface Root {
 	render(node: Node | Node[]): void;
 }
 
-/**
- * Create a framework-free render root. Build a tree with `box`/`text` and hand
- * it to {@link Root.render}; resolves once the terminal is ready so the first
- * render paints immediately.
- */
+/** Create a framework-free render root. Resolves once the terminal is ready. */
 export async function createRoot(output: WriteStream = process.stdout): Promise<Root> {
 	let current: Node[] = [];
 	const root = new RenderRoot(() => toOps(current), { output });

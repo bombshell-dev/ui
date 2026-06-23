@@ -1,11 +1,7 @@
 import { Document, Element, type Node } from './dom.ts';
 
-/**
- * Sidecar that instruments the minimal DOM in `dom.ts` with the two things the
- * tty walker needs — a stable element id and a captured props bag — without
- * adding either to the DOM itself. State lives in a `WeakMap` keyed by the
- * element, so `dom.ts` stays a pure Preact host.
- */
+// Tracks each instrumented element's id + captured props off-DOM (in a WeakMap),
+// so `dom.ts` stays a pure Preact host.
 interface NodeState {
 	id: string;
 	props: Record<string, unknown>;
@@ -14,15 +10,9 @@ interface NodeState {
 const states = new WeakMap<Node, NodeState>();
 let nextId = 0;
 
-/**
- * Diverts the framework's host-prop writes into the off-DOM props bag.
- *
- * Preact assigns a prop via `dom[name] = value` only when `name in dom`,
- * otherwise it stringifies through `setAttribute`. The `has` trap reports every
- * name as present to force the property path, and the `set` trap captures those
- * writes — while leaving Preact's own `__`-prefixed expandos (e.g. `__k`, `__e`)
- * and real {@link Node} members to assign normally.
- */
+// Force Preact down the property path (`has` → `name in dom` is always true) so
+// host props are captured as-is into the props bag, while its `__`-prefixed
+// expandos and real Node members still assign normally.
 const handler: ProxyHandler<Element> = {
 	has() {
 		return true;
@@ -39,11 +29,8 @@ const handler: ProxyHandler<Element> = {
 	},
 };
 
-/**
- * A {@link Document} whose elements are wrapped so their id + props are tracked
- * in the sidecar. Preact creates host nodes through `ownerDocument`, so wrapping
- * here is enough to instrument the whole tree.
- */
+// Preact creates host nodes via `ownerDocument`, so wrapping them here
+// instruments the whole tree.
 class InstrumentedDocument extends Document {
 	override createElementNS(namespaceURI: string | null, localName: string): Element {
 		const element = super.createElementNS(namespaceURI, localName);

@@ -5,9 +5,8 @@ import { RenderRoot, toOps } from '@clack/ui';
 import { createDocument } from '../ir/node-state.ts';
 import { domToTree } from './to-tree.ts';
 
-// Preact 11 beta still references a global `document` inside `render()`
-// (https://github.com/preactjs/preact/pull/5119). Define it so the access
-// doesn't throw; our container is never strictly equal to it.
+// Preact 11 beta reads a global `document` in `render()` (preactjs/preact#5119);
+// define it so the access doesn't throw — our container is never equal to it.
 if (!('document' in globalThis)) {
 	(globalThis as { document?: unknown }).document = undefined;
 }
@@ -19,13 +18,7 @@ export interface Root {
 	unmount(): void;
 }
 
-/**
- * Create a render root bound to a `tty` terminal. Resolves once the terminal is
- * ready, so the first {@link Root.render} paints on the next microtask.
- *
- * Preact owns reactivity and diffing; we only translate its committed host tree
- * into `tty` ops and ask the terminal to re-render.
- */
+/** Create a render root bound to a tty terminal. Preact owns diffing; we translate its committed tree to ops and re-render. */
 export async function createRoot(output: WriteStream = process.stdout): Promise<Root> {
 	const document = createDocument();
 	const container = document.body;
@@ -45,14 +38,9 @@ export async function createRoot(output: WriteStream = process.stdout): Promise<
 	};
 }
 
-// --- update hook: coalesce Preact's per-diff callbacks into one tty flush ---
-//
-// We hook the public `options.diffed` rather than the internal `_commit`: the
-// internal hook is mangled in Preact's published build (`options.__c`), so
-// assigning `options._commit` is a no-op against the dist. `diffed` is public,
-// unmangled, and fires per-vnode (post-order) — `scheduleFlush` collapses that
-// burst into a single render on the next microtask, once the tree is committed.
-
+// Coalesce Preact's per-vnode `diffed` callbacks into one flush. We hook the
+// public `diffed` (not internal `_commit`, which is mangled to `__c` in the
+// published build) and collapse the burst via `scheduleFlush`.
 const activeRoots = new Set<RenderRoot>();
 const dirty = new Set<RenderRoot>();
 let scheduled = false;
