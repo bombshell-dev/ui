@@ -23,6 +23,19 @@ describe('resolveTerminfoPath', () => {
 		expect(samePath(url, fixture.resolve('x', 'xterm-256color'))).toBe(true);
 	});
 
+	it('finds a file under $HOME/.terminfo', async () => {
+		// createFixture's inline tree can't express a dotted directory key
+		// (it treats any name containing "." as a file), so write the
+		// $HOME/.terminfo entry imperatively via the scoped hfs API.
+		const fixture = await createFixture({});
+		await fixture.write('.terminfo/x/xterm-256color', MAGIC());
+		const url = await resolveTerminfoPath({
+			term: 'xterm-256color',
+			env: { HOME: fileURLToPath(fixture.root) },
+		});
+		expect(samePath(url, fixture.resolve('.terminfo', 'x', 'xterm-256color'))).toBe(true);
+	});
+
 	it('finds a file in a macOS-style hex directory', async () => {
 		const fixture = await createFixture({
 			'78': { 'xterm-256color': MAGIC() },
