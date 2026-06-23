@@ -1,0 +1,60 @@
+{
+	"name": "@clack/ui-preact",
+	"version": "0.0.0",
+	"keywords": [
+		"bombshell",
+		"cli"
+	],
+	"homepage": "https://bomb.sh/docs/ui/preact",
+	"license": "MIT",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git",
+		"directory": "packages/preact"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"dev": "bsh dev",
+		"build": "bsh build",
+		"format": "bsh format",
+		"lint": "bsh lint",
+		"test": "bsh test"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@bomb.sh/tools": "^0.5.3",
+		"@types/node": "^26.0.0",
+		"preact": "11.0.0-beta.1"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "^10.7.0",
+			"onFail": "error"
+		},
+		"runtime": {
+			"name": "node",
+			"version": "^22.14.0",
+			"onFail": "error"
+		}
+	},
+	"peerDependencies": {
+		"preact": "11.0.0-beta.1"
+	}
+}
