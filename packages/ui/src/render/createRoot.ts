@@ -1,6 +1,9 @@
 import type { WriteStream } from 'node:tty';
 import { createTerm, type Op, type Term } from '@bomb.sh/tty';
-import { type Node, nodesToOps } from '../tree/index.ts';
+
+/** A renderable node: a single op (e.g. `text`) or a list of ops (e.g. `box`). */
+export type Node = Op | Op[];
+export type LiteralChild = string | number | boolean | null | undefined;
 
 export interface RenderRootOptions {
 	/** Stream to write rendered frames to. Defaults to `process.stdout`. */
@@ -11,16 +14,15 @@ export interface RenderRootOptions {
 	height?: number;
 }
 
-/** Owns a tty terminal; each {@link RenderRoot.requestUpdate} re-renders the full op stream (diffing happens in `Term.render`). */
+/** Owns a tty terminal and its children; each {@link RenderRoot.render} re-renders the full op stream (diffing happens in `Term.render`). */
 export class RenderRoot {
-	#produce: () => Op[];
 	#output: WriteStream;
 	#width: number;
 	#height: number;
 	#term?: Term;
+	#children: Op[] = [];
 
-	constructor(produce: () => Op[], options: RenderRootOptions = {}) {
-		this.#produce = produce;
+	constructor(options: RenderRootOptions = {}) {
 		this.#output = options.output ?? process.stdout;
 		this.#width = options.width ?? this.#output.columns ?? 80;
 		this.#height = options.height ?? this.#output.rows ?? 24;
@@ -33,34 +35,24 @@ export class RenderRoot {
 		return this.#term;
 	}
 
-	/** Pre-warm the terminal so the first {@link RenderRoot.requestUpdate} is cheap. */
+	/** Pre-warm the terminal so the first {@link RenderRoot.render} is cheap. */
 	async ready(): Promise<void> {
 		await this.#getTerm();
 	}
 
-	/** Re-render the current tree and write the frame to the output. */
-	async requestUpdate(): Promise<void> {
+	/**
+	 * Render `children` to the output, replacing the previous frame. Call with no
+	 * arguments to re-render the current children (e.g. on resize).
+	 */
+	async render(...children: Node[]): Promise<void> {
+		if (children.length > 0) this.#children = children.flat();
 		const term = await this.#getTerm();
-		const { output } = term.render(this.#produce(), { mode: 'line' });
+		const { output } = term.render(this.#children, { mode: 'line' });
 		this.#output.write(output);
 	}
 }
-
-/** A framework-free render root: pass `box`/`text` nodes to {@link Root.render}. */
-export interface Root {
-	/** Render `node`(s) to the output, replacing the previous frame. */
-	render(node: Node | Node[]): void;
-}
-
-/** Create a framework-free render root. Resolves once the terminal is ready. */
-export async function createRoot(output: WriteStream = process.stdout): Promise<Root> {
-	let current: Node[] = [];
-	const root = new RenderRoot(() => nodesToOps(current), { output });
+export async function createRoot(options?: Pick<RenderRootOptions, 'output'>): Promise<RenderRoot> {
+	const root = new RenderRoot(options);
 	await root.ready();
-	return {
-		render(node) {
-			current = Array.isArray(node) ? node : [node];
-			void root.requestUpdate();
-		},
-	};
+	return root;
 }
