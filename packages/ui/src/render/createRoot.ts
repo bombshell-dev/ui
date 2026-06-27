@@ -1,9 +1,7 @@
 import type { WriteStream } from 'node:tty';
 import { createTerm, type Op, type Term } from '@bomb.sh/tty';
-
-/** A renderable node: a single op (e.g. `text`) or a list of ops (e.g. `box`). */
-export type Node = Op | Op[];
-export type LiteralChild = string | number | boolean | null | undefined;
+import { type Child, normalizeChildren } from '../children.ts';
+import { resolveIds } from './ids.ts';
 
 export interface RenderRootOptions {
 	/** Stream to write rendered frames to. Defaults to `process.stdout`. */
@@ -44,8 +42,8 @@ export class RenderRoot {
 	 * Render `children` to the output, replacing the previous frame. Call with no
 	 * arguments to re-render the current children (e.g. on resize).
 	 */
-	async render(...children: Node[]): Promise<void> {
-		if (children.length > 0) this.#children = children.flat();
+	async render(...children: Child[]): Promise<void> {
+		if (children.length > 0) this.#children = resolveIds(normalizeChildren(children));
 		const term = await this.#getTerm();
 		const { output } = term.render(this.#children, { mode: 'line' });
 		this.#output.write(output);
