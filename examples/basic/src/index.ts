@@ -9,7 +9,7 @@ const blue = rgba(0, 0, 238);
 // Framework-free: build a tree with `box` / `text`, render it once.
 const root = await createRoot();
 
-await root.render(
+root.render(
 	box(
 		{
 			layout: { direction: 'ttb', gap: 1, padding: { top: 1, bottom: 1, left: 2, right: 2 } },

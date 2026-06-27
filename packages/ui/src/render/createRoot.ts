@@ -26,26 +26,23 @@ export class RenderRoot {
 		this.#height = options.height ?? this.#output.rows ?? 24;
 	}
 
-	async #getTerm(): Promise<Term> {
-		if (!this.#term) {
-			this.#term = await createTerm({ width: this.#width, height: this.#height });
-		}
-		return this.#term;
-	}
-
-	/** Pre-warm the terminal so the first {@link RenderRoot.render} is cheap. */
+	/** Initialize the terminal. Required before {@link RenderRoot.render}; {@link createRoot} awaits it for you. */
 	async ready(): Promise<void> {
-		await this.#getTerm();
+		this.#term ??= await createTerm({ width: this.#width, height: this.#height });
 	}
 
 	/**
 	 * Render `children` to the output, replacing the previous frame. Call with no
 	 * arguments to re-render the current children (e.g. on resize).
+	 *
+	 * Synchronous on purpose: `Term.render` and the stream write are both sync, so each
+	 * call runs to completion before the next starts — no await means no microtask gap in
+	 * which a later `render` could clobber this frame. Requires {@link RenderRoot.ready}.
 	 */
-	async render(...children: Child[]): Promise<void> {
+	render(...children: Child[]): void {
+		if (!this.#term) throw new Error('RenderRoot is not ready: await `ready()` (or use `createRoot`) before `render`.');
 		if (children.length > 0) this.#children = resolveIds(normalizeChildren(children));
-		const term = await this.#getTerm();
-		const { output } = term.render(this.#children, { mode: 'line' });
+		const { output } = this.#term.render(this.#children, { mode: 'line' });
 		this.#output.write(output);
 	}
 }
