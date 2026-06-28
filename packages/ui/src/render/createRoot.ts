@@ -43,6 +43,16 @@ const DISPOSE: typeof Symbol.dispose =
 /** ~60fps cadence for animation follow-up frames, in milliseconds. */
 const FRAME_MS = 16;
 
+/** Events that carry screen coordinates (mouse + wheel). */
+function hasPosition(event: InputEvent): event is InputEvent & { x: number; y: number } {
+	return (
+		event.type === 'mousedown' ||
+		event.type === 'mouseup' ||
+		event.type === 'mousemove' ||
+		event.type === 'wheel'
+	);
+}
+
 /** Imperative, reactivity-agnostic event hub over a tty terminal. */
 export class RenderRoot {
 	#outputStream: WriteStream;
@@ -59,6 +69,7 @@ export class RenderRoot {
 	#term?: Term;
 	#parser?: Input;
 	#children: Op[] = [];
+	#pointer?: { x: number; y: number; down: boolean };
 	#listeners = new Set<(event: InputEvent) => void>();
 	#queue: InputEvent[] = [];
 	#emitting = false;
@@ -146,7 +157,13 @@ export class RenderRoot {
 			this.#escTimer = undefined;
 		}
 		const { events, pending } = this.#parser.scan(bytes);
-		for (const event of events) this.#dispatch(event);
+		for (const event of events) {
+			this.#dispatch(event);
+			if (hasPosition(event)) {
+				this.#pointer = { x: event.x, y: event.y, down: event.type === 'mousedown' };
+				this.#draw(this.#pointer);
+			}
+		}
 		if (pending) {
 			this.#escTimer = setTimeout(() => {
 				this.#escTimer = undefined;
@@ -203,6 +220,9 @@ export class RenderRoot {
 		if (pointer) options.pointer = pointer;
 		const result = this.#term.render(this.#children, options);
 		this.#outputStream.write(Buffer.from(result.output));
+		if (pointer) {
+			for (const event of result.events) this.#dispatch(event);
+		}
 	}
 }
 

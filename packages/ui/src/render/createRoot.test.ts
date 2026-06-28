@@ -143,3 +143,31 @@ describe('RenderRoot — pending ESC flush', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — pointer feedback', () => {
+	test('a mouse event triggers a pointer-passing render and emits the resulting pointer events', async () => {
+		const { root, input, parser, term } = makeRoot();
+		await root.start();
+		root.render(text('x'));
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		term.push({ output: new Uint8Array(), events: [{ type: 'pointerclick', id: 'btn' }] });
+		parser.push({ events: [{ type: 'mousedown', button: 'left', x: 3, y: 1 } as InputEvent] });
+		feed(input, [0]);
+		expect(seen.map((e) => e.type)).toEqual(['mousedown', 'pointerclick']);
+		expect(term.renders.at(-1)?.options?.pointer).toMatchObject({ x: 3, y: 1, down: true });
+		root.unmount();
+	});
+
+	test('logical render passes NO pointer and emits no pointer events (feedback-loop cut)', async () => {
+		const { root, term } = makeRoot();
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		term.push({ output: new Uint8Array(), events: [{ type: 'pointerenter', id: 'x' }] });
+		root.render(text('x'));
+		expect(seen).toHaveLength(0);
+		expect(term.renders.at(-1)?.options?.pointer).toBeUndefined();
+		root.unmount();
+	});
+});
