@@ -1,5 +1,6 @@
 import type { InputEvent, Term, TermOptions } from '@bomb.sh/tty';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { box } from '../components/box.ts';
 import { text } from '../components/text.ts';
 import { createRoot, RenderRoot, type RenderRootOptions } from './createRoot.ts';
 import { feed, mockEnv, SENTINEL, Seq } from './test-harness.ts';
@@ -22,14 +23,14 @@ function makeRoot(rootOptions: Partial<RenderRootOptions> = {}, config: { column
 describe('RenderRoot — init and logical render', () => {
 	test('render before ready throws', () => {
 		const { root } = makeRoot();
-		expect(() => root.render(text('x'))).toThrow(/ready/);
+		expect(() => root.render(text({}, 'x'))).toThrow(/ready/);
 	});
 
 	test('render after start writes the term output to the stream', async () => {
 		const { root, output, term } = makeRoot();
 		await root.start();
 		term.push({ output: new TextEncoder().encode(SENTINEL) });
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		expect(output.buffer.join('')).toContain(SENTINEL);
 		expect(term.renders.length).toBeGreaterThanOrEqual(1);
 		root.unmount();
@@ -38,7 +39,7 @@ describe('RenderRoot — init and logical render', () => {
 	test('render() with no args re-renders the cached children', async () => {
 		const { root, term } = makeRoot();
 		await root.start();
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		const after = term.renders.length;
 		root.render();
 		expect(term.renders.length).toBe(after + 1);
@@ -148,7 +149,7 @@ describe('RenderRoot — pointer feedback', () => {
 	test('a mouse event triggers a pointer-passing render and emits the resulting pointer events', async () => {
 		const { root, input, parser, term } = makeRoot();
 		await root.start();
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		const seen: InputEvent[] = [];
 		root.subscribe((e) => seen.push(e));
 		term.push({ output: new Uint8Array(), events: [{ type: 'pointerclick', id: 'btn' }] });
@@ -165,7 +166,7 @@ describe('RenderRoot — pointer feedback', () => {
 		const seen: InputEvent[] = [];
 		root.subscribe((e) => seen.push(e));
 		term.push({ output: new Uint8Array(), events: [{ type: 'pointerenter', id: 'x' }] });
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		expect(seen).toHaveLength(0);
 		expect(term.renders.at(-1)?.options?.pointer).toBeUndefined();
 		root.unmount();
@@ -181,7 +182,7 @@ describe('RenderRoot — animation scheduling', () => {
 		term.push({ output: new Uint8Array(), animating: true });
 		term.push({ output: new Uint8Array(), animating: false });
 		const before = term.renders.length;
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		expect(term.renders.length).toBe(before + 1);
 		vi.advanceTimersByTime(16);
 		expect(term.renders.length).toBe(before + 2);
@@ -200,7 +201,7 @@ describe('RenderRoot — animation scheduling', () => {
 		root.subscribe((e) => seen.push(e));
 		term.push({ output: new Uint8Array(), animating: true });
 		term.push({ output: new Uint8Array(), animating: false, events: [{ type: 'pointerenter', id: 'x' }] });
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		vi.advanceTimersByTime(16);
 		expect(seen).toHaveLength(0);
 		root.unmount();
@@ -221,7 +222,7 @@ describe('RenderRoot — resize', () => {
 			},
 		});
 		await root.start();
-		root.render(text('x'));
+		root.render(text({}, 'x'));
 		const seen: InputEvent[] = [];
 		root.subscribe((e) => seen.push(e));
 		const before = env.term.renders.length;
@@ -289,7 +290,7 @@ describe('RenderRoot — terminal settings and teardown', () => {
 				createInput: async () => env.parser,
 				createTerm: async () => env.term,
 			});
-			root.render(text('x'));
+			root.render(text({}, 'x'));
 			expect(raw).toHaveBeenCalledWith(true);
 		}
 		expect(raw).toHaveBeenLastCalledWith(false);
@@ -336,5 +337,27 @@ describe('RenderRoot — exit safety net', () => {
 		expect(process.listenerCount('exit')).toBe(before + 1);
 		root.unmount();
 		expect(process.listenerCount('exit')).toBe(before);
+	});
+});
+
+describe('RenderRoot — real tty integration', () => {
+	test('feeds real bytes through the real parser/term and emits a real keydown', async () => {
+		const Ascii = { a: 0x61 } as const;
+		const env = mockEnv();
+		// No createInput/createTerm overrides → real @bomb.sh/tty WASM.
+		const root = new RenderRoot({
+			input: env.input as never,
+			output: env.output as never,
+			mode: 'inline',
+			events: ['key'],
+		});
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		root.render(box({}, 'hello'));
+		expect(env.output.buffer.join('')).toContain('hello');
+		feed(env.input, [Ascii.a]);
+		expect(seen.some((e) => e.type === 'keydown' && (e as { key: string }).key === 'a')).toBe(true);
+		root.unmount();
 	});
 });
