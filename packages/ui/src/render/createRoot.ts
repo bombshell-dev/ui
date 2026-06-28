@@ -62,6 +62,7 @@ export class RenderRoot {
 	#listeners = new Set<(event: InputEvent) => void>();
 	#queue: InputEvent[] = [];
 	#emitting = false;
+	#escTimer?: ReturnType<typeof setTimeout>;
 	#onData = (chunk: Buffer | string): void => {
 		const bytes =
 			typeof chunk === 'string'
@@ -127,6 +128,10 @@ export class RenderRoot {
 			this.#inputStream.setRawMode(false);
 		}
 		this.#inputStream.pause?.();
+		if (this.#escTimer) {
+			clearTimeout(this.#escTimer);
+			this.#escTimer = undefined;
+		}
 		this.#listeners.clear();
 	}
 
@@ -136,8 +141,19 @@ export class RenderRoot {
 
 	#scan(bytes?: Uint8Array): void {
 		if (!this.#parser) return;
-		const { events } = this.#parser.scan(bytes);
+		if (this.#escTimer) {
+			clearTimeout(this.#escTimer);
+			this.#escTimer = undefined;
+		}
+		const { events, pending } = this.#parser.scan(bytes);
 		for (const event of events) this.#dispatch(event);
+		if (pending) {
+			this.#escTimer = setTimeout(() => {
+				this.#escTimer = undefined;
+				this.#scan();
+			}, pending.delay);
+			this.#escTimer.unref?.();
+		}
 	}
 
 	/** Is this event category enabled? `resize` (and other non-input events) are always on. */

@@ -110,3 +110,36 @@ describe('RenderRoot — event stream', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — pending ESC flush', () => {
+	test('a pending scan re-scans after the delay and emits the flushed event', async () => {
+		vi.useFakeTimers();
+		const { root, input, parser } = makeRoot();
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		parser.push({ events: [], pending: { delay: 25 } });
+		parser.push({ events: [{ type: 'keydown', key: 'Escape', code: 'Escape' } as InputEvent] });
+		feed(input, [0x1b]);
+		expect(seen).toHaveLength(0);
+		vi.advanceTimersByTime(25);
+		expect(seen.map((e) => e.key)).toEqual(['Escape']);
+		expect(parser.calls.at(-1)).toBeUndefined();
+		root.unmount();
+	});
+
+	test('a new chunk cancels a still-pending flush timer', async () => {
+		vi.useFakeTimers();
+		const { root, input, parser } = makeRoot();
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		parser.push({ events: [], pending: { delay: 25 } });
+		parser.push({ events: [{ type: 'keydown', key: 'ArrowUp', code: 'ArrowUp' } as InputEvent] });
+		feed(input, [0x1b]);
+		feed(input, [0x5b, 0x41]);
+		vi.advanceTimersByTime(25);
+		expect(seen.map((e) => e.key)).toEqual(['ArrowUp']);
+		root.unmount();
+	});
+});
