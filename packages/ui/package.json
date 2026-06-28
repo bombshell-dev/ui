@@ -51,7 +51,7 @@
 		}
 	},
 	"dependencies": {
-		"@bomb.sh/tty": "^0.7.0",
+		"@bomb.sh/tty": "^0.8.0",
 		"@types/node": "^22.20.0"
 	}
 }
