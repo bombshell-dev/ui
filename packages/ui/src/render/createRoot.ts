@@ -81,6 +81,9 @@ export class RenderRoot {
 	#onAbort = (): void => {
 		this.unmount();
 	};
+	#onExit = (): void => {
+		this.unmount();
+	};
 	#onData = (chunk: Buffer | string): void => {
 		const bytes =
 			typeof chunk === 'string'
@@ -136,6 +139,7 @@ export class RenderRoot {
 		this.#inputStream.on('data', this.#onData);
 		this.#inputStream.resume?.();
 		this.#outputStream.on('resize', this.#onResize);
+		process.once('exit', this.#onExit);
 		if (this.#signal) {
 			if (this.#signal.aborted) {
 				this.unmount();
@@ -182,6 +186,7 @@ export class RenderRoot {
 		}
 		this.#outputStream.write(Buffer.from(this.#setting.revert));
 		this.#signal?.removeEventListener('abort', this.#onAbort);
+		process.off('exit', this.#onExit);
 		this.#listeners.clear();
 	}
 

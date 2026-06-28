@@ -327,3 +327,14 @@ describe('RenderRoot — abort signal', () => {
 		expect(env.output.buffer.join('')).toContain(Seq.altBufferOff);
 	});
 });
+
+describe('RenderRoot — exit safety net', () => {
+	test('start registers a process exit handler; unmount removes it', async () => {
+		const before = process.listenerCount('exit');
+		const { root } = makeRoot();
+		await root.start();
+		expect(process.listenerCount('exit')).toBe(before + 1);
+		root.unmount();
+		expect(process.listenerCount('exit')).toBe(before);
+	});
+});
