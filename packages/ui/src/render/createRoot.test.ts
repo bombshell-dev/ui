@@ -171,3 +171,38 @@ describe('RenderRoot — pointer feedback', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — animation scheduling', () => {
+	test('an animating render schedules exactly one follow-up frame per tick until it settles', async () => {
+		vi.useFakeTimers();
+		const { root, term } = makeRoot();
+		await root.start();
+		term.push({ output: new Uint8Array(), animating: true });
+		term.push({ output: new Uint8Array(), animating: true });
+		term.push({ output: new Uint8Array(), animating: false });
+		const before = term.renders.length;
+		root.render(text('x'));
+		expect(term.renders.length).toBe(before + 1);
+		vi.advanceTimersByTime(16);
+		expect(term.renders.length).toBe(before + 2);
+		vi.advanceTimersByTime(16);
+		expect(term.renders.length).toBe(before + 3);
+		vi.advanceTimersByTime(64);
+		expect(term.renders.length).toBe(before + 3);
+		root.unmount();
+	});
+
+	test('animation frames carry no pointer (cannot emit pointer events)', async () => {
+		vi.useFakeTimers();
+		const { root, term } = makeRoot();
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		term.push({ output: new Uint8Array(), animating: true });
+		term.push({ output: new Uint8Array(), animating: false, events: [{ type: 'pointerenter', id: 'x' }] });
+		root.render(text('x'));
+		vi.advanceTimersByTime(16);
+		expect(seen).toHaveLength(0);
+		root.unmount();
+	});
+});

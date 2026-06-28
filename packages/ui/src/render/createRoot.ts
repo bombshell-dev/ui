@@ -74,6 +74,7 @@ export class RenderRoot {
 	#queue: InputEvent[] = [];
 	#emitting = false;
 	#escTimer?: ReturnType<typeof setTimeout>;
+	#frameTimer?: ReturnType<typeof setTimeout>;
 	#onData = (chunk: Buffer | string): void => {
 		const bytes =
 			typeof chunk === 'string'
@@ -142,6 +143,10 @@ export class RenderRoot {
 		if (this.#escTimer) {
 			clearTimeout(this.#escTimer);
 			this.#escTimer = undefined;
+		}
+		if (this.#frameTimer) {
+			clearTimeout(this.#frameTimer);
+			this.#frameTimer = undefined;
 		}
 		this.#listeners.clear();
 	}
@@ -223,6 +228,16 @@ export class RenderRoot {
 		if (pointer) {
 			for (const event of result.events) this.#dispatch(event);
 		}
+		if (result.animating) this.#scheduleFrame();
+	}
+
+	#scheduleFrame(): void {
+		if (this.#frameTimer) return;
+		this.#frameTimer = setTimeout(() => {
+			this.#frameTimer = undefined;
+			this.#draw();
+		}, FRAME_MS);
+		this.#frameTimer.unref?.();
 	}
 }
 
