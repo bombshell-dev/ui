@@ -75,12 +75,27 @@ export class RenderRoot {
 	#emitting = false;
 	#escTimer?: ReturnType<typeof setTimeout>;
 	#frameTimer?: ReturnType<typeof setTimeout>;
+	#unmounted = false;
+	#resizeToken = 0;
 	#onData = (chunk: Buffer | string): void => {
 		const bytes =
 			typeof chunk === 'string'
 				? new TextEncoder().encode(chunk)
 				: new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
 		this.#scan(bytes);
+	};
+	#onResize = (): void => {
+		const width = this.#outputStream.columns ?? this.#width;
+		const height = this.#outputStream.rows ?? this.#height;
+		this.#width = width;
+		this.#height = height;
+		const token = ++this.#resizeToken;
+		void this.#createTerm({ width, height }).then((term) => {
+			if (this.#unmounted || token !== this.#resizeToken) return;
+			this.#term = term;
+			this.#dispatch({ type: 'resize', width, height });
+			this.#draw();
+		});
 	};
 
 	constructor(options: RenderRootOptions = {}) {
@@ -114,6 +129,7 @@ export class RenderRoot {
 		}
 		this.#inputStream.on('data', this.#onData);
 		this.#inputStream.resume?.();
+		this.#outputStream.on('resize', this.#onResize);
 	}
 
 	/** Subscribe to the event stream. Returns an unsubscribe function. */
@@ -135,7 +151,10 @@ export class RenderRoot {
 
 	/** Restore the terminal and detach everything. Idempotent. */
 	unmount(): void {
+		if (this.#unmounted) return;
+		this.#unmounted = true;
 		this.#inputStream.off?.('data', this.#onData);
+		this.#outputStream.off?.('resize', this.#onResize);
 		if (this.#inputStream.isTTY && typeof this.#inputStream.setRawMode === 'function') {
 			this.#inputStream.setRawMode(false);
 		}
@@ -235,6 +254,7 @@ export class RenderRoot {
 		if (this.#frameTimer) return;
 		this.#frameTimer = setTimeout(() => {
 			this.#frameTimer = undefined;
+			if (this.#unmounted) return;
 			this.#draw();
 		}, FRAME_MS);
 		this.#frameTimer.unref?.();

@@ -206,3 +206,54 @@ describe('RenderRoot — animation scheduling', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — resize', () => {
+	test('a stdout resize recreates the term at the new size, emits resize, and re-renders', async () => {
+		const sizes: TermOptions[] = [];
+		const env = mockEnv();
+		const root = new RenderRoot({
+			input: env.input as never,
+			output: env.output as never,
+			createInput: async () => env.parser,
+			createTerm: async (o) => {
+				sizes.push(o);
+				return env.term;
+			},
+		});
+		await root.start();
+		root.render(text('x'));
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		const before = env.term.renders.length;
+		env.output.resize(120, 40);
+		await vi.waitFor(() => expect(sizes.length).toBe(2));
+		expect(sizes.at(-1)).toEqual({ width: 120, height: 40 });
+		expect(seen).toContainEqual({ type: 'resize', width: 120, height: 40 });
+		expect(env.term.renders.length).toBeGreaterThan(before);
+		root.unmount();
+	});
+
+	test('an outdated term rebuild is dropped when a newer resize started first (latest-wins)', async () => {
+		const env = mockEnv();
+		const resolvers: Array<(t: Term) => void> = [];
+		const root = new RenderRoot({
+			input: env.input as never,
+			output: env.output as never,
+			createInput: async () => env.parser,
+			createTerm: () => new Promise<Term>((resolve) => resolvers.push(resolve)),
+		});
+		const started = root.start();
+		resolvers.shift()!(env.term);
+		await started;
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		env.output.resize(100, 30);
+		env.output.resize(110, 35);
+		resolvers.shift()!(env.term);
+		resolvers.shift()!(env.term);
+		await vi.waitFor(() => expect(seen.some((e) => e.type === 'resize')).toBe(true));
+		const widths = seen.filter((e) => e.type === 'resize').map((e) => (e as { width: number }).width);
+		expect(widths).toEqual([110]);
+		root.unmount();
+	});
+});
