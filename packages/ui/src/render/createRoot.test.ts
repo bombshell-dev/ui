@@ -295,3 +295,35 @@ describe('RenderRoot — terminal settings and teardown', () => {
 		expect(raw).toHaveBeenLastCalledWith(false);
 	});
 });
+
+describe('RenderRoot — abort signal', () => {
+	test('aborting the signal unmounts the root', async () => {
+		const ac = new AbortController();
+		const env = mockEnv();
+		const raw = vi.spyOn(env.input, 'setRawMode');
+		await createRoot({
+			input: env.input as never,
+			output: env.output as never,
+			signal: ac.signal,
+			createInput: async () => env.parser,
+			createTerm: async () => env.term,
+		});
+		expect(raw).toHaveBeenLastCalledWith(true);
+		ac.abort();
+		expect(raw).toHaveBeenLastCalledWith(false);
+	});
+
+	test('an already-aborted signal unmounts immediately (terminal restored)', async () => {
+		const ac = new AbortController();
+		ac.abort();
+		const env = mockEnv();
+		await createRoot({
+			input: env.input as never,
+			output: env.output as never,
+			signal: ac.signal,
+			createInput: async () => env.parser,
+			createTerm: async () => env.term,
+		});
+		expect(env.output.buffer.join('')).toContain(Seq.altBufferOff);
+	});
+});

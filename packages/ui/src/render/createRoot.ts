@@ -77,6 +77,10 @@ export class RenderRoot {
 	#frameTimer?: ReturnType<typeof setTimeout>;
 	#unmounted = false;
 	#resizeToken = 0;
+	#signal?: AbortSignal;
+	#onAbort = (): void => {
+		this.unmount();
+	};
 	#onData = (chunk: Buffer | string): void => {
 		const bytes =
 			typeof chunk === 'string'
@@ -109,6 +113,7 @@ export class RenderRoot {
 		this.#setting = resolveSettings({ mode: this.#mode, events: [...this.#events] });
 		this.#createInput = options.createInput ?? ttyCreateInput;
 		this.#createTerm = options.createTerm ?? ttyCreateTerm;
+		this.#signal = options.signal;
 	}
 
 	/** @internal Async WASM init. `start`/`createRoot` call this for you. Idempotent. */
@@ -131,6 +136,13 @@ export class RenderRoot {
 		this.#inputStream.on('data', this.#onData);
 		this.#inputStream.resume?.();
 		this.#outputStream.on('resize', this.#onResize);
+		if (this.#signal) {
+			if (this.#signal.aborted) {
+				this.unmount();
+				return;
+			}
+			this.#signal.addEventListener('abort', this.#onAbort, { once: true });
+		}
 	}
 
 	/** Subscribe to the event stream. Returns an unsubscribe function. */
@@ -169,6 +181,7 @@ export class RenderRoot {
 			this.#frameTimer = undefined;
 		}
 		this.#outputStream.write(Buffer.from(this.#setting.revert));
+		this.#signal?.removeEventListener('abort', this.#onAbort);
 		this.#listeners.clear();
 	}
 
