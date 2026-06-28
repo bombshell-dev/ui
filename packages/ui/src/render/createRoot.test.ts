@@ -124,7 +124,7 @@ describe('RenderRoot — pending ESC flush', () => {
 		feed(input, [0x1b]);
 		expect(seen).toHaveLength(0);
 		vi.advanceTimersByTime(25);
-		expect(seen.map((e) => e.key)).toEqual(['Escape']);
+		expect(seen.map((e) => (e as { key: string }).key)).toEqual(['Escape']);
 		expect(parser.calls.at(-1)).toBeUndefined();
 		root.unmount();
 	});
@@ -140,7 +140,7 @@ describe('RenderRoot — pending ESC flush', () => {
 		feed(input, [0x1b]);
 		feed(input, [0x5b, 0x41]);
 		vi.advanceTimersByTime(25);
-		expect(seen.map((e) => e.key)).toEqual(['ArrowUp']);
+		expect(seen.map((e) => (e as { key: string }).key)).toEqual(['ArrowUp']);
 		root.unmount();
 	});
 });
