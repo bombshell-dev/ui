@@ -59,6 +59,16 @@ export class RenderRoot {
 	#term?: Term;
 	#parser?: Input;
 	#children: Op[] = [];
+	#listeners = new Set<(event: InputEvent) => void>();
+	#queue: InputEvent[] = [];
+	#emitting = false;
+	#onData = (chunk: Buffer | string): void => {
+		const bytes =
+			typeof chunk === 'string'
+				? new TextEncoder().encode(chunk)
+				: new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+		this.#scan(bytes);
+	};
 
 	constructor(options: RenderRootOptions = {}) {
 		this.#outputStream = options.output ?? (process.stdout as WriteStream);
@@ -83,9 +93,22 @@ export class RenderRoot {
 		this.#term ??= term;
 	}
 
-	/** @internal Enter interactive mode. Filled in by later tasks; for now just `ready`. */
+	/** @internal Enter interactive mode: init, raw mode, attach the stdin listener. */
 	async start(): Promise<void> {
 		await this.ready();
+		if (this.#inputStream.isTTY && typeof this.#inputStream.setRawMode === 'function') {
+			this.#inputStream.setRawMode(true);
+		}
+		this.#inputStream.on('data', this.#onData);
+		this.#inputStream.resume?.();
+	}
+
+	/** Subscribe to the event stream. Returns an unsubscribe function. */
+	subscribe(handler: (event: InputEvent) => void): () => void {
+		this.#listeners.add(handler);
+		return () => {
+			this.#listeners.delete(handler);
+		};
 	}
 
 	/** Render `children` (or re-render the cached children when called with no args). Synchronous. */
@@ -97,11 +120,63 @@ export class RenderRoot {
 		this.#draw();
 	}
 
-	/** Restore the terminal and detach everything. Idempotent. Filled in by later tasks. */
-	unmount(): void {}
+	/** Restore the terminal and detach everything. Idempotent. */
+	unmount(): void {
+		this.#inputStream.off?.('data', this.#onData);
+		if (this.#inputStream.isTTY && typeof this.#inputStream.setRawMode === 'function') {
+			this.#inputStream.setRawMode(false);
+		}
+		this.#inputStream.pause?.();
+		this.#listeners.clear();
+	}
 
 	[DISPOSE](): void {
 		this.unmount();
+	}
+
+	#scan(bytes?: Uint8Array): void {
+		if (!this.#parser) return;
+		const { events } = this.#parser.scan(bytes);
+		for (const event of events) this.#dispatch(event);
+	}
+
+	/** Is this event category enabled? `resize` (and other non-input events) are always on. */
+	#enabled(event: InputEvent): boolean {
+		switch (event.type) {
+			case 'keydown':
+			case 'keyup':
+			case 'keyrepeat':
+				return this.#events.has('key');
+			case 'mousedown':
+			case 'mouseup':
+			case 'mousemove':
+			case 'wheel':
+			case 'pointerenter':
+			case 'pointerleave':
+			case 'pointerclick':
+				return this.#events.has('mouse');
+			case 'cursor':
+				return false;
+			default:
+				return true;
+		}
+	}
+
+	/** Emit to listeners. Re-entrant emits are queued, never interleaved. */
+	#dispatch(event: InputEvent): void {
+		if (!this.#enabled(event)) return;
+		this.#queue.push(event);
+		if (this.#emitting) return;
+		this.#emitting = true;
+		try {
+			let next = this.#queue.shift();
+			while (next) {
+				for (const handler of this.#listeners) handler(next);
+				next = this.#queue.shift();
+			}
+		} finally {
+			this.#emitting = false;
+		}
 	}
 
 	/** The one render path. `pointer` is passed only on the mouse-driven mechanical path (Task 6). */

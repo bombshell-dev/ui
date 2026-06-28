@@ -45,3 +45,68 @@ describe('RenderRoot — init and logical render', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — event stream', () => {
+	test('subscribe receives scanned events; off() stops them', async () => {
+		const { root, input, parser } = makeRoot();
+		await root.start();
+		const seen: InputEvent[] = [];
+		const off = root.subscribe((e) => seen.push(e));
+		parser.push({ events: [{ type: 'keydown', key: 'a', code: 'a' } as InputEvent] });
+		feed(input, [0]);
+		expect(seen).toHaveLength(1);
+		expect(seen[0]).toMatchObject({ type: 'keydown', key: 'a' });
+		off();
+		parser.push({ events: [{ type: 'keydown', key: 'b', code: 'b' } as InputEvent] });
+		feed(input, [0]);
+		expect(seen).toHaveLength(1);
+		root.unmount();
+	});
+
+	test('events not in the enable-list are filtered out', async () => {
+		const { root, input, parser } = makeRoot({ events: ['key'] });
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		parser.push({
+			events: [
+				{ type: 'keydown', key: 'a', code: 'a' } as InputEvent,
+				{ type: 'mousedown', button: 'left', x: 1, y: 1 } as InputEvent,
+			],
+		});
+		feed(input, [0]);
+		expect(seen.map((e) => e.type)).toEqual(['keydown']);
+		root.unmount();
+	});
+
+	test('resize events are always delivered regardless of enable-list', async () => {
+		const { root, input, parser } = makeRoot({ events: [] });
+		await root.start();
+		const seen: InputEvent[] = [];
+		root.subscribe((e) => seen.push(e));
+		parser.push({ events: [{ type: 'resize', width: 10, height: 5 } as InputEvent] });
+		feed(input, [0]);
+		expect(seen.map((e) => e.type)).toEqual(['resize']);
+		root.unmount();
+	});
+
+	test('a subscriber that re-enters render() does not interleave dispatch', async () => {
+		const { root, input, parser } = makeRoot();
+		await root.start();
+		const order: string[] = [];
+		root.subscribe((e) => {
+			order.push(`in:${e.type}`);
+			root.render();
+			order.push(`out:${e.type}`);
+		});
+		parser.push({
+			events: [
+				{ type: 'keydown', key: 'a', code: 'a' } as InputEvent,
+				{ type: 'keydown', key: 'b', code: 'b' } as InputEvent,
+			],
+		});
+		feed(input, [0]);
+		expect(order).toEqual(['in:keydown', 'out:keydown', 'in:keydown', 'out:keydown']);
+		root.unmount();
+	});
+});
