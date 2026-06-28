@@ -124,6 +124,7 @@ export class RenderRoot {
 	/** @internal Enter interactive mode: init, raw mode, attach the stdin listener. */
 	async start(): Promise<void> {
 		await this.ready();
+		this.#outputStream.write(Buffer.from(this.#setting.apply));
 		if (this.#inputStream.isTTY && typeof this.#inputStream.setRawMode === 'function') {
 			this.#inputStream.setRawMode(true);
 		}
@@ -167,6 +168,7 @@ export class RenderRoot {
 			clearTimeout(this.#frameTimer);
 			this.#frameTimer = undefined;
 		}
+		this.#outputStream.write(Buffer.from(this.#setting.revert));
 		this.#listeners.clear();
 	}
 

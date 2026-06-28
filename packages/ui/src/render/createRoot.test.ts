@@ -257,3 +257,41 @@ describe('RenderRoot — resize', () => {
 		root.unmount();
 	});
 });
+
+describe('RenderRoot — terminal settings and teardown', () => {
+	test('start writes settings.apply + raw mode; unmount writes settings.revert + clears raw mode', async () => {
+		const { root, input, output } = makeRoot();
+		const raw = vi.spyOn(input, 'setRawMode');
+		await root.start();
+		expect(output.buffer.join('')).toContain(Seq.altBuffer);
+		expect(raw).toHaveBeenCalledWith(true);
+		root.unmount();
+		expect(output.buffer.join('')).toContain(Seq.altBufferOff);
+		expect(raw).toHaveBeenLastCalledWith(false);
+	});
+
+	test('unmount is idempotent', async () => {
+		const { root, output } = makeRoot();
+		await root.start();
+		root.unmount();
+		const writes = output.buffer.length;
+		root.unmount();
+		expect(output.buffer.length).toBe(writes);
+	});
+
+	test('using disposes the root at scope exit', async () => {
+		const env = mockEnv();
+		const raw = vi.spyOn(env.input, 'setRawMode');
+		{
+			using root = await createRoot({
+				input: env.input as never,
+				output: env.output as never,
+				createInput: async () => env.parser,
+				createTerm: async () => env.term,
+			});
+			root.render(text('x'));
+			expect(raw).toHaveBeenCalledWith(true);
+		}
+		expect(raw).toHaveBeenLastCalledWith(false);
+	});
+});
