@@ -1,0 +1,17 @@
+{
+    "name": "@examples/react",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "start": "tsx src/index.tsx",
+        "dev": "tsx watch src/index.tsx"
+    },
+    "dependencies": {
+        "@clack/ui-react": "workspace:*",
+        "react": "^19.2.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.0",
+        "tsx": "^4.19.0"
+    }
+}
