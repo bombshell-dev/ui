@@ -34,6 +34,10 @@
 		"lint": "bsh lint",
 		"test": "bsh test"
 	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@types/node": "^22.20.0"
+	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.5.4",
 		"vitest": "^4.1.9"
@@ -49,9 +53,5 @@
 			"version": "^22.14.0",
 			"onFail": "error"
 		}
-	},
-	"dependencies": {
-		"@bomb.sh/tty": "^0.7.0",
-		"@types/node": "^22.20.0"
 	}
 }
