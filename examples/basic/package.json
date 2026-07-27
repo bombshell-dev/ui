@@ -1,11 +1,11 @@
 {
-    "name": "@examples/basic",
-    "type": "module",
-    "private": true,
-    "scripts": {
-        "start": "node src/index.ts"
-    },
-    "dependencies": {
-        "@clack/ui": "workspace:*"
-    }
+	"name": "@examples/basic",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node src/index.ts"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*"
+	}
 }

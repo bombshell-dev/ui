@@ -40,7 +40,10 @@ export class RenderRoot {
 	 * which a later `render` could clobber this frame. Requires {@link RenderRoot.ready}.
 	 */
 	render(...children: Child[]): void {
-		if (!this.#term) throw new Error('RenderRoot is not ready: await `ready()` (or use `createRoot`) before `render`.');
+		if (!this.#term)
+			throw new Error(
+				'RenderRoot is not ready: await `ready()` (or use `createRoot`) before `render`.',
+			);
 		if (children.length > 0) this.#children = resolveIds(normalizeChildren(children));
 		const { output } = this.#term.render(this.#children, { mode: 'line' });
 		this.#output.write(output);
