@@ -19,8 +19,12 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs"
+		},
+		"./elements": {
+			"types": "./dist/elements.d.mts",
+			"import": "./dist/elements.mjs"
 		},
 		"./package.json": "./package.json"
 	},
