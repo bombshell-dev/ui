@@ -27,6 +27,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@bomb.sh/tree':
+        specifier: workspace:*
+        version: link:../tree
       '@bomb.sh/tty':
         specifier: ^0.7.0
         version: 0.7.0
