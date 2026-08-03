@@ -1,9 +1,4 @@
-import { type BoxProps, type TextProps, rgba } from '@clack/ui';
-import { useBoxElement } from '../../../packages/ui/src/elements/box.ts';
-import { useTextElement } from '../../../packages/ui/src/elements/text.ts';
-import { createHost, type HostElement } from '../../../packages/ui/src/host.ts';
-import { layout } from '../../../packages/ui/src/layout.ts';
-import { RenderRoot } from '../../../packages/ui/src/render/createRoot.ts';
+import { type BoxProps, createUI, rgba, type TextProps, type HostElement } from '@clack/ui';
 
 const cyan = rgba(0, 205, 205);
 const green = rgba(0, 205, 0);
@@ -11,9 +6,9 @@ const white = rgba(229, 229, 229);
 const gray = rgba(127, 127, 127);
 const blue = rgba(0, 0, 238);
 
-const host = createHost();
-useBoxElement(host);
-useTextElement(host);
+const ui = await createUI({ height: 7, inline: true, output: process.stdout });
+
+const { host } = ui;
 
 const app = box(
 	{
@@ -30,10 +25,7 @@ const app = box(
 );
 
 host.insertBefore(host.element, app);
-
-const renderer = new RenderRoot();
-await renderer.ready();
-renderer.render(...layout(app.node!));
+await ui.dispose();
 
 function box(properties: Omit<BoxProps, 'key'>, ...children: HostElement[]): HostElement {
 	const element = host.createElement('box');

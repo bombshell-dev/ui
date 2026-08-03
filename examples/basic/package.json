@@ -3,9 +3,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"start": "node src/index.ts"
+		"start": "node --experimental-strip-types src/index.ts"
 	},
 	"dependencies": {
 		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0"
 	}
 }

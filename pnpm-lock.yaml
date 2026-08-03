@@ -17,6 +17,10 @@ importers:
       '@clack/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.0
 
   packages/tree:
     dependencies:
