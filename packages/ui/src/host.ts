@@ -1,4 +1,5 @@
 // oxlint-disable max-params
+import { text } from '@bomb.sh/tty';
 import { type Node, lifecycle, LifecycleApi } from './core.ts';
 import { Api } from './core/api.ts';
 import {
@@ -8,6 +9,7 @@ import {
 	type HostElement,
 	type HostLiteral,
 } from './elements.ts';
+import { LayoutApi } from './layout.ts';
 
 export interface Host {
 	root: Node;
@@ -36,6 +38,8 @@ export class HostApi extends Api implements Host {
 			children: [],
 		};
 
+		const { element } = this;
+
 		setElement(root, this.element);
 
 		LifecycleApi.decorate(root, () => ({
@@ -46,6 +50,29 @@ export class HostApi extends Api implements Host {
 				}
 				element.node = null;
 				return super.destroy(node);
+			},
+		}));
+
+		LayoutApi.decorate(root, () => ({
+			*layout() {
+				if (this.node !== root) {
+					return yield* super.layout();
+				}
+				let content = '';
+				for (const child of element.children) {
+					if (child.type === 'element') {
+						if (content !== '') {
+							yield text(content);
+							content = '';
+						}
+						yield* LayoutApi.at(child.node!).layout();
+					} else {
+						content += child.content;
+					}
+				}
+				if (content !== '') {
+					yield text(content);
+				}
 			},
 		}));
 	}
