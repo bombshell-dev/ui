@@ -12,6 +12,12 @@ importers:
         specifier: ^0.5.4
         version: 0.5.4(@types/node@22.20.0)(oxc-resolver@11.20.0)(unrun@0.2.39)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.0))
 
+  examples/basic:
+    dependencies:
+      '@clack/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+
   packages/tree:
     dependencies:
       '@types/node':
