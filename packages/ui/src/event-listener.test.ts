@@ -3,7 +3,11 @@ import { describe, expect, expectTypeOf, test } from 'vitest';
 import type { Node } from './core.ts';
 import type { HostElement } from './elements.ts';
 import { createHost, type Host, HostApi } from './host.ts';
-import type { AnyHostEvent } from './events.ts';
+import type { HostEventData } from './events.ts';
+
+interface TestInputEvent extends HostEvent<'@test/input'> {
+	readonly value?: string;
+}
 
 interface ProbeEvent extends HostEvent<'@test/probe'> {
 	readonly value: number;
@@ -12,7 +16,7 @@ interface ProbeEvent extends HostEvent<'@test/probe'> {
 declare module '@clack/ui/events' {
 	interface HostEvents {
 		'@test/focus': HostEvent<'@test/focus'>;
-		'@test/input': HostEvent<'@test/input'>;
+		'@test/input': TestInputEvent;
 		'@test/probe': ProbeEvent;
 	}
 }
@@ -176,6 +180,6 @@ function snapshot(event: HostEvent, target: HostElement): EventSnapshot {
 	};
 }
 
-function emit(node: Node, event: AnyHostEvent): void {
+function emit(node: Node, event: HostEventData): void {
 	HostApi.at(node).emit(event);
 }

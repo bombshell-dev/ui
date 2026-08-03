@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import type { Op } from '@bomb.sh/tty';
 import { Node } from './core.ts';
 import { RenderApi } from './render.ts';
 
@@ -6,7 +7,7 @@ describe('RenderApi', () => {
 	test('renders a requested frame and returns its terminal operations', async () => {
 		const { controller, renderer, iterator } = setup();
 		const pending = iterator.next();
-		const value = [];
+		const value: Op[] = [];
 
 		await expectPending(pending);
 		renderer.request();

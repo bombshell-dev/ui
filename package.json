@@ -37,6 +37,7 @@
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.6.1",
 		"@types/node": "^22.20.0",
+		"@typescript/native-preview": "7.0.0-dev.20260623.1",
 		"vitest": "^4.1.9"
 	},
 	"devEngines": {
