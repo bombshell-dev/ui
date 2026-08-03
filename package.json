@@ -34,7 +34,8 @@
 		"test": "bsh test"
 	},
 	"devDependencies": {
-		"@bomb.sh/tools": "^0.5.4"
+		"@bomb.sh/tools": "^0.5.4",
+		"@typescript/native-preview": "7.0.0-dev.20260623.1"
 	},
 	"devEngines": {
 		"packageManager": {

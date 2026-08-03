@@ -3,9 +3,13 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"start": "node src/index.ts"
+		"start": "tsx src/index.ts"
 	},
 	"dependencies": {
 		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0",
+		"tsx": "^4.19.0"
 	}
 }
