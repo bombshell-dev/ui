@@ -1,0 +1,12 @@
+{
+	"extends": "@bomb.sh/tools/tsconfig.json",
+	"compilerOptions": {
+		"composite": false,
+		"declaration": false,
+		"declarationMap": false,
+		"jsx": "preserve",
+		"jsxImportSource": "@clack/ui-solid",
+		"noEmit": true,
+		"types": ["node"]
+	}
+}

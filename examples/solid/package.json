@@ -1,0 +1,23 @@
+{
+	"name": "@examples/solid",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "babel src --extensions .ts,.tsx --out-dir dist",
+		"prestart": "pnpm run build",
+		"start": "node --conditions=browser dist/index.js"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*",
+		"@clack/ui-solid": "workspace:*",
+		"solid-js": "1.9.14"
+	},
+	"devDependencies": {
+		"@babel/cli": "7.29.7",
+		"@babel/core": "7.29.7",
+		"@babel/preset-typescript": "7.29.7",
+		"@types/node": "^22.20.0",
+		"babel-preset-solid": "1.9.12"
+	}
+}

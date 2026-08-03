@@ -1,0 +1,19 @@
+{
+	"name": "@examples/preact",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "tsx src/index.tsx",
+		"dev": "tsx watch src/index.tsx"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*",
+		"@clack/ui-preact": "workspace:*",
+		"preact": "11.0.0-beta.2"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0",
+		"tsx": "^4.19.0"
+	}
+}
