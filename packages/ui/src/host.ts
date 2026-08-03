@@ -1,4 +1,5 @@
 // oxlint-disable max-params
+import { text as ttyText } from '@bomb.sh/tty';
 import { type Node, create, createApi, createContext, destroy, LifecycleApi } from '@bomb.sh/tree';
 import {
 	getElement,
@@ -7,6 +8,7 @@ import {
 	type HostElement,
 	type TextLiteral,
 } from './elements.ts';
+import { LayoutApi, layout } from './layout.ts';
 
 export interface Host {
 	root: Node;
@@ -31,6 +33,7 @@ export function createHost(): Host {
 	};
 
 	setElement(root, element);
+	useRootLayout(root, element);
 
 	LifecycleApi.around(root, {
 		destroy([node], next) {
@@ -152,4 +155,29 @@ function detach(child: HostElement): void {
 	if (child.node) {
 		destroy(child.node);
 	}
+}
+
+function useRootLayout(root: Node, element: HostElement): void {
+	LayoutApi.around(root, {
+		*layout([node], next) {
+			if (node !== root) {
+				return yield* next(node);
+			}
+			let content = '';
+			for (const child of element.children) {
+				if (child.type === 'element') {
+					if (content !== '') {
+						yield ttyText(content);
+						content = '';
+					}
+					yield* layout(child.node!);
+				} else {
+					content += child.content;
+				}
+			}
+			if (content !== '') {
+				yield ttyText(content);
+			}
+		},
+	});
 }
