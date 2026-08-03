@@ -1,7 +1,9 @@
 export { rgba } from '@bomb.sh/tty';
 export { DispatchApi } from './dispatch.ts';
-export { box, type BoxProps } from './components/box.ts';
-export { text, type TextProps } from './components/text.ts';
-export { layout, LayoutApi } from './layout.ts';
-export { createRoot, type RenderRoot, type RenderRootOptions } from './render/createRoot.ts';
+export * from './elements.ts';
+export type { BoxProps } from './elements/box.ts';
+export type { InputEvent, InputProps } from './elements/input.ts';
+export type { TextProps } from './elements/text.ts';
+export * from './host.ts';
 export { RenderApi } from './render.ts';
+export { createUI } from './ui.ts';
