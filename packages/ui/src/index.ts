@@ -1,4 +1,5 @@
 export { rgba } from '@bomb.sh/tty';
+export { DispatchApi } from './dispatch.ts';
 export { box, type BoxProps } from './components/box.ts';
 export { text, type TextProps } from './components/text.ts';
 export { layout, LayoutApi } from './layout.ts';
