@@ -1,6 +1,7 @@
 // oxlint-disable max-params
 import { RenderApi } from './render.ts';
 import { type Host, HostApi } from './host.ts';
+import { FocusApi } from './focus.ts';
 
 export function useHostRenderer(host: Host): void {
 	HostApi.decorate(host.root, () => ({
@@ -36,6 +37,16 @@ export function useHostRenderer(host: Host): void {
 
 			if (text.parent && text.parent.node) {
 				RenderApi.at(text.parent.node).request();
+			}
+		},
+	}));
+
+	FocusApi.decorate(host.root, () => ({
+		setFocus(node) {
+			const original = this.current;
+			super.setFocus(node);
+			if (original !== node) {
+				RenderApi.at(node).request();
 			}
 		},
 	}));
