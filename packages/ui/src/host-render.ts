@@ -1,5 +1,6 @@
 import { requestRender } from './render.ts';
 import { type Host, HostApi } from './host.ts';
+import { FocusApi, getFocus } from './focus.ts';
 
 export function useHostRenderer(host: Host): void {
 	HostApi.around(host.root, {
@@ -35,6 +36,16 @@ export function useHostRenderer(host: Host): void {
 
 			if (text.parent && text.parent.node) {
 				requestRender(text.parent.node);
+			}
+		},
+	});
+
+	FocusApi.around(host.root, {
+		setFocus([node], next) {
+			const original = getFocus(node);
+			next(node);
+			if (original !== node) {
+				requestRender(node);
 			}
 		},
 	});
