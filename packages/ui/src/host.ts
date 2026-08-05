@@ -9,6 +9,8 @@ import {
 	type TextLiteral,
 } from './elements.ts';
 import { LayoutApi, layout } from './layout.ts';
+import { EmitApi } from './emit.ts';
+import type { HostEventType, HostEvents, HostEventListener } from './events.ts';
 
 export interface Host {
 	root: Node;
@@ -19,6 +21,16 @@ export interface Host {
 	removeChild(parent: HostElement, child: ElementChild): void;
 	setProperty(element: HostElement, name: string, value: unknown): void;
 	setText(text: TextLiteral, content: string): void;
+	addEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void;
+	removeEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void;
 }
 
 export function createHost(): Host {
@@ -46,6 +58,24 @@ export function createHost(): Host {
 		},
 	});
 
+	EmitApi.around(root, {
+		emit([node, event], next): void {
+			next(node, event);
+			const target = getElement(node);
+			const map = ListenerContext.expect(node);
+			const types = map.get(target);
+			if (types) {
+				const listeners = types.get(event.type);
+				if (listeners) {
+					const active = [...listeners];
+					for (const listener of active) {
+						listener(event);
+					}
+				}
+			}
+		},
+	});
+
 	const host: Host = {
 		root,
 		element,
@@ -67,9 +97,16 @@ export function createHost(): Host {
 		setText(text, value) {
 			return HostApi.methods.setText(root, text, value);
 		},
+		addEventListener(element, type, listener): void {
+			return HostApi.methods.addEventListener(root, element, type, listener);
+		},
+		removeEventListener(element, type, listener): void {
+			return HostApi.methods.removeEventListener(root, element, type, listener);
+		},
 	};
 
 	HostContext.set(root, host);
+	ListenerContext.set(root, new WeakMap());
 	return host;
 }
 
@@ -129,9 +166,43 @@ export const HostApi = createApi('host', {
 	getHost(node): Host {
 		return HostContext.expect(node);
 	},
+
+	addEventListener(node, element, type, listener): void {
+		const map = ListenerContext.expect(node);
+		let types = map.get(element);
+		if (!types) {
+			map.set(element, (types = new Map()));
+		}
+		let listeners = types.get(type);
+		if (!listeners) {
+			types.set(type, (listeners = new Set()));
+		}
+		listeners.add(listener);
+	},
+
+	removeEventListener(node, element, type, listener): void {
+		const map = ListenerContext.expect(node);
+		const types = map.get(element);
+		if (types) {
+			const listeners = types.get(type);
+			if (listeners) {
+				listeners.delete(listener);
+				if (listeners.size === 0) {
+					types.delete(type);
+				}
+			}
+			if (types.size === 0) {
+				map.delete(element);
+			}
+		}
+	},
 });
 
 const HostContext = createContext<Host>('host');
+const ListenerContext =
+	createContext<WeakMap<HostElement, Map<string, Set<HostEventListener<keyof HostEvents>>>>>(
+		'listeners',
+	);
 
 function isAttached(element: HostElement): boolean {
 	return !!element.node;

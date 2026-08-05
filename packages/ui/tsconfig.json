@@ -2,7 +2,8 @@
 	"extends": "@bomb.sh/tools/tsconfig.json",
 	"compilerOptions": {
 		"paths": {
-			"@clack/ui/elements": ["./src/elements.ts"]
+			"@clack/ui/elements": ["./src/elements.ts"],
+			"@clack/ui/events": ["./src/events.ts"]
 		},
 		"types": ["node"]
 	}
