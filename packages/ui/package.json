@@ -26,6 +26,10 @@
 			"types": "./dist/elements.d.mts",
 			"import": "./dist/elements.mjs"
 		},
+		"./events": {
+			"types": "./dist/events.d.mts",
+			"import": "./dist/events.mjs"
+		},
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
