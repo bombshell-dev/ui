@@ -1,7 +1,6 @@
 // oxlint-disable max-params
 import { text } from '@bomb.sh/tty';
 import { type Node, lifecycle, LifecycleApi } from './core.ts';
-import { Api } from './core/api.ts';
 import {
 	getElement,
 	setElement,
@@ -10,6 +9,8 @@ import {
 	type HostLiteral,
 } from './elements.ts';
 import { LayoutApi } from './layout.ts';
+import type { HostEventType, HostEventListener, HostEventData } from './events.ts';
+import { Api } from './core/api.ts';
 
 export interface Host {
 	root: Node;
@@ -20,11 +21,22 @@ export interface Host {
 	removeChild(parent: HostElement, child: HostElementChild): void;
 	setProperty(element: HostElement, name: string, value: unknown): void;
 	setText(text: HostLiteral, content: string): void;
+	addEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void;
+	removeEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void;
 }
 
 export class HostApi extends Api implements Host {
 	root: Node;
 	element: HostElement;
+	listeners = new WeakMap<HostElement, Map<string, Set<HostEventListener<HostEventType>>>>();
 
 	constructor(root: Node) {
 		super(root);
@@ -135,6 +147,60 @@ export class HostApi extends Api implements Host {
 
 	getHost(): Host {
 		return HostApi.at(this.root);
+	}
+
+	addEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void {
+		const map = this.listeners;
+		let types = map.get(element);
+		if (!types) {
+			map.set(element, (types = new Map()));
+		}
+		let listeners = types.get(type);
+		if (!listeners) {
+			types.set(type, (listeners = new Set()));
+		}
+		listeners.add(listener as HostEventListener<HostEventType>);
+	}
+
+	removeEventListener<T extends HostEventType>(
+		element: HostElement,
+		type: T,
+		listener: HostEventListener<T>,
+	): void {
+		const map = this.listeners;
+		const types = map.get(element);
+		if (types) {
+			const listeners = types.get(type);
+			if (listeners) {
+				listeners.delete(listener as HostEventListener<HostEventType>);
+				if (listeners.size === 0) {
+					types.delete(type);
+				}
+			}
+			if (types.size === 0) {
+				map.delete(element);
+			}
+		}
+	}
+
+	emit(data: HostEventData): void {
+		const target = getElement(this.node);
+		const event = { ...data, target };
+
+		const types = this.listeners.get(target);
+		if (types) {
+			const listeners = types.get(event.type);
+			if (listeners) {
+				const active = [...listeners];
+				for (const listener of active) {
+					listener(event);
+				}
+			}
+		}
 	}
 }
 
