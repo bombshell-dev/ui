@@ -1,0 +1,15 @@
+{
+	"name": "@examples/hello-world",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node --experimental-strip-types src/index.ts"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0"
+	}
+}
