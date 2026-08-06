@@ -16,4 +16,5 @@ export {
 	mergeProps,
 	use,
 } from './renderer.ts';
+export { createSolidUI, type SolidUI, type SolidUIOptions } from './ui.ts';
 export type { HostRef, JSXElement } from './types.ts';

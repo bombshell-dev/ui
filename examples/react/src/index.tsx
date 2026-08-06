@@ -1,7 +1,7 @@
 import { stdin, stdout } from 'node:process';
 import { createInput, fixed, grow, percent, type Input, type InputEvent } from '@bomb.sh/tty';
-import { createUI, DispatchApi } from '@clack/ui';
-import { createRoot, rgba } from '@clack/ui-react';
+import { DispatchApi } from '@clack/ui';
+import { createReactUI, rgba } from '@clack/ui-react';
 import { type ReactElement, useState } from 'react';
 
 const blue = rgba(0, 0, 238);
@@ -56,16 +56,14 @@ if (!stdin.isTTY) {
 	throw new InteractiveTerminalRequiredError();
 }
 
-const ui = await createUI({ output: stdout });
-const root = createRoot(ui.host);
+const root = await createReactUI({ output: stdout });
 const { host } = root;
 
 try {
 	root.render(<HelloWorld />);
 	await readInput(await createInput());
 } finally {
-	await ui.dispose();
-	root.unmount();
+	await root.dispose();
 }
 
 async function readInput(input: Input): Promise<void> {
