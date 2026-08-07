@@ -1,0 +1,24 @@
+{
+	"name": "@examples/hello-world-solid",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "babel src --extensions .ts,.tsx --out-dir dist --keep-file-extension --delete-dir-on-start",
+		"prestart": "pnpm run build",
+		"start": "tsx --conditions=browser dist/index.tsx"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*",
+		"@clack/ui-solid": "workspace:*",
+		"solid-js": "1.9.14"
+	},
+	"devDependencies": {
+		"@babel/cli": "7.29.7",
+		"@babel/core": "7.29.7",
+		"@babel/preset-typescript": "7.29.7",
+		"@types/node": "^22.20.0",
+		"babel-preset-solid": "1.9.12",
+		"tsx": "^4.19.0"
+	}
+}
