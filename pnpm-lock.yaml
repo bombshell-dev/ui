@@ -56,6 +56,28 @@ importers:
         specifier: ^4.19.0
         version: 4.23.15
 
+  examples/hello-world-preact:
+    dependencies:
+      '@bomb.sh/tty':
+        specifier: ^0.7.0
+        version: 0.7.0
+      '@clack/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@clack/ui-preact':
+        specifier: workspace:*
+        version: link:../../packages/ui-preact
+      preact:
+        specifier: 11.0.0-beta.2
+        version: 11.0.0-beta.2
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.15
+
   examples/hello-world-solid:
     dependencies:
       '@bomb.sh/tty':
@@ -95,6 +117,25 @@ importers:
       '@bomb.sh/tty':
         specifier: 'catalog:'
         version: 0.7.0
+
+  packages/ui-preact:
+    dependencies:
+      '@clack/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@bomb.sh/tools':
+        specifier: ^0.5.4
+        version: 0.5.6(@types/node@22.20.4)(oxc-resolver@11.24.2)(tsx@4.23.15)(vite@8.3.0(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.4
+      preact:
+        specifier: 11.0.0-beta.2
+        version: 11.0.0-beta.2
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@22.20.4)(vite@8.3.0(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/ui-solid:
     dependencies:
@@ -1644,6 +1685,14 @@ packages:
   postcss@8.5.28:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
+
+  preact@11.0.0-beta.2:
+    resolution: {integrity: sha512-7nIgtr4wtls48+fuazknYNuZ3tOuJoo9ZrT+dzXrMBWkcQH5xmOJiibJpmbU8sFmo2IKLFe3eMp84n0Lq0dCHg==}
+    peerDependencies:
+      preact-render-to-string: '>=5'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
 
   publint@0.3.24:
     resolution: {integrity: sha512-9zS56KrKBoqi5Qt8h92uMP8TTM9AYZSgnmCo4u2priMqkOZvQnTsziZ2p5LJ2ywbYkAjoCDp2jda9u4cgFefIw==}
@@ -3273,6 +3322,8 @@ snapshots:
       nanoid: 3.3.19
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  preact@11.0.0-beta.2: {}
 
   publint@0.3.24:
     dependencies:
