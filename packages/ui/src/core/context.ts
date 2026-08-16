@@ -1,5 +1,8 @@
 import type { Node } from './node.ts';
 
+/** Stored in place of an explicitly set `undefined` to stop traversal. */
+const UNSET = Symbol('unset');
+
 /**
  * A `Context` defines a value which is in effect for a given {@link Node}.
  *
@@ -19,12 +22,18 @@ export class Context<T> {
 	}
 
 	get(node: Node): T | undefined {
-		const value = node.contexts[this.name] as T | undefined;
-		return value === undefined ? this.defaultValue : value;
+		for (let n: Node | undefined = node; n; n = n.parent) {
+			const value = n.contexts?.get(this as Context<unknown>);
+			if (value !== undefined) {
+				return value === UNSET ? this.defaultValue : (value as T);
+			}
+		}
+		return this.defaultValue;
 	}
 
 	set(node: Node, value: T): void {
-		node.contexts[this.name] = value;
+		const contexts = (node.contexts ??= new Map());
+		contexts.set(this as Context<unknown>, value === undefined ? UNSET : value);
 	}
 
 	expect(node: Node): T {
@@ -37,7 +46,7 @@ export class Context<T> {
 	}
 
 	hasOwn(node: Node): boolean {
-		return Object.hasOwn(node.contexts, this.name);
+		return node.contexts?.has(this as Context<unknown>) ?? false;
 	}
 }
 

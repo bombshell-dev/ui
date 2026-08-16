@@ -120,6 +120,32 @@ describe('context', () => {
 			expect(theme.get(new Node(parent))).toBe('dark');
 		});
 
+		test('an explicitly set undefined shadows the ancestor value', () => {
+			const parent = new Node();
+			locale.set(parent, 'fr');
+			const child = new Node(parent);
+			locale.set(child, undefined as unknown as string);
+			expect(locale.get(child)).toBe('en');
+			expect(locale.get(parent)).toBe('fr');
+		});
+
+		test('an explicitly set undefined shadows with no default to fall back to', () => {
+			const parent = new Node();
+			theme.set(parent, 'dark');
+			const child = new Node(parent);
+			theme.set(child, undefined as unknown as string);
+			expect(theme.get(child)).toBeUndefined();
+			expect(() => theme.expect(child)).toThrow(MissingContextError);
+		});
+
+		test('hasOwn is true for an explicitly set undefined', () => {
+			const parent = new Node();
+			theme.set(parent, 'dark');
+			const child = new Node(parent);
+			theme.set(child, undefined as unknown as string);
+			expect(theme.hasOwn(child)).toBe(true);
+		});
+
 		test('hasOwn is false for a value that is only inherited', () => {
 			const parent = new Node();
 			theme.set(parent, 'dark');
