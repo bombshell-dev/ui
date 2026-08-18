@@ -1,0 +1,19 @@
+{
+	"name": "@examples/hello-world-vue",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "tsx src/index.tsx",
+		"dev": "tsx watch src/index.tsx"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*",
+		"@clack/ui-vue": "workspace:*",
+		"vue": "3.5.41"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0",
+		"tsx": "^4.19.0"
+	}
+}
