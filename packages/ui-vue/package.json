@@ -1,0 +1,77 @@
+{
+	"name": "@clack/ui-vue",
+	"version": "0.0.0",
+	"keywords": [
+		"bombshell",
+		"cli",
+		"vue"
+	],
+	"homepage": "https://bomb.sh/docs/ui",
+	"license": "MIT",
+	"author": {
+		"name": "Bombshell",
+		"email": "oss@bomb.sh",
+		"url": "https://bomb.sh"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bombshell-dev/ui.git"
+	},
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./jsx-runtime": {
+			"types": "./dist/jsx-runtime.d.mts",
+			"import": "./dist/jsx-runtime.mjs"
+		},
+		"./jsx-dev-runtime": {
+			"types": "./dist/jsx-dev-runtime.d.mts",
+			"import": "./dist/jsx-dev-runtime.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"dev": "bsh dev",
+		"build": "bsh build --dts",
+		"format": "bsh format",
+		"lint": "bsh lint",
+		"test": "bsh test"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@bomb.sh/tools": "^0.5.4",
+		"@types/node": "^22.20.0",
+		"vitest": "^4.1.9",
+		"vue": "3.5.41"
+	},
+	"peerDependencies": {
+		"vue": "^3.5.41"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "^10.7.0",
+			"onFail": "error"
+		},
+		"runtime": {
+			"name": "node",
+			"version": "^22.14.0",
+			"onFail": "error"
+		}
+	},
+	"knip": {
+		"entry": [
+			"src/index.ts",
+			"src/jsx-runtime.ts",
+			"src/jsx-dev-runtime.ts"
+		]
+	}
+}

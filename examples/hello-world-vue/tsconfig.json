@@ -1,0 +1,12 @@
+{
+	"extends": "@bomb.sh/tools/tsconfig.json",
+	"compilerOptions": {
+		"composite": false,
+		"declaration": false,
+		"declarationMap": false,
+		"jsx": "react-jsx",
+		"jsxImportSource": "@clack/ui-vue",
+		"noEmit": true,
+		"types": ["node"]
+	}
+}
