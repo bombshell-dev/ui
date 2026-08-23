@@ -140,7 +140,14 @@ export function createApi<A extends Core>(name: string, core: A): Api<A> {
 	return api;
 }
 
-/** The locally reified middleware stack installed on a node. */
+/**
+ * What one node remembers about this api's middleware.
+ *
+ * - `local`: middleware added to this node directly.
+ * - `total`: middleware inherited from its ancestors.
+ * - `handle`: the core methods with `total` + `local` already wrapped around
+ *   them, so calling a method does no extra work.
+ */
 interface Installed<A> {
 	local: Partial<Around<A>>;
 	total: Partial<Around<A>>;
