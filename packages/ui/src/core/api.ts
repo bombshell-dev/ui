@@ -75,7 +75,8 @@ export function createApi<A extends Core>(name: string, core: A): Api<A> {
 	// Eagerly reify a set of middlewares into a concrete handle: every core member
 	// is either wrapped by its middleware or copied through untouched.
 	function createHandle(around: Partial<Around<A>>): A {
-		if (isEmpty(around)) {
+		// No middlewares at all
+		if (Object.keys(around).length === 0) {
 			return core;
 		} else {
 			const handle = {} as A;
@@ -163,11 +164,4 @@ function combine(middlewares: Middleware<any[], any>[]): Middleware<any[], any> 
 			(next, middleware) => (args, base) => middleware(args, (...args) => next(args, base)),
 		);
 	}
-}
-
-function isEmpty(object: object): boolean {
-	for (const _ in object) {
-		return false;
-	}
-	return true;
 }
