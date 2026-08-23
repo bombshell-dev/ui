@@ -6,7 +6,7 @@ import type { Node } from './node.ts';
  * The shape every api core must satisfy: each member is a function whose first
  * parameter is the {@link Node} it operates on.
  */
-export type Core = Record<string, (node: Node, ...args: any[]) => any>;
+type Core = Record<string, (node: Node, ...args: any[]) => any>;
 
 /**
  * A function that surrounds a core member, optionally delegating to the next
