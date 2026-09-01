@@ -5,14 +5,14 @@ import { Node } from './node.ts';
 
 describe('createApi', () => {
 	test('methods call a core with the node as its first argument', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			add: (_node: Node, a: number, b: number) => a + b,
 		});
 		expect(api.methods.add(new Node(), 2, 3)).toBe(5);
 	});
 
 	test('a core receives the node it is invoked on', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			self: (node: Node) => node,
 		});
 		const n = new Node();
@@ -20,21 +20,21 @@ describe('createApi', () => {
 	});
 
 	test('invoke calls a core using the first argument as the node', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			add: (_node: Node, a: number, b: number) => a + b,
 		});
 		expect(api.invoke('add', [new Node(), 2, 3])).toBe(5);
 	});
 
 	test('invokes the core directly when no middleware is installed', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			num: (_node: Node, value: number) => value,
 		});
 		expect(api.methods.num(new Node(), 7)).toBe(7);
 	});
 
 	test('middleware surrounds a core function', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			num: (_node: Node, value: number) => value,
 		});
 		const n = new Node();
@@ -45,7 +45,7 @@ describe('createApi', () => {
 	});
 
 	test('middleware receives the invocation node as its first argument', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			num: (_node: Node, value: number) => value,
 		});
 		const n = new Node();
@@ -61,7 +61,7 @@ describe('createApi', () => {
 	});
 
 	test('middleware can substitute the node passed on to the core', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			self: (node: Node) => node,
 		});
 		const root = new Node();
@@ -73,7 +73,7 @@ describe('createApi', () => {
 	});
 
 	test('a child node inherits middleware from its parent', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			num: (_node: Node, value: number) => value,
 		});
 		const parent = new Node();
@@ -84,7 +84,7 @@ describe('createApi', () => {
 	});
 
 	test('composes middleware on a node in the order it was installed', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			seq: (_node: Node, order: string[]) => order,
 		});
 		const n = new Node();
@@ -101,7 +101,7 @@ describe('createApi', () => {
 	});
 
 	test('middleware on one key does not affect another key', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			foo: (_node: Node) => 1,
 			bar: (_node: Node) => 1,
 		});
@@ -114,7 +114,7 @@ describe('createApi', () => {
 	});
 
 	test('sibling nodes are isolated from each other’s middleware', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			seq: (_node: Node, order: string[]) => order,
 		});
 		const root = new Node();
@@ -132,7 +132,7 @@ describe('createApi', () => {
 	});
 
 	test('composes middleware across a three-level node tree, ancestor outermost', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			seq: (_node: Node, order: string[]) => order,
 		});
 		const grand = new Node();
@@ -158,7 +158,7 @@ describe('createApi', () => {
 	});
 
 	test('does not duplicate ancestor middleware when an ancestor is extended later', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			seq: (_node: Node, order: string[]) => order,
 		});
 		const parent = new Node();
@@ -179,7 +179,7 @@ describe('createApi', () => {
 	});
 
 	test('a child’s middleware does not leak back to its parent', () => {
-		const api = createApi('test', {
+		const api = createApi({
 			num: (_node: Node, value: number) => value,
 		});
 		const parent = new Node();

@@ -1,5 +1,4 @@
 // oxlint-disable no-explicit-any
-import { createContext } from './context.ts';
 import type { Node } from './node.ts';
 
 /**
@@ -52,9 +51,21 @@ export interface Api<A extends Core> {
 	around(node: Node, middlewares: Partial<Around<A>>): void;
 }
 
-export function createApi<A extends Core>(name: string, core: A): Api<A> {
+export function createApi<A extends Core>(core: A): Api<A> {
 	const fields = Object.keys(core) as (keyof A)[];
-	const context = createContext<Installed<A>>(`api::${name}`);
+	const installed = new WeakMap<Node, Installed<A>>();
+
+  // TODO (jg): possibly just have a generic `inherited(node, getter)` we use
+  // here and the context
+	function inherited(node: Node): Installed<A> | undefined {
+		for (let n: Node | undefined = node; n; n = n.parent) {
+			const record = installed.get(n);
+			if (record) {
+				return record;
+			}
+		}
+		return undefined;
+	}
 
 	// Merge `inner`'s middlewares into `outer`, combining any key both define so
 	// that `outer` wraps `inner`.
@@ -95,11 +106,11 @@ export function createApi<A extends Core>(name: string, core: A): Api<A> {
 	// Recompute `node`'s handle from the total inherited from its parent, then
 	// push the new total down to its children.
 	function install(node: Node, total: Partial<Around<A>>): void {
-		if (context.hasOwn(node)) {
-			const installed = context.expect(node);
-			installed.total = total;
-			total = append(total, installed.local);
-			installed.handle = createHandle(total);
+		const record = installed.get(node);
+		if (record) {
+			record.total = total;
+			total = append(total, record.local);
+			record.handle = createHandle(total);
 		}
 		for (const child of node.children) {
 			install(child, total);
@@ -115,23 +126,22 @@ export function createApi<A extends Core>(name: string, core: A): Api<A> {
 
 		invoke(key, args) {
 			const node = args[0] as Node;
-			const handle = context.get(node)?.handle ?? core;
+			const handle = inherited(node)?.handle ?? core;
 			const member = handle[key] as (...args: any[]) => any;
 			return member(...args);
 		},
 
 		around(node, middlewares) {
-			let current: Installed<A>;
-			if (!context.hasOwn(node)) {
-				const parent = context.get(node);
+			let current = installed.get(node);
+			if (!current) {
+				const parent = node.parent && inherited(node.parent);
 				current = {
 					total: parent ? append(parent.total, parent.local) : {},
 					local: middlewares,
 					handle: core,
 				};
-				context.set(node, current);
+				installed.set(node, current);
 			} else {
-				current = context.expect(node);
 				current.local = append(current.local, middlewares);
 			}
 			install(node, current.total);
