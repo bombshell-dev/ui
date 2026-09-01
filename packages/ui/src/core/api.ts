@@ -2,176 +2,93 @@
 import type { Node } from './node.ts';
 
 /**
- * The shape every api core must satisfy: each member is a function whose first
- * parameter is the {@link Node} it operates on.
+ * The shape every api implementation must satisfy: each member is a function
+ * whose first parameter is the {@link Node} it operates on.
  */
 type Core = Record<string, (node: Node, ...args: any[]) => any>;
 
-/**
- * A function that surrounds a core member, optionally delegating to the next
- * link in the stack.
- *
- * @param args - the member's full parameter tuple, with the node as `args[0]`.
- * @param next - the next link in the chain; accepts the same arguments.
- * @returns a value of the same shape as `next()`'s return value.
- */
-export interface Middleware<TArgs extends unknown[], TReturn> {
-	(args: TArgs, next: (...args: TArgs) => TReturn): TReturn;
-}
-
-/**
- * The set of middlewares that can surround a core `A`. Each member is wrapped
- * by a {@link Middleware} over that member's own signature — node included.
- */
-export type Around<A> = {
-	[K in keyof A]: A[K] extends (...args: infer TArgs) => infer TReturn
-		? Middleware<TArgs, TReturn>
+/** An implementation with its node argument already applied. */
+export type Bound<A> = {
+	[K in keyof A]: A[K] extends (node: Node, ...args: infer TArgs) => infer TReturn
+		? (...args: TArgs) => TReturn
 		: never;
 };
 
 export interface Api<A extends Core> {
-	/**
-	 * Every core member, node-first, with the middleware installed on a node
-	 * (and inherited from its ancestors) woven in. `methods.foo(node, ...args)`
-	 * is the ergonomic way to call member `foo` on `node`.
-	 */
-	methods: A;
-
-	/**
-	 * Call member `key` as it exists on `args[0]`, threading `args` through every
-	 * middleware installed on that node and its ancestors. The first argument is
-	 * both the node used to resolve middleware and the node handed to the core.
-	 */
-	invoke<K extends keyof A>(key: K, args: Parameters<A[K]>): ReturnType<A[K]>;
-
-	/**
-	 * Install middleware around this api within `node`. Descendants of `node`
-	 * inherit it; ancestors compose outermost.
-	 */
-	around(node: Node, middlewares: Partial<Around<A>>): void;
+	for(node: Node): Bound<A>;
+	provide(node: Node, extend: (base: A) => A): () => void;
 }
 
 export function createApi<A extends Core>(core: A): Api<A> {
 	const fields = Object.keys(core) as (keyof A)[];
-	const installed = new WeakMap<Node, Installed<A>>();
+	const provided = new WeakMap<Node, A>();
+	const bound = new WeakMap<Node, Binding<A>>();
 
-  // TODO (jg): possibly just have a generic `inherited(node, getter)` we use
-  // here and the context
-	function inherited(node: Node): Installed<A> | undefined {
+	// Bumped whenever an implementation is provided or removed, so that bindings
+	// made before it resolve again on their next call.
+	let version = 0;
+
+	// TODO (jg): possibly just have a generic `inherited(node, getter)` we use
+	// here and the context
+	function inherited(node: Node): A {
 		for (let n: Node | undefined = node; n; n = n.parent) {
-			const record = installed.get(n);
-			if (record) {
-				return record;
+			const impl = provided.get(n);
+			if (impl) {
+				return impl;
 			}
 		}
-		return undefined;
+		return core;
 	}
 
-	// Merge `inner`'s middlewares into `outer`, combining any key both define so
-	// that `outer` wraps `inner`.
-	function append(outer: Partial<Around<A>>, inner: Partial<Around<A>>): Partial<Around<A>> {
-		const result: Partial<Around<A>> = { ...outer };
-		for (const key of Object.keys(inner) as (keyof A)[]) {
-			const current = outer[key];
-			const decoration = inner[key];
-			if (!current) {
-				result[key] = decoration;
-			} else {
-				result[key] = combine([current as any, decoration as any]) as Around<A>[keyof A];
-			}
+	// Re-resolve a binding whose implementation was superseded since it was made.
+	function refresh(node: Node, binding: Binding<A>): Binding<A> {
+		if (binding.version !== version) {
+			binding.impl = inherited(node);
+			binding.version = version;
 		}
-		return result;
+		return binding;
 	}
 
-	// Eagerly reify a set of middlewares into a concrete handle: every core member
-	// is either wrapped by its middleware or copied through untouched.
-	function createHandle(around: Partial<Around<A>>): A {
-		// No middlewares at all
-		if (Object.keys(around).length === 0) {
-			return core;
-		} else {
-			const handle = {} as A;
+	return {
+		for(node) {
+			const cached = bound.get(node);
+			if (cached) {
+				return refresh(node, cached).methods;
+			}
+
+			const binding: Binding<A> = { version, impl: inherited(node), methods: {} as Bound<A> };
 			for (const key of fields) {
-				const middleware = around[key] as Middleware<any[], any> | undefined;
-				if (!middleware) {
-					handle[key] = core[key];
-				} else {
-					handle[key] = ((...args: any[]) => middleware(args, core[key] as any)) as A[keyof A];
-				}
+				binding.methods[key] = ((...args: any[]) => {
+					return refresh(node, binding).impl[key](node, ...args);
+				}) as Bound<A>[keyof A];
 			}
-			return handle;
-		}
-	}
-
-	// Recompute `node`'s handle from the total inherited from its parent, then
-	// push the new total down to its children.
-	function install(node: Node, total: Partial<Around<A>>): void {
-		const record = installed.get(node);
-		if (record) {
-			record.total = total;
-			total = append(total, record.local);
-			record.handle = createHandle(total);
-		}
-		for (const child of node.children) {
-			install(child, total);
-		}
-	}
-
-	const api: Api<A> = {
-		methods: fields.reduce((methods, key) => {
-			return Object.assign(methods, {
-				[key]: (node: Node, ...args: any[]) => api.invoke(key, [node, ...args] as any),
-			});
-		}, {} as A),
-
-		invoke(key, args) {
-			const node = args[0] as Node;
-			const handle = inherited(node)?.handle ?? core;
-			const member = handle[key] as (...args: any[]) => any;
-			return member(...args);
+			bound.set(node, binding);
+			return binding.methods;
 		},
 
-		around(node, middlewares) {
-			let current = installed.get(node);
-			if (!current) {
-				const parent = node.parent && inherited(node.parent);
-				current = {
-					total: parent ? append(parent.total, parent.local) : {},
-					local: middlewares,
-					handle: core,
-				};
-				installed.set(node, current);
-			} else {
-				current.local = append(current.local, middlewares);
-			}
-			install(node, current.total);
+		provide(node, extend) {
+			const previous = provided.get(node);
+			const impl = extend(inherited(node));
+			provided.set(node, impl);
+			version++;
+
+			return () => {
+				if (provided.get(node) !== impl) {
+					return;
+				}
+				if (previous) {
+					provided.set(node, previous);
+				} else {
+					provided.delete(node);
+				}
+				version++;
+			};
 		},
 	};
-
-	return api;
 }
 
-/**
- * What one node remembers about this api's middleware.
- *
- * - `local`: middleware added to this node directly.
- * - `total`: middleware inherited from its ancestors.
- * - `handle`: the core methods with `total` + `local` already wrapped around
- *   them, so calling a method does no extra work.
- */
-interface Installed<A> {
-	local: Partial<Around<A>>;
-	total: Partial<Around<A>>;
-	handle: A;
-}
-
-/** Fold a stack of middlewares into one; the first is outermost. */
-function combine(middlewares: Middleware<any[], any>[]): Middleware<any[], any> {
-	if (middlewares.length === 0) {
-		return (args, next) => next(...args);
-	} else {
-		return middlewares.reduceRight(
-			(next, middleware) => (args, base) => middleware(args, (...args) => next(args, base)),
-		);
-	}
+interface Binding<A> {
+	version: number;
+	impl: A;
+	methods: Bound<A>;
 }
