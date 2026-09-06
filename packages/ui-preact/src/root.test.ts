@@ -1,6 +1,6 @@
 import { HostApi, createHost, type HostElement, type HostLiteral } from '@clack/ui';
 import type { InputEvent } from '@clack/ui';
-import type { HostEventListener } from '@clack/ui/events';
+import type { Dispatched, HostEventListener } from '@clack/ui/events';
 import { createElement as h, type VNode } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { assert, describe, expect, test, vi } from 'vitest';
@@ -126,7 +126,13 @@ describe('createRoot', () => {
 
 		root.render(h('input', { onInput: first }));
 		const input = element(host.element.children[0]!);
-		const event: InputEvent = { type: 'input', target: input, value: 'hello' };
+		const event: Dispatched<InputEvent> = {
+			type: 'input',
+			target: input,
+			currentTarget: input,
+			value: 'hello',
+			stopPropagation: () => {},
+		};
 		listener!(event);
 
 		expect(first).toHaveBeenCalledWith(event);

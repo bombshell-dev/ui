@@ -1,4 +1,4 @@
-import type { HostEvent } from '@clack/ui/events';
+import type { Dispatched, HostEvent } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
 import { emit, EmitApi } from './emit.ts';
 import type { HostElement } from './elements.ts';
@@ -98,7 +98,7 @@ describe('event listeners', () => {
 		const target = attach(host, 'probe');
 		let value: number | undefined;
 		host.addEventListener(target, '@test/probe', (event) => {
-			expectTypeOf(event).toEqualTypeOf<ProbeEvent>();
+			expectTypeOf(event).toEqualTypeOf<Dispatched<ProbeEvent>>();
 			value = event.value;
 		});
 

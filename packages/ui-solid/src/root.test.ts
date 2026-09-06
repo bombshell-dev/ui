@@ -6,7 +6,7 @@ import {
 	type HostLiteral,
 } from '@clack/ui';
 import type { InputEvent } from '@clack/ui';
-import type { HostEventListener } from '@clack/ui/events';
+import type { Dispatched, HostEventListener } from '@clack/ui/events';
 import { createSignal } from 'solid-js';
 import { assert, describe, expect, test, vi } from 'vitest';
 import {
@@ -179,7 +179,13 @@ describe('createRoot', () => {
 			setProp(input, 'onInput', first);
 			return input;
 		});
-		const event: InputEvent = { type: 'input', target: input, value: 'hello' };
+		const event: Dispatched<InputEvent> = {
+			type: 'input',
+			target: input,
+			currentTarget: input,
+			value: 'hello',
+			stopPropagation: () => {},
+		};
 		listener!(event);
 
 		expect(first).toHaveBeenCalledWith(event);

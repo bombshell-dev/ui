@@ -1,7 +1,7 @@
 // oxlint-disable max-params
 import type { KeyDown, KeyRepeat } from '@bomb.sh/tty';
 import { type Node } from '../core.ts';
-import type { HostEvents } from '@clack/ui/events';
+import type { Dispatched, HostEvents } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
 import { DispatchApi, useDispatch } from '../dispatch.ts';
 import type { HostElement } from '../elements.ts';
@@ -237,7 +237,7 @@ describe('input', () => {
 			const { host, input, node } = setup();
 			const events: HostEvents['input'][] = [];
 			host.addEventListener(input, 'input', (event) => {
-				expectTypeOf(event).toEqualTypeOf<HostEvents['input']>();
+				expectTypeOf(event).toEqualTypeOf<Dispatched<HostEvents['input']>>();
 				events.push(event);
 			});
 
