@@ -3,15 +3,12 @@ import type { KeyDown, KeyRepeat } from '@bomb.sh/tty';
 import { type Node } from '../core.ts';
 import type { Dispatched, HostEvents } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
-import { DispatchApi, useDispatch } from '../dispatch.ts';
 import type { HostElement } from '../elements.ts';
 import { getFocus, setFocusable, useFocus } from '../focus.ts';
 import { createHost, type Host } from '../host.ts';
-import { useKeyboard } from '../keyboard.ts';
+import { handleInput } from '../ui.ts';
 import { addListener } from '../events.ts';
 import { InputApi, type InputProps, useInputElement } from './input.ts';
-
-const { dispatch } = DispatchApi.methods;
 
 const { deleteBackward, deleteForward, insert, moveBack, moveForward, moveMax, moveMin } =
 	InputApi.methods;
@@ -320,7 +317,7 @@ describe('input', () => {
 			const calls: InputCall[] = [];
 			recordInput(node, calls);
 
-			dispatch(host.root, event);
+			handleInput(host, event);
 
 			const [method, argument] = expected;
 			expect(calls).toEqual([argument === undefined ? [method] : [method, argument]]);
@@ -337,7 +334,7 @@ describe('input', () => {
 				text: 'x',
 			};
 
-			dispatch(host.root, event);
+			handleInput(host, event);
 
 			expect(calls).toEqual([['insert', 'x']]);
 		});
@@ -349,7 +346,7 @@ describe('input', () => {
 			recordInput(node, calls);
 			recordDelegatedKeydown(host, () => delegations++);
 
-			dispatch(host.root, keydown('x', 'x'));
+			handleInput(host, keydown('x', 'x'));
 
 			expect(calls).toEqual([['insert', 'x']]);
 			expect(delegations).toBe(0);
@@ -363,7 +360,7 @@ describe('input', () => {
 				delegated.push({ target: target === node, event: received.code === event.code });
 			});
 
-			dispatch(host.root, event);
+			handleInput(host, event);
 
 			expect(delegated).toEqual([{ target: true, event: true }]);
 		});
@@ -378,7 +375,7 @@ describe('input', () => {
 				delegated.push({ target: node === target, event: received.code === event.code });
 			});
 
-			dispatch(host.root, event);
+			handleInput(host, event);
 
 			expect(delegated).toEqual([{ target: true, event: true }]);
 		});
@@ -389,7 +386,7 @@ describe('input', () => {
 			recordInput(node, calls);
 
 			expect(getFocus(host.root) === node).toBe(true);
-			dispatch(host.root, keydown('x', 'x'));
+			handleInput(host, keydown('x', 'x'));
 			expect(calls).toEqual([['insert', 'x']]);
 		});
 	});
@@ -407,9 +404,7 @@ function setup(): { host: Host; input: HostElement; node: Node } {
 
 function setupKeyboardHost(): Host {
 	const host = createHost();
-	useDispatch(host);
 	useFocus(host);
-	useKeyboard(host);
 	return host;
 }
 

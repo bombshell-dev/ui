@@ -9,7 +9,6 @@ import {
 	type Setting,
 	type Term,
 } from '@bomb.sh/tty';
-import { DispatchApi, useDispatch } from './dispatch.ts';
 import { useBoxElement } from './elements/box.ts';
 import { useInputElement } from './elements/input.ts';
 import { useTextElement } from './elements/text.ts';
@@ -17,7 +16,7 @@ import { useFocusNavigation } from './focus-navigation.ts';
 import { useFocus } from './focus.ts';
 import { useHostRenderer } from './host-render.ts';
 import { createHost, type Host } from './host.ts';
-import { useKeyboard } from './keyboard.ts';
+import { routeKeyEvent } from './keyboard.ts';
 import { layout } from './layout.ts';
 import { RenderApi } from './render.ts';
 import { createInputLoop } from './input-loop.ts';
@@ -35,6 +34,29 @@ export interface UI extends AsyncDisposable {
 	main(): Promise<void>;
 }
 
+export type Result =
+	| typeof Ok
+	| {
+			ok: false;
+			reason: unknown;
+	  };
+
+const Ok = { ok: true } as const;
+
+/**
+ * Route one raw terminal event to the element it belongs to. Errors raised by
+ * the listeners it reaches are reported rather than thrown, so a failure in one
+ * event cannot stop the input loop.
+ */
+export function handleInput(host: Host, event: unknown): Result {
+	try {
+		routeKeyEvent(host, event);
+		return Ok;
+	} catch (reason) {
+		return { ok: false, reason };
+	}
+}
+
 export async function createUI(options: UIOptions): Promise<UI> {
 	const { output } = options;
 	const { inline = false } = options;
@@ -44,9 +66,7 @@ export async function createUI(options: UIOptions): Promise<UI> {
 
 	const host = createHost();
 
-	useDispatch(host);
 	useFocus(host);
-	useKeyboard(host);
 	useFocusNavigation(host);
 	useBoxElement(host);
 	useTextElement(host);
@@ -94,8 +114,8 @@ export async function createUI(options: UIOptions): Promise<UI> {
 							break input;
 						}
 
-						const dispatched = DispatchApi.methods.dispatch(host.root, event);
-						if (!dispatched.ok) {
+						const handled = handleInput(host, event);
+						if (!handled.ok) {
 							// do something maybe?
 						}
 					}

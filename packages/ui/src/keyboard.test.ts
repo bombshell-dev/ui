@@ -1,14 +1,12 @@
 import type { KeyDown, KeyEvent } from '@bomb.sh/tty';
 import type { Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { DispatchApi, useDispatch } from './dispatch.ts';
 import { setFocus, setFocusable, useFocus } from './focus.ts';
 import { createHost, type Host } from './host.ts';
-import { useKeyboard, type KeyDownEvent, type KeyRepeatEvent, type KeyUpEvent } from './keyboard.ts';
+import type { KeyDownEvent, KeyRepeatEvent, KeyUpEvent } from './keyboard.ts';
+import { handleInput } from './ui.ts';
 import { addListener, type Dispatched } from './events.ts';
 import { getElement } from './elements.ts';
-
-const { dispatch } = DispatchApi.methods;
 
 describe('keyboard dispatch', () => {
 	test('routes keydown, keyup, and keyrepeat to the currently focused node', () => {
@@ -27,7 +25,7 @@ describe('keyboard dispatch', () => {
 			{ type: 'keyrepeat', key: 'a', code: 'a', text: 'a' },
 		];
 		for (const event of events) {
-			expect(dispatch(host.root, event).ok).toBe(true);
+			expect(handleInput(host, event).ok).toBe(true);
 		}
 
 		expect(firstEvents).toEqual([]);
@@ -42,31 +40,38 @@ describe('keyboard dispatch', () => {
 		const target = createFocusable(host);
 		recordKeyboard(target, []);
 
-		expect(dispatch(host.root, keydown('a', 'a'))).toEqual({ ok: true });
+		expect(handleInput(host, keydown('a', 'a'))).toEqual({ ok: true });
 	});
 
-	test('delegates non-key and malformed key-like events unchanged', () => {
+	test('ignores non-key and malformed key-like events', () => {
 		const host = setupKeyboardHost();
-		const delegated: unknown[] = [];
-		DispatchApi.around(host.root, {
-			dispatch([node, event], next) {
-				delegated.push(event);
-				return next(node, event);
-			},
-		});
-
-		dispatch(host.root, keydown('a', 'a'));
+		const target = createFocusable(host);
+		const received: RecordedKeyEvent[] = [];
+		recordKeyboard(target, received);
 		const others: unknown[] = [
 			{ type: 'resize', width: 80, height: 24 },
 			{ type: 'keydown', code: 'a' },
 			{ type: 'keydown', key: 'a' },
 			{ type: 'keypress', key: 'a', code: 'a' },
 		];
+
 		for (const event of others) {
-			dispatch(host.root, event);
+			expect(handleInput(host, event)).toEqual({ ok: true });
 		}
 
-		expect(delegated).toEqual(others);
+		expect(received).toEqual([]);
+	});
+
+	test('reports an error raised by a listener instead of throwing', () => {
+		const host = setupKeyboardHost();
+		const target = createFocusable(host);
+		const reason = new Error('listener failed');
+		addListener(getElement(target), 'keydown', () => {
+			throw reason;
+		});
+		setFocus(target);
+
+		expect(handleInput(host, keydown('a', 'a'))).toEqual({ ok: false, reason });
 	});
 });
 
@@ -77,9 +82,7 @@ interface RecordedKeyEvent {
 
 function setupKeyboardHost(): Host {
 	const host = createHost();
-	useDispatch(host);
 	useFocus(host);
-	useKeyboard(host);
 	return host;
 }
 

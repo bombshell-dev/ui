@@ -94,7 +94,6 @@ export function useInputElement(host: Host): void {
 			yield close();
 		},
 	});
-
 }
 
 export const InputApi = createApi('input', {

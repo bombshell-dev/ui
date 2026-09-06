@@ -1,9 +1,8 @@
 import type { ReadStream, WriteStream } from 'node:tty';
 import { alternateBuffer, CSI, cursor, settings } from '@bomb.sh/tty';
 import { describe, expect, test, vi } from 'vitest';
-import { DispatchApi } from './dispatch.ts';
 import { getFocus } from './focus.ts';
-import { createUI, type UI, type UIOptions } from './ui.ts';
+import { createUI, handleInput, type UI, type UIOptions } from './ui.ts';
 
 describe('createUI', () => {
 	test('exposes the Host used to construct a raw UI', async () => {
@@ -51,7 +50,7 @@ describe('createUI', () => {
 		const input = host.createElement('input');
 		host.insertBefore(host.element, input);
 
-		const result = DispatchApi.methods.dispatch(host.root, {
+		const result = handleInput(host, {
 			type: 'keydown',
 			key: 'x',
 			code: 'x',
@@ -71,7 +70,7 @@ describe('createUI', () => {
 		host.insertBefore(host.element, first);
 		host.insertBefore(host.element, second);
 
-		DispatchApi.methods.dispatch(host.root, {
+		handleInput(host, {
 			type: 'keydown',
 			key: 'Tab',
 			code: 'Tab',

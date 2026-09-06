@@ -37,12 +37,12 @@ export function addListener<T extends HostEventType>(
 ): void {
 	let types = registry.get(element);
 	if (!types) {
-    types = new Map<string, Set<AnyListener>>();
+		types = new Map<string, Set<AnyListener>>();
 		registry.set(element, types);
 	}
 	let listeners = types.get(type);
 	if (!listeners) {
-    listeners = new Set<AnyListener>();
+		listeners = new Set<AnyListener>();
 		types.set(type, listeners);
 	}
 	listeners.add(listener as AnyListener);
@@ -78,7 +78,7 @@ function deliver(element: HostElement, event: AnyHostEvent): void {
 	if (!listeners || listeners.size === 0) {
 		return;
 	}
-  // so listeners added mid-delivery don't get called
+	// so listeners added mid-delivery don't get called
 	const active = Array.from(listeners);
 	const state = event as Mutable<Dispatched<AnyHostEvent>>;
 	state.currentTarget = element;

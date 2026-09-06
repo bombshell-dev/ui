@@ -1,15 +1,13 @@
 import type { KeyDown, KeyEvent, KeyRepeat, KeyUp } from '@bomb.sh/tty';
 import type { Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { DispatchApi, useDispatch } from './dispatch.ts';
 import { getFocus, setFocusable, useFocus } from './focus.ts';
 import { useFocusNavigation } from './focus-navigation.ts';
 import { createHost, type Host } from './host.ts';
-import { useKeyboard, type KeyDownEvent, type KeyRepeatEvent, type KeyUpEvent } from './keyboard.ts';
+import type { KeyDownEvent, KeyRepeatEvent, KeyUpEvent } from './keyboard.ts';
+import { handleInput } from './ui.ts';
 import { addListener, type Dispatched } from './events.ts';
 import { getElement } from './elements.ts';
-
-const { dispatch } = DispatchApi.methods;
 
 describe('focus navigation', () => {
 	test.each([
@@ -22,7 +20,7 @@ describe('focus navigation', () => {
 		const delegated: RecordedKeyEvent[] = [];
 		recordKeyboard(first, delegated);
 
-		dispatch(host.root, event);
+		handleInput(host, event);
 
 		expect(getFocus(host.root)).toBe(expected === 'second' ? second : third);
 		expect(delegated).toMatchObject([{ node: first, event }]);
@@ -32,7 +30,7 @@ describe('focus navigation', () => {
 		const { host, first } = setup();
 		addListener(getElement(first), 'keydown', (event) => event.stopPropagation());
 
-		dispatch(host.root, keydown('Tab'));
+		handleInput(host, keydown('Tab'));
 
 		expect(getFocus(host.root)).toBe(first);
 	});
@@ -44,7 +42,7 @@ describe('focus navigation', () => {
 			const delegated: RecordedKeyEvent[] = [];
 			recordKeyboard(first, delegated);
 
-			dispatch(host.root, event);
+			handleInput(host, event);
 
 			expect(getFocus(host.root)).toBe(first);
 			expect(delegated).toMatchObject([{ node: first, event }]);
@@ -66,9 +64,7 @@ interface RecordedKeyEvent {
 
 function setup(): Setup {
 	const host = createHost();
-	useDispatch(host);
 	useFocus(host);
-	useKeyboard(host);
 	useFocusNavigation(host);
 
 	return {

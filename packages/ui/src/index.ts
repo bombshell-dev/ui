@@ -1,5 +1,4 @@
 export { rgba } from '@bomb.sh/tty';
-export { DispatchApi } from './dispatch.ts';
 export * from './elements.ts';
 export type { BoxProps } from './elements/box.ts';
 export type { InputEvent, InputProps } from './elements/input.ts';

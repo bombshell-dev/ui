@@ -1,6 +1,5 @@
 import type { KeyDown, KeyEvent, KeyRepeat, KeyUp } from '@bomb.sh/tty';
 import type { Host } from './host.ts';
-import { DispatchApi } from './dispatch.ts';
 import { getElement } from './elements.ts';
 import { getFocus } from './focus.ts';
 import { dispatch, type HostEvent } from './events.ts';
@@ -17,18 +16,18 @@ declare module '@clack/ui/events' {
 	}
 }
 
-export function useKeyboard(host: Host): void {
-	DispatchApi.around(host.root, {
-		dispatch([node, event], next) {
-			if (isKeyEvent(event)) {
-				const target = getElement(getFocus(node));
-				dispatch(target, { ...event, target }, { bubbles: true });
-				return { ok: true };
-			} else {
-				return next(node, event);
-			}
-		},
-	});
+/**
+ * Send a raw terminal key event to the focused element, from where it bubbles.
+ * Returns false for anything that is not a key event.
+ */
+export function routeKeyEvent(host: Host, event: unknown): boolean {
+	if (isKeyEvent(event)) {
+		const target = getElement(getFocus(host.root));
+		dispatch(target, { ...event, target }, { bubbles: true });
+		return true;
+	} else {
+		return false;
+	}
 }
 
 function isKeyEvent(value: unknown): value is KeyEvent {
