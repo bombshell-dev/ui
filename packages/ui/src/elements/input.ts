@@ -1,8 +1,8 @@
-import { createApi, createContext, type Node } from '../core.ts';
+import { createContext, type Node } from '../core.ts';
 import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import type { HostEvent } from '@clack/ui/events';
 import { addListener, dispatch, type Dispatched } from '../events.ts';
-import { getElement } from '../elements.ts';
+import { getElement, type HostElement } from '../elements.ts';
 import type { Host } from '../host.ts';
 import { LayoutApi } from '../layout.ts';
 import { getFocus, setFocusable } from '../focus.ts';
@@ -32,15 +32,14 @@ export function useInputElement(host: Host): void {
 	const { root } = host;
 
 	host.defineElement('input', (element) => {
-		const model = { content: '', caret: 0 };
+		const input = new Input(element);
 		element.attach = (node) => {
 			setFocusable(node);
-			InputContext.set(node, model);
+			InputContext.set(node, input);
 		};
 
 		const edit = (event: Dispatched<KeyDownEvent | KeyRepeatEvent>): void => {
-			const node = event.currentTarget.node;
-			if (node && handleKeyEvent(node, event)) {
+			if (handleKeyEvent(input, event)) {
 				event.stopPropagation();
 			}
 		};
@@ -51,12 +50,12 @@ export function useInputElement(host: Host): void {
 		Object.defineProperties(element.properties, {
 			value: {
 				get() {
-					return model.content;
+					return input.content;
 				},
 			},
 			caret: {
 				get() {
-					return model.caret;
+					return input.caret;
 				},
 			},
 		});
@@ -70,10 +69,9 @@ export function useInputElement(host: Host): void {
 			}
 
 			const focused = node === getFocus(node);
-			const model = InputContext.expect(node);
-			const value = model.content;
+			const value = InputContext.expect(node).content;
 			// commented out until @bomb.sh/tty can render carets
-			// const caret = Math.min(model.caret, [...value].length);
+			// const caret = Math.min(input.caret, [...value].length);
 			const color = focused ? rgba(255, 255, 255) : rgba(100, 100, 100);
 			const border = { color, top: 1, right: 1, bottom: 1, left: 1 };
 			yield open(node.id, {
@@ -90,128 +88,125 @@ export function useInputElement(host: Host): void {
 	});
 }
 
-export const InputApi = createApi('input', {
-	insert(node, text: string): void {
-		withModel(node, (model) => {
+/**
+ * The editable content of one `input` element. The caret is a code-point index
+ * into `content`; every method keeps the two consistent and dispatches an
+ * `input` event on the element whenever the content changes.
+ */
+export class Input {
+	content = '';
+	caret = 0;
+
+	private readonly element: HostElement;
+
+	constructor(element: HostElement) {
+		this.element = element;
+	}
+
+	insert(text: string): void {
+		this.edit(() => {
 			// Inputs are single-line, so discard CR/LF. Spreading the string produces
 			// Unicode code points rather than UTF-16 code units.
 			const inserted = [...text.replace(/[\r\n]/g, '')];
-			const codepoints = [...model.content];
-			const caret = model.caret;
+			const codepoints = [...this.content];
+			const caret = this.caret;
 
-			// The caret is a code-point index. Insert each new code point independently,
-			// then advance by exactly the number that survived normalization.
+			// Insert each new code point independently, then advance by exactly the
+			// number that survived normalization.
 			codepoints.splice(caret, 0, ...inserted);
-			model.content = codepoints.join('');
-			model.caret = caret + inserted.length;
+			this.content = codepoints.join('');
+			this.caret = caret + inserted.length;
 		});
-	},
-	deleteBackward(node): void {
-		withModel(node, (model) => {
-			const codepoints = [...model.content];
-			let caret = model.caret;
-			const length = codepoints.length;
-			if (caret > length) {
-				console.warn('caret mismatch: ${caret}, value length: ${length}');
-				caret = length;
-			}
+	}
+
+	deleteBackward(): void {
+		this.edit(() => {
+			const codepoints = [...this.content];
+			const caret = this.clampedCaret(codepoints.length);
 			if (caret > 0) {
 				codepoints.splice(caret - 1, 1);
-				model.content = codepoints.join('');
-				model.caret = caret - 1;
+				this.content = codepoints.join('');
+				this.caret = caret - 1;
 			}
 		});
-	},
-	deleteForward(node): void {
-		withModel(node, (model) => {
-			const codepoints = [...model.content];
-			let caret = model.caret;
+	}
+
+	deleteForward(): void {
+		this.edit(() => {
+			const codepoints = [...this.content];
 			const length = codepoints.length;
-			if (caret > length) {
-				console.warn('caret mismatch: ${caret}, value length: ${length}');
-				caret = length;
-			}
+			const caret = this.clampedCaret(length);
 			if (caret < length) {
 				codepoints.splice(caret, 1);
-				model.content = codepoints.join('');
+				this.content = codepoints.join('');
 			}
 		});
-	},
-	moveBack(node): void {
-		withModel(node, (model) => {
-			const caret = model.caret;
-			model.caret = Math.max(0, caret - 1);
-		});
-	},
-	moveForward(node): void {
-		withModel(node, (model) => {
-			const caret = model.caret;
-			const codepoints = [...model.content];
-			model.caret = Math.min(codepoints.length, caret + 1);
-		});
-	},
-	moveMin(node): void {
-		withModel(node, (model) => {
-			model.caret = 0;
-		});
-	},
-	moveMax(node): void {
-		withModel(node, (model) => {
-			model.caret = [...model.content].length;
-		});
-	},
-});
+	}
 
-export const { insert, deleteForward, deleteBackward, moveForward, moveBack, moveMin, moveMax } =
-	InputApi.methods;
+	moveBack(): void {
+		this.caret = Math.max(0, this.caret - 1);
+	}
 
-interface InputModel {
-	content: string;
-	caret: number;
-}
+	moveForward(): void {
+		this.caret = Math.min([...this.content].length, this.caret + 1);
+	}
 
-const InputContext = createContext<InputModel>('input');
+	moveMin(): void {
+		this.caret = 0;
+	}
 
-function isInput(node: Node): boolean {
-	return InputContext.hasOwn(node);
-}
+	moveMax(): void {
+		this.caret = [...this.content].length;
+	}
 
-function withModel(node: Node, fn: (model: InputModel) => void): void {
-	if (isInput(node)) {
-		const model = InputContext.expect(node);
-		const original = model.content;
-		fn(model);
-		if (original !== model.content) {
-			const element = getElement(node);
-			dispatch(element, { type: 'input', target: element, value: model.content });
+	/** Apply `change`, dispatching an `input` event if it altered the content. */
+	private edit(change: () => void): void {
+		const original = this.content;
+		change();
+		if (original !== this.content) {
+			const { element } = this;
+			dispatch(element, { type: 'input', target: element, value: this.content });
 		}
+	}
+
+	private clampedCaret(length: number): number {
+		if (this.caret > length) {
+			console.warn(`caret mismatch: ${this.caret}, value length: ${length}`);
+			this.caret = length;
+		}
+		return this.caret;
 	}
 }
 
-function handleKeyEvent(node: Node, event: KeyDown | KeyRepeat): boolean {
-	if (isInput(node)) {
-		if (event.text && event.text?.length > 0) {
-			insert(node, event.text);
-			return true;
-		} else if (event.code === 'Backspace') {
-			deleteBackward(node);
-			return true;
-		} else if (event.code === 'Delete') {
-			deleteForward(node);
-			return true;
-		} else if (event.code === 'ArrowLeft') {
-			moveBack(node);
-			return true;
-		} else if (event.code === 'ArrowRight') {
-			moveForward(node);
-			return true;
-		} else if (event.code === 'Home') {
-			moveMin(node);
-			return true;
-		} else if (event.code === 'End') {
-			moveMax(node);
-			return true;
-		}
+/** The {@link Input} backing `node`, if it hosts an `input` element. */
+export function getInput(node: Node): Input | undefined {
+	return InputContext.hasOwn(node) ? InputContext.expect(node) : undefined;
+}
+
+const InputContext = createContext<Input>('input');
+
+function handleKeyEvent(input: Input, event: KeyDown | KeyRepeat): boolean {
+	if (event.text && event.text.length > 0) {
+		input.insert(event.text);
+		return true;
+	} else if (event.code === 'Backspace') {
+		input.deleteBackward();
+		return true;
+	} else if (event.code === 'Delete') {
+		input.deleteForward();
+		return true;
+	} else if (event.code === 'ArrowLeft') {
+		input.moveBack();
+		return true;
+	} else if (event.code === 'ArrowRight') {
+		input.moveForward();
+		return true;
+	} else if (event.code === 'Home') {
+		input.moveMin();
+		return true;
+	} else if (event.code === 'End') {
+		input.moveMax();
+		return true;
 	}
 	return false;
 }

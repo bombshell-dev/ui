@@ -8,205 +8,202 @@ import { getFocus, setFocusable, useFocus } from '../focus.ts';
 import { createHost, type Host } from '../host.ts';
 import { handleInput } from '../ui.ts';
 import { addListener } from '../events.ts';
-import { InputApi, type InputProps, useInputElement } from './input.ts';
-
-const { deleteBackward, deleteForward, insert, moveBack, moveForward, moveMax, moveMin } =
-	InputApi.methods;
+import { getInput, type Input, type InputProps, useInputElement } from './input.ts';
 
 describe('input', () => {
-	describe('InputApi', () => {
+	describe('Input', () => {
 		test('starts empty with the caret at zero', () => {
-			const { input } = setup();
+			const { element } = setup();
 
-			expectState(input, '', 0);
+			expectState(element, '', 0);
 		});
 
 		describe('insert', () => {
 			test('inserts text at the caret and advances the caret', () => {
-				const { input, node } = setup();
+				const { element, input } = setup();
 
-				insert(node, 'h');
+				input.insert('h');
 
-				expectState(input, 'h', 1);
+				expectState(element, 'h', 1);
 			});
 
 			test('inserts a run of characters from left to right', () => {
-				const { input, node } = setup();
+				const { element, input } = setup();
 
-				typeText(node, 'cat');
+				typeText(input, 'cat');
 
-				expectState(input, 'cat', 3);
+				expectState(element, 'cat', 3);
 			});
 
 			test('inserts text in the middle of the value', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveBack(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveBack();
 
-				insert(node, 'x');
+				input.insert('x');
 
-				expectState(input, 'caxt', 3);
+				expectState(element, 'caxt', 3);
 			});
 
 			test('advances by every code point in a multi-character insertion', () => {
-				const { input, node } = setup();
-				typeText(node, 'ab');
-				moveBack(node);
+				const { element, input } = setup();
+				typeText(input, 'ab');
+				input.moveBack();
 
-				insert(node, '😀x');
+				input.insert('😀x');
 
-				expectState(input, 'a😀xb', 3);
+				expectState(element, 'a😀xb', 3);
 			});
 
 			test('does nothing when inserting an empty string', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveBack(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveBack();
 
-				insert(node, '');
+				input.insert('');
 
-				expectState(input, 'cat', 2);
+				expectState(element, 'cat', 2);
 			});
 
 			test('removes line breaks from inserted text', () => {
-				const { input, node } = setup();
+				const { element, input } = setup();
 
-				insert(node, 'a\nb\r\nc\r');
+				input.insert('a\nb\r\nc\r');
 
-				expectState(input, 'abc', 3);
+				expectState(element, 'abc', 3);
 			});
 		});
 
 		describe('deleteBackward', () => {
 			test('removes the code point before the caret', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveMin(node);
-				moveForward(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveMin();
+				input.moveForward();
 
-				deleteBackward(node);
+				input.deleteBackward();
 
-				expectState(input, 'at', 0);
+				expectState(element, 'at', 0);
 			});
 
 			test('removes the final code point when the caret is at the end', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
+				const { element, input } = setup();
+				typeText(input, 'cat');
 
-				deleteBackward(node);
+				input.deleteBackward();
 
-				expectState(input, 'ca', 2);
+				expectState(element, 'ca', 2);
 			});
 
 			test('does nothing when the caret is at the start', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveMin(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveMin();
 
-				deleteBackward(node);
+				input.deleteBackward();
 
-				expectState(input, 'cat', 0);
+				expectState(element, 'cat', 0);
 			});
 
 			test('removes an entire multi-code-unit code point', () => {
-				const { input, node } = setup();
-				typeText(node, 'a😀');
+				const { element, input } = setup();
+				typeText(input, 'a😀');
 
-				deleteBackward(node);
+				input.deleteBackward();
 
-				expectState(input, 'a', 1);
+				expectState(element, 'a', 1);
 			});
 		});
 
 		describe('deleteForward', () => {
 			test('removes the code point after the caret', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveMin(node);
-				moveForward(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveMin();
+				input.moveForward();
 
-				deleteForward(node);
+				input.deleteForward();
 
-				expectState(input, 'ct', 1);
+				expectState(element, 'ct', 1);
 			});
 
 			test('does nothing when the caret is at the end', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
+				const { element, input } = setup();
+				typeText(input, 'cat');
 
-				deleteForward(node);
+				input.deleteForward();
 
-				expectState(input, 'cat', 3);
+				expectState(element, 'cat', 3);
 			});
 
 			test('removes an entire multi-code-unit code point', () => {
-				const { input, node } = setup();
-				typeText(node, 'a😀b');
-				moveMin(node);
-				moveForward(node);
+				const { element, input } = setup();
+				typeText(input, 'a😀b');
+				input.moveMin();
+				input.moveForward();
 
-				deleteForward(node);
+				input.deleteForward();
 
-				expectState(input, 'ab', 1);
+				expectState(element, 'ab', 1);
 			});
 		});
 
 		describe('caret movement', () => {
 			test('moves one code point toward the start', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
+				const { element, input } = setup();
+				typeText(input, 'cat');
 
-				moveBack(node);
+				input.moveBack();
 
-				expectState(input, 'cat', 2);
+				expectState(element, 'cat', 2);
 			});
 
 			test('moves one code point toward the end', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveMin(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveMin();
 
-				moveForward(node);
+				input.moveForward();
 
-				expectState(input, 'cat', 1);
+				expectState(element, 'cat', 1);
 			});
 
 			test('does not move before the start', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
-				moveMin(node);
+				const { element, input } = setup();
+				typeText(input, 'cat');
+				input.moveMin();
 
-				moveBack(node);
+				input.moveBack();
 
-				expectState(input, 'cat', 0);
+				expectState(element, 'cat', 0);
 			});
 
 			test('does not move past the end', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
+				const { element, input } = setup();
+				typeText(input, 'cat');
 
-				moveForward(node);
+				input.moveForward();
 
-				expectState(input, 'cat', 3);
+				expectState(element, 'cat', 3);
 			});
 
 			test('moves directly to the start', () => {
-				const { input, node } = setup();
-				typeText(node, 'cat');
+				const { element, input } = setup();
+				typeText(input, 'cat');
 
-				moveMin(node);
+				input.moveMin();
 
-				expectState(input, 'cat', 0);
+				expectState(element, 'cat', 0);
 			});
 
 			test('moves directly to the code-point end', () => {
-				const { input, node } = setup();
-				typeText(node, 'a😀b');
-				moveMin(node);
+				const { element, input } = setup();
+				typeText(input, 'a😀b');
+				input.moveMin();
 
-				moveMax(node);
+				input.moveMax();
 
-				expectState(input, 'a😀b', 3);
+				expectState(element, 'a😀b', 3);
 			});
 		});
 
@@ -217,7 +214,7 @@ describe('input', () => {
 			const first = createInput(host);
 			const second = createInput(host);
 
-			insert(first.node!, 'x');
+			getInput(first.node!)!.insert('x');
 
 			expectState(first, 'x', 1);
 			expectState(second, '', 0);
@@ -232,22 +229,22 @@ describe('input', () => {
 		});
 
 		test('emits the updated value after each content mutation', () => {
-			const { host, input, node } = setup();
+			const { host, element, input } = setup();
 			const events: HostEvents['input'][] = [];
-			host.addEventListener(input, 'input', (event) => {
+			host.addEventListener(element, 'input', (event) => {
 				expectTypeOf(event).toEqualTypeOf<Dispatched<HostEvents['input']>>();
 				events.push(event);
 			});
 
-			insert(node, 'cat');
-			deleteBackward(node);
-			moveMin(node);
-			deleteForward(node);
+			input.insert('cat');
+			input.deleteBackward();
+			input.moveMin();
+			input.deleteForward();
 
 			expect(
 				events.map((event) => ({
 					type: event.type,
-					target: event.target === input,
+					target: event.target === element,
 					value: event.value,
 				})),
 			).toEqual([
@@ -258,18 +255,18 @@ describe('input', () => {
 		});
 
 		test('does not emit when an action leaves the content unchanged', () => {
-			const { host, input, node } = setup();
+			const { host, element, input } = setup();
 			let events = 0;
-			host.addEventListener(input, 'input', () => events++);
+			host.addEventListener(element, 'input', () => events++);
 
-			insert(node, '');
-			insert(node, '\r\n');
-			deleteBackward(node);
-			deleteForward(node);
-			moveBack(node);
-			moveForward(node);
-			moveMin(node);
-			moveMax(node);
+			input.insert('');
+			input.insert('\r\n');
+			input.deleteBackward();
+			input.deleteForward();
+			input.moveBack();
+			input.moveForward();
+			input.moveMin();
+			input.moveMax();
 
 			expect(events).toBe(0);
 		});
@@ -313,9 +310,9 @@ describe('input', () => {
 				expected: ['moveMax'],
 			},
 		])('$name', ({ event, expected }) => {
-			const { host, node } = setupKeyboardInput();
+			const { host, input } = setupKeyboardInput();
 			const calls: InputCall[] = [];
-			recordInput(node, calls);
+			recordInput(input, calls);
 
 			handleInput(host, event);
 
@@ -324,9 +321,9 @@ describe('input', () => {
 		});
 
 		test('uses input keydown behavior for keyrepeat', () => {
-			const { host, node } = setupKeyboardInput();
+			const { host, input } = setupKeyboardInput();
 			const calls: InputCall[] = [];
-			recordInput(node, calls);
+			recordInput(input, calls);
 			const event: KeyRepeat = {
 				type: 'keyrepeat',
 				key: 'x',
@@ -340,10 +337,10 @@ describe('input', () => {
 		});
 
 		test('does not delegate a recognized input binding', () => {
-			const { host, node } = setupKeyboardInput();
+			const { host, input } = setupKeyboardInput();
 			const calls: InputCall[] = [];
 			let delegations = 0;
-			recordInput(node, calls);
+			recordInput(input, calls);
 			recordDelegatedKeydown(host, () => delegations++);
 
 			handleInput(host, keydown('x', 'x'));
@@ -381,9 +378,9 @@ describe('input', () => {
 		});
 
 		test('makes the first attached input the keyboard target', () => {
-			const { host, node } = setupKeyboardInput({ focus: false });
+			const { host, node, input } = setupKeyboardInput({ focus: false });
 			const calls: InputCall[] = [];
-			recordInput(node, calls);
+			recordInput(input, calls);
 
 			expect(getFocus(host.root) === node).toBe(true);
 			handleInput(host, keydown('x', 'x'));
@@ -394,12 +391,12 @@ describe('input', () => {
 
 type InputCall = [method: string, argument?: string];
 
-function setup(): { host: Host; input: HostElement; node: Node } {
+function setup(): { host: Host; element: HostElement; input: Input } {
 	const host = createHost();
 	useFocus(host);
 	useInputElement(host);
-	const input = createInput(host);
-	return { host, input, node: input.node! };
+	const element = createInput(host);
+	return { host, element, input: getInput(element.node!)! };
 }
 
 function setupKeyboardHost(): Host {
@@ -411,15 +408,16 @@ function setupKeyboardHost(): Host {
 function setupKeyboardInput(options: { focus?: boolean } = {}): {
 	host: Host;
 	node: Node;
+	input: Input;
 } {
 	const host = setupKeyboardHost();
 	useInputElement(host);
-	const input = createInput(host);
-	const node = input.node!;
+	const element = createInput(host);
+	const node = element.node!;
 	if (options.focus ?? true) {
 		setFocusable(node);
 	}
-	return { host, node };
+	return { host, node, input: getInput(node)! };
 }
 
 function createInput(host: Host): HostElement {
@@ -428,9 +426,9 @@ function createInput(host: Host): HostElement {
 	return input;
 }
 
-function typeText(node: Node, value: string): void {
+function typeText(input: Input, value: string): void {
 	for (const codePoint of value) {
-		insert(node, codePoint);
+		input.insert(codePoint);
 	}
 }
 
@@ -450,30 +448,28 @@ function createFocusable(host: Host): Node {
 	return element.node!;
 }
 
-function recordInput(node: Node, calls: InputCall[]): void {
-	InputApi.around(node, {
-		insert([, text]) {
-			calls.push(['insert', text]);
-		},
-		deleteBackward() {
-			calls.push(['deleteBackward']);
-		},
-		deleteForward() {
-			calls.push(['deleteForward']);
-		},
-		moveBack() {
-			calls.push(['moveBack']);
-		},
-		moveForward() {
-			calls.push(['moveForward']);
-		},
-		moveMin() {
-			calls.push(['moveMin']);
-		},
-		moveMax() {
-			calls.push(['moveMax']);
-		},
-	});
+function recordInput(input: Input, calls: InputCall[]): void {
+	input.insert = (text) => {
+		calls.push(['insert', text]);
+	};
+	input.deleteBackward = () => {
+		calls.push(['deleteBackward']);
+	};
+	input.deleteForward = () => {
+		calls.push(['deleteForward']);
+	};
+	input.moveBack = () => {
+		calls.push(['moveBack']);
+	};
+	input.moveForward = () => {
+		calls.push(['moveForward']);
+	};
+	input.moveMin = () => {
+		calls.push(['moveMin']);
+	};
+	input.moveMax = () => {
+		calls.push(['moveMax']);
+	};
 }
 
 function recordDelegatedKeydown(
@@ -485,9 +481,9 @@ function recordDelegatedKeydown(
 	});
 }
 
-function expectState(input: HostElement, value: string, caret: number): void {
+function expectState(element: HostElement, value: string, caret: number): void {
 	expect({
-		value: input.properties['value'],
-		caret: input.properties['caret'],
+		value: element.properties['value'],
+		caret: element.properties['caret'],
 	}).toEqual({ value, caret });
 }
