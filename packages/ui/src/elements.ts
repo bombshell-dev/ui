@@ -1,4 +1,4 @@
-import { createApi, createContext, type Node } from './core.ts';
+import { createContext, type Node } from './core.ts';
 
 /**
  * Type container for elements and their properties
@@ -24,17 +24,15 @@ export interface HostLiteral {
 
 export type HostElementChild = HostElement | HostLiteral;
 
-export const ElementApi = createApi('element', {
-	getElement(node): HostElement {
-		return ElementContext.expect(node);
-	},
+/** The element `node` hosts. */
+export function getElement(node: Node): HostElement {
+	return ElementContext.expect(node);
+}
 
-	setElement(node, element: HostElement): void {
-		element.node = node;
-		ElementContext.set(node, element);
-	},
-});
-
-export const { getElement, setElement } = ElementApi.methods;
+/** Bind `element` to `node`, in both directions. */
+export function setElement(node: Node, element: HostElement): void {
+	element.node = node;
+	ElementContext.set(node, element);
+}
 
 const ElementContext = createContext<HostElement>('element');
