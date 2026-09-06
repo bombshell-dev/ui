@@ -5,7 +5,9 @@ import { DispatchApi, useDispatch } from './dispatch.ts';
 import { getFocus, setFocusable, useFocus } from './focus.ts';
 import { useFocusNavigation } from './focus-navigation.ts';
 import { createHost, type Host } from './host.ts';
-import { KeyboardApi, useKeyboard } from './keyboard.ts';
+import { useKeyboard, type KeyDownEvent, type KeyRepeatEvent, type KeyUpEvent } from './keyboard.ts';
+import { addListener, type Dispatched } from './events.ts';
+import { getElement } from './elements.ts';
 
 const { dispatch } = DispatchApi.methods;
 
@@ -15,7 +17,7 @@ describe('focus navigation', () => {
 		{ event: keyrepeat('Tab'), expected: 'second' },
 		{ event: keydown('Backtab'), expected: 'third' },
 		{ event: keyrepeat('Backtab'), expected: 'third' },
-	])('$event.type $event.code moves focus and consumes the event', ({ event, expected }) => {
+	])('$event.type $event.code moves focus once the target declines it', ({ event, expected }) => {
 		const { host, first, second, third } = setup();
 		const delegated: RecordedKeyEvent[] = [];
 		recordKeyboard(first, delegated);
@@ -23,7 +25,16 @@ describe('focus navigation', () => {
 		dispatch(host.root, event);
 
 		expect(getFocus(host.root)).toBe(expected === 'second' ? second : third);
-		expect(delegated).toEqual([]);
+		expect(delegated).toMatchObject([{ node: first, event }]);
+	});
+
+	test('leaves focus alone when the target consumes the key', () => {
+		const { host, first } = setup();
+		addListener(getElement(first), 'keydown', (event) => event.stopPropagation());
+
+		dispatch(host.root, keydown('Tab'));
+
+		expect(getFocus(host.root)).toBe(first);
 	});
 
 	test.each([keydown('a'), keyrepeat('a'), keyup('Tab'), keyup('Backtab')])(
@@ -36,7 +47,7 @@ describe('focus navigation', () => {
 			dispatch(host.root, event);
 
 			expect(getFocus(host.root)).toBe(first);
-			expect(delegated).toEqual([{ node: first, event }]);
+			expect(delegated).toMatchObject([{ node: first, event }]);
 		},
 	);
 });
@@ -49,7 +60,7 @@ interface Setup {
 }
 
 interface RecordedKeyEvent {
-	node: Node;
+	node: Node | null;
 	event: KeyEvent;
 }
 
@@ -88,15 +99,12 @@ function keyup(code: KeyUp['code']): KeyUp {
 }
 
 function recordKeyboard(node: Node, events: RecordedKeyEvent[]): void {
-	KeyboardApi.around(node, {
-		keydown([target, event]) {
-			events.push({ node: target, event });
-		},
-		keyup([target, event]) {
-			events.push({ node: target, event });
-		},
-		keyrepeat([target, event]) {
-			events.push({ node: target, event });
-		},
-	});
+	const element = getElement(node);
+	const record = (event: Dispatched<KeyDownEvent | KeyUpEvent | KeyRepeatEvent>): void => {
+		events.push({ node: event.currentTarget.node, event });
+	};
+
+	addListener(element, 'keydown', record);
+	addListener(element, 'keyup', record);
+	addListener(element, 'keyrepeat', record);
 }

@@ -30,7 +30,11 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 const registry = new WeakMap<HostElement, Map<string, Set<AnyListener>>>();
 
 // oxlint-disable-next-line max-params
-export function addListener(element: HostElement, type: string, listener: AnyListener): void {
+export function addListener<T extends HostEventType>(
+	element: HostElement,
+	type: T,
+	listener: HostEventListener<T>,
+): void {
 	let types = registry.get(element);
 	if (!types) {
     types = new Map<string, Set<AnyListener>>();
@@ -41,16 +45,20 @@ export function addListener(element: HostElement, type: string, listener: AnyLis
     listeners = new Set<AnyListener>();
 		types.set(type, listeners);
 	}
-	listeners.add(listener);
+	listeners.add(listener as AnyListener);
 }
 
 // oxlint-disable-next-line max-params
-export function removeListener(element: HostElement, type: string, listener: AnyListener): void {
+export function removeListener<T extends HostEventType>(
+	element: HostElement,
+	type: T,
+	listener: HostEventListener<T>,
+): void {
 	const types = registry.get(element);
 	if (types) {
 		const listeners = types.get(type);
 		if (listeners) {
-			listeners.delete(listener);
+			listeners.delete(listener as AnyListener);
 			if (listeners.size === 0) {
 				types.delete(type);
 			}

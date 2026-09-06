@@ -7,7 +7,8 @@ import { DispatchApi, useDispatch } from '../dispatch.ts';
 import type { HostElement } from '../elements.ts';
 import { getFocus, setFocusable, useFocus } from '../focus.ts';
 import { createHost, type Host } from '../host.ts';
-import { KeyboardApi, useKeyboard } from '../keyboard.ts';
+import { useKeyboard } from '../keyboard.ts';
+import { addListener } from '../events.ts';
 import { InputApi, type InputProps, useInputElement } from './input.ts';
 
 const { dispatch } = DispatchApi.methods;
@@ -359,7 +360,7 @@ describe('input', () => {
 			const event = keydown('Enter');
 			const delegated: Array<{ target: boolean; event: boolean }> = [];
 			recordDelegatedKeydown(host, (target, received) => {
-				delegated.push({ target: target === node, event: received === event });
+				delegated.push({ target: target === node, event: received.code === event.code });
 			});
 
 			dispatch(host.root, event);
@@ -374,7 +375,7 @@ describe('input', () => {
 			const event = keydown('x', 'x');
 			const delegated: Array<{ target: boolean; event: boolean }> = [];
 			recordDelegatedKeydown(host, (node, received) => {
-				delegated.push({ target: node === target, event: received === event });
+				delegated.push({ target: node === target, event: received.code === event.code });
 			});
 
 			dispatch(host.root, event);
@@ -480,12 +481,12 @@ function recordInput(node: Node, calls: InputCall[]): void {
 	});
 }
 
-function recordDelegatedKeydown(host: Host, listener: (node: Node, event: KeyDown) => void): void {
-	KeyboardApi.around(host.root, {
-		keydown([node, event], next) {
-			listener(node, event);
-			return next(node, event);
-		},
+function recordDelegatedKeydown(
+	host: Host,
+	listener: (node: Node | null, event: KeyDown) => void,
+): void {
+	addListener(host.element, 'keydown', (event) => {
+		listener(event.target.node, event);
 	});
 }
 

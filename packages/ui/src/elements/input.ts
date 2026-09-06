@@ -1,12 +1,12 @@
 import { createApi, createContext, id, type Node } from '../core.ts';
 import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import type { HostEvent } from '@clack/ui/events';
-import { dispatch } from '../events.ts';
+import { addListener, dispatch, type Dispatched } from '../events.ts';
 import { getElement } from '../elements.ts';
 import { type Host, HostApi } from '../host.ts';
 import { LayoutApi } from '../layout.ts';
 import { getFocus, setFocusable } from '../focus.ts';
-import { KeyboardApi } from '../keyboard.ts';
+import type { KeyDownEvent, KeyRepeatEvent } from '../keyboard.ts';
 
 export interface InputEvent extends HostEvent<'input'> {
 	value: string;
@@ -40,6 +40,15 @@ export function useInputElement(host: Host): void {
 					setFocusable(node);
 					InputContext.set(node, model);
 				};
+
+				const edit = (event: Dispatched<KeyDownEvent | KeyRepeatEvent>): void => {
+					const node = event.currentTarget.node;
+					if (node && handleKeyEvent(node, event)) {
+						event.stopPropagation();
+					}
+				};
+				addListener(element, 'keydown', edit);
+				addListener(element, 'keyrepeat', edit);
 
 				// make value and caret accessible to the public <input/>
 				Object.defineProperties(element.properties, {
@@ -86,18 +95,6 @@ export function useInputElement(host: Host): void {
 		},
 	});
 
-	KeyboardApi.around(root, {
-		keydown([node, event], next) {
-			if (!handleKeyEvent(node, event)) {
-				return next(node, event);
-			}
-		},
-		keyrepeat([node, event], next) {
-			if (!handleKeyEvent(node, event)) {
-				return next(node, event);
-			}
-		},
-	});
 }
 
 export const InputApi = createApi('input', {

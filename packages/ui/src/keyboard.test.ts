@@ -4,7 +4,9 @@ import { describe, expect, test } from 'vitest';
 import { DispatchApi, useDispatch } from './dispatch.ts';
 import { setFocus, setFocusable, useFocus } from './focus.ts';
 import { createHost, type Host } from './host.ts';
-import { KeyboardApi, useKeyboard } from './keyboard.ts';
+import { useKeyboard, type KeyDownEvent, type KeyRepeatEvent, type KeyUpEvent } from './keyboard.ts';
+import { addListener, type Dispatched } from './events.ts';
+import { getElement } from './elements.ts';
 
 const { dispatch } = DispatchApi.methods;
 
@@ -31,7 +33,7 @@ describe('keyboard dispatch', () => {
 		expect(firstEvents).toEqual([]);
 		expect(secondEvents.map(({ node }) => node)).toEqual([second, second, second]);
 		for (const [index, event] of events.entries()) {
-			expect(secondEvents[index]?.event).toBe(event);
+			expect(secondEvents[index]?.event).toMatchObject(event);
 		}
 	});
 
@@ -69,7 +71,7 @@ describe('keyboard dispatch', () => {
 });
 
 interface RecordedKeyEvent {
-	node: Node;
+	node: Node | null;
 	event: KeyEvent;
 }
 
@@ -98,15 +100,12 @@ function keydown(code: KeyDown['code'], text?: string): KeyDown {
 }
 
 function recordKeyboard(node: Node, events: RecordedKeyEvent[]): void {
-	KeyboardApi.around(node, {
-		keydown([target, event]) {
-			events.push({ node: target, event });
-		},
-		keyup([target, event]) {
-			events.push({ node: target, event });
-		},
-		keyrepeat([target, event]) {
-			events.push({ node: target, event });
-		},
-	});
+	const element = getElement(node);
+	const record = (event: Dispatched<KeyDownEvent | KeyUpEvent | KeyRepeatEvent>): void => {
+		events.push({ node: event.currentTarget.node, event });
+	};
+
+	addListener(element, 'keydown', record);
+	addListener(element, 'keyup', record);
+	addListener(element, 'keyrepeat', record);
 }
