@@ -3,7 +3,7 @@ import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } f
 import type { HostEvent } from '@clack/ui/events';
 import { addListener, dispatch, type Dispatched } from '../events.ts';
 import { getElement } from '../elements.ts';
-import { type Host, HostApi } from '../host.ts';
+import type { Host } from '../host.ts';
 import { LayoutApi } from '../layout.ts';
 import { getFocus, setFocusable } from '../focus.ts';
 import type { KeyDownEvent, KeyRepeatEvent } from '../keyboard.ts';
@@ -31,41 +31,35 @@ declare module '@clack/ui/elements' {
 export function useInputElement(host: Host): void {
 	const { root } = host;
 
-	HostApi.around(root, {
-		createElement([root, name], next) {
-			const element = next(root, name);
-			if (element.name === 'input') {
-				const model = { content: '', caret: 0 };
-				element.attach = (node) => {
-					setFocusable(node);
-					InputContext.set(node, model);
-				};
+	host.defineElement('input', (element) => {
+		const model = { content: '', caret: 0 };
+		element.attach = (node) => {
+			setFocusable(node);
+			InputContext.set(node, model);
+		};
 
-				const edit = (event: Dispatched<KeyDownEvent | KeyRepeatEvent>): void => {
-					const node = event.currentTarget.node;
-					if (node && handleKeyEvent(node, event)) {
-						event.stopPropagation();
-					}
-				};
-				addListener(element, 'keydown', edit);
-				addListener(element, 'keyrepeat', edit);
-
-				// make value and caret accessible to the public <input/>
-				Object.defineProperties(element.properties, {
-					value: {
-						get() {
-							return model.content;
-						},
-					},
-					caret: {
-						get() {
-							return model.caret;
-						},
-					},
-				});
+		const edit = (event: Dispatched<KeyDownEvent | KeyRepeatEvent>): void => {
+			const node = event.currentTarget.node;
+			if (node && handleKeyEvent(node, event)) {
+				event.stopPropagation();
 			}
-			return element;
-		},
+		};
+		addListener(element, 'keydown', edit);
+		addListener(element, 'keyrepeat', edit);
+
+		// make value and caret accessible to the public <input/>
+		Object.defineProperties(element.properties, {
+			value: {
+				get() {
+					return model.content;
+				},
+			},
+			caret: {
+				get() {
+					return model.caret;
+				},
+			},
+		});
 	});
 
 	LayoutApi.around(root, {

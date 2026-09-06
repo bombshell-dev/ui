@@ -1,10 +1,4 @@
-import {
-	HostApi,
-	createHost,
-	type HostElement,
-	type HostElementChild,
-	type HostLiteral,
-} from '@clack/ui';
+import { createHost, type HostElement, type HostElementChild, type HostLiteral } from '@clack/ui';
 import type { InputEvent } from '@clack/ui';
 import type { Dispatched, HostEventListener } from '@clack/ui/events';
 import { createSignal } from 'solid-js';
@@ -140,15 +134,14 @@ describe('createRoot', () => {
 		},
 	);
 
-	test('routes element creation through Host middleware', () => {
+	test('routes element creation through the Host', () => {
 		const host = createHost();
 		const createElementCall = vi.fn();
-		HostApi.around(host.root, {
-			createElement([node, name], next) {
-				createElementCall(name);
-				return next(node, name);
-			},
-		});
+		const original = host.createElement.bind(host);
+		host.createElement = (name) => {
+			createElementCall(name);
+			return original(name);
+		};
 		const root = createRoot(host.element);
 
 		root.render(() => createElement('custom-element'));
@@ -159,16 +152,18 @@ describe('createRoot', () => {
 	test('delivers Host events through Solid event properties', () => {
 		const host = createHost();
 		let listener: HostEventListener<'input'> | undefined;
-		HostApi.around(host.root, {
-			addEventListener([node, target, type, current], next) {
-				if (type === 'input') listener = current as HostEventListener<'input'>;
-				return next(node, target, type, current);
-			},
-			removeEventListener([node, target, type, current], next) {
-				if (current === listener) listener = undefined;
-				return next(node, target, type, current);
-			},
-		});
+		const add = host.addEventListener.bind(host);
+		const remove = host.removeEventListener.bind(host);
+		// oxlint-disable-next-line max-params
+		host.addEventListener = (target, type, current) => {
+			if (type === 'input') listener = current as HostEventListener<'input'>;
+			return add(target, type, current);
+		};
+		// oxlint-disable-next-line max-params
+		host.removeEventListener = (target, type, current) => {
+			if (current === listener) listener = undefined;
+			return remove(target, type, current);
+		};
 		const root = createRoot(host.element);
 		const first = vi.fn();
 		const second = vi.fn();

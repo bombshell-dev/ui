@@ -1,6 +1,7 @@
 import { createApi, createContext, type Node } from './core.ts';
 import { getElement, type HostElement, type HostElementChild } from './elements.ts';
-import { HostApi, type Host } from './host.ts';
+import { getHost, type Host } from './host.ts';
+import { addListener } from './events.ts';
 
 export const FocusApi = createApi('focus', {
 	setFocusable(node): void {
@@ -14,10 +15,15 @@ export const FocusApi = createApi('focus', {
 		}
 	},
 	setFocus(node): void {
-		if (!isFocusable(node) && node !== getHost(node).root) {
+		const host = getHost(node);
+		if (!isFocusable(node) && node !== host.root) {
 			throw new UnfocusableElementError(node);
 		}
-		FocusContext.expect(node).current = node;
+		const state = FocusContext.expect(node);
+		if (state.current !== node) {
+			state.current = node;
+			host.onRequestRender?.(node);
+		}
 	},
 	getFocus(node): Node {
 		return FocusContext.expect(node).current;
@@ -62,28 +68,24 @@ export const { setFocusable, getFocus, setFocus, advanceFocus, retreatFocus } = 
 
 export function useFocus(host: Host): void {
 	FocusContext.set(host.root, { current: host.root });
-	HostApi.around(host.root, {
-		removeChild([root, parent, removed], next) {
-			if (removed.type === 'element' && contains(removed.node!, getFocus(root))) {
-				const tail = lastElementOf(removed);
 
-				const after = forward({ start: tail });
-				const before = forward({
-					start: host.element,
-					limit: removed,
-				});
+	addListener(host.element, 'childremoved', (event) => {
+		const removed = event.target;
+		if (contains(removed.node!, getFocus(host.root))) {
+			const tail = lastElementOf(removed);
 
-				const replacement = findFocus(concat(after, before)) ?? host.root;
+			const after = forward({ start: tail });
+			const before = forward({
+				start: host.element,
+				limit: removed,
+			});
 
-				setFocus(replacement);
-			}
+			const replacement = findFocus(concat(after, before)) ?? host.root;
 
-			return next(root, parent, removed);
-		},
+			setFocus(replacement);
+		}
 	});
 }
-
-const { getHost } = HostApi.methods;
 
 const FocusContext = createContext<{ current: Node }>('focus');
 const FocusableContext = createContext<boolean>('focusable', false);

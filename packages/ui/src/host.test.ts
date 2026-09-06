@@ -1,12 +1,11 @@
 import { createContext } from './core.ts';
 import { describe, expect, test, vi } from 'vitest';
-import { createHost, HostApi } from './host.ts';
+import { createHost, getHost } from './host.ts';
 import { getElement } from './elements.ts';
 
 describe('host', () => {
 	test('a prebuilt subtree inherits host context when attached', () => {
 		const host = createHost();
-		const { getHost } = HostApi.methods;
 		const marker = createContext<string>('@test/host/attachment');
 		marker.set(host.element.node!, 'from host');
 

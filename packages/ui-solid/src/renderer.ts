@@ -1,6 +1,6 @@
 // oxlint-disable bombshell-dev/exported-function-async -- Solid renderer setup and Host roots are synchronous.
 // oxlint-disable max-params -- Renderer option signatures are fixed by solid-js.
-import { HostApi, type Host } from '@clack/ui';
+import { getHost, type Host } from '@clack/ui';
 import type { HostElement, HostElementChild, HostLiteral } from '@clack/ui/elements';
 import type { HostEventListener, HostEventType } from '@clack/ui/events';
 import { getOwner, type Owner } from 'solid-js';
@@ -32,7 +32,7 @@ export interface Root {
 
 /** Create a Solid root which reconciles into an attached Host element. */
 export function createRoot(element: HostElement): Root {
-	const host = HostApi.methods.getHost(element.node!);
+	const host = getHost(element.node!);
 	nodeHosts.set(element, host);
 	let dispose: (() => void) | undefined;
 

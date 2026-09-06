@@ -1,8 +1,6 @@
 import { type Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { useHostRenderer } from './host-render.ts';
 import { createHost, type Host } from './host.ts';
-import { RenderApi } from './render.ts';
 
 describe('host renderer', () => {
 	test('does not request a render while building a detached subtree', () => {
@@ -127,13 +125,9 @@ function setup(): { host: Host; requests: Node[] } {
 	const host = createHost();
 	const requests: Node[] = [];
 
-	useHostRenderer(host);
-	RenderApi.around(host.root, {
-		requestRender([node], next) {
-			requests.push(node);
-			return next(node);
-		},
-	});
+	host.onRequestRender = (node) => {
+		requests.push(node);
+	};
 
 	return { host, requests };
 }

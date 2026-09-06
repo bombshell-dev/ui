@@ -1,6 +1,5 @@
-// oxlint-disable max-params
 import { text } from '@bomb.sh/tty';
-import { type Node, create, createApi, createContext, destroy, LifecycleApi } from './core.ts';
+import { type Node, create, createContext, destroy, LifecycleApi } from './core.ts';
 import {
 	getElement,
 	setElement,
@@ -11,15 +10,34 @@ import {
 import { LayoutApi, layout } from './layout.ts';
 import {
 	addListener,
+	dispatch,
 	removeListener,
+	type HostEvent,
 	type HostEventType,
 	type HostEventListener,
 } from './events.ts';
 
+/** Dispatched on an attached element before it leaves the tree, and on its ancestors. */
+export interface ChildRemovedEvent extends HostEvent<'childremoved'> {}
+
+declare module '@clack/ui/events' {
+	interface HostEvents {
+		childremoved: ChildRemovedEvent;
+	}
+}
+
+/**
+ * Set up an element as it is created: its attach and detach callbacks, its
+ * exposed properties, and any listeners it needs.
+ */
+export type ElementDefinition = (element: HostElement) => void;
+
 export interface Host {
 	root: Node;
 	element: HostElement;
-	createElement(type: string): HostElement;
+	onRequestRender?: (node: Node) => void;
+	defineElement(name: string, define: ElementDefinition): void;
+	createElement(name: string): HostElement;
 	createLiteral(content: string): HostLiteral;
 	insertBefore(parent: HostElement, child: HostElementChild, anchor?: HostElementChild): void;
 	removeChild(parent: HostElement, child: HostElementChild): void;
@@ -47,17 +65,18 @@ export function createHost(): Host {
 		properties: {},
 		children: [],
 	};
+	const definitions = new Map<string, ElementDefinition>();
 
 	setElement(root, element);
 	useRootLayout(root, element);
 
 	LifecycleApi.around(root, {
 		destroy([node], next) {
-			const element = getElement(node);
-			if (element.detach) {
-				element.detach(node);
+			const target = getElement(node);
+			if (target.detach) {
+				target.detach(node);
 			}
-			element.node = null;
+			target.node = null;
 			return next(node);
 		},
 	});
@@ -65,29 +84,102 @@ export function createHost(): Host {
 	const host: Host = {
 		root,
 		element,
-		createElement(type) {
-			return HostApi.methods.createElement(root, type);
+
+		defineElement(name, define) {
+			definitions.set(name, define);
 		},
+
+		createElement(name) {
+			const created: HostElement = {
+				type: 'element',
+				name,
+				node: null,
+				parent: null,
+				properties: {},
+				children: [],
+			};
+			definitions.get(name)?.(created);
+			return created;
+		},
+
 		createLiteral(content) {
-			return HostApi.methods.createLiteral(root, content);
+			return { type: 'literal', content };
 		},
+
+		// oxlint-disable-next-line max-params
 		insertBefore(parent, child, anchor) {
-			return HostApi.methods.insertBefore(root, parent, child, anchor);
+			const originalParentNode = child.parent?.node ?? null;
+
+			if (child.parent !== parent && child.type === 'element') {
+				detach(child);
+
+				if (parent.node) {
+					attach(parent, child);
+				}
+			}
+			if (child.parent) {
+				const currentIndex = child.parent.children.indexOf(child);
+				child.parent.children.splice(currentIndex, 1);
+			}
+			const index = anchor ? parent.children.indexOf(anchor) : parent.children.length;
+			parent.children.splice(index, 0, child);
+			child.parent = parent;
+
+			if (originalParentNode) {
+				host.onRequestRender?.(originalParentNode);
+			}
+			if (parent.node && parent.node !== originalParentNode) {
+				host.onRequestRender?.(parent.node);
+			}
 		},
+
 		removeChild(parent, child) {
-			return HostApi.methods.removeChild(root, parent, child);
+			if (child.parent === parent) {
+				if (child.type === 'element' && child.node) {
+					dispatch(child, { type: 'childremoved', target: child }, { bubbles: true });
+				}
+
+				child.parent = null;
+				parent.children.splice(parent.children.indexOf(child), 1);
+				if (child.type === 'element') {
+					detach(child);
+				}
+
+				if (parent.node) {
+					host.onRequestRender?.(parent.node);
+				}
+			}
 		},
-		setProperty(element, name, value) {
-			return HostApi.methods.setProperty(root, element, name, value);
+
+		// oxlint-disable-next-line max-params
+		setProperty(target, name, value) {
+			if (typeof value === 'undefined') {
+				delete target.properties[name];
+			} else {
+				target.properties[name] = value;
+			}
+
+			if (target.node) {
+				host.onRequestRender?.(target.node);
+			}
 		},
-		setText(text, value) {
-			return HostApi.methods.setText(root, text, value);
+
+		setText(literal, content) {
+			literal.content = content;
+
+			if (literal.parent?.node) {
+				host.onRequestRender?.(literal.parent.node);
+			}
 		},
-		addEventListener(element, type, listener): void {
-			return HostApi.methods.addEventListener(root, element, type, listener);
+
+		// oxlint-disable-next-line max-params
+		addEventListener(target, type, listener) {
+			addListener(target, type, listener);
 		},
-		removeEventListener(element, type, listener): void {
-			return HostApi.methods.removeEventListener(root, element, type, listener);
+
+		// oxlint-disable-next-line max-params
+		removeEventListener(target, type, listener) {
+			removeListener(target, type, listener);
 		},
 	};
 
@@ -95,82 +187,12 @@ export function createHost(): Host {
 	return host;
 }
 
-export const HostApi = createApi('host', {
-	createElement(node, name: string): HostElement {
-		return {
-			type: 'element',
-			name,
-			node: null,
-			parent: null,
-			properties: {},
-			children: [],
-		};
-	},
-	createLiteral(node, content: string): HostLiteral {
-		return { type: 'literal', content };
-	},
-	insertBefore(
-		node,
-		parent: HostElement,
-		child: HostElementChild,
-		anchor?: HostElementChild,
-	): void {
-		if (child.parent !== parent) {
-			if (child.type === 'element') {
-				detach(child);
-
-				if (isAttached(parent)) {
-					attach(parent, child);
-				}
-			}
-		}
-		if (child.parent) {
-			const currentIndex = child.parent.children.indexOf(child);
-			child.parent.children.splice(currentIndex, 1);
-		}
-		const index = anchor ? parent.children.indexOf(anchor) : parent.children.length;
-		parent.children.splice(index, 0, child);
-		child.parent = parent;
-	},
-	removeChild(root, parent: HostElement, child: HostElementChild): void {
-		if (child.parent === parent) {
-			child.parent = null;
-			parent.children.splice(parent.children.indexOf(child), 1);
-			if (child.type === 'element') {
-				detach(child);
-			}
-		}
-	},
-	setProperty(node, element: HostElement, name: string, value: unknown): void {
-		if (typeof value === 'undefined') {
-			delete element.properties[name];
-		} else {
-			element.properties[name] = value;
-		}
-	},
-
-	setText(node, text: HostLiteral, content: string): void {
-		text.content = content;
-	},
-
-	getHost(node): Host {
-		return HostContext.expect(node);
-	},
-
-	addEventListener(node, element, type, listener): void {
-		addListener(element, type, listener);
-	},
-
-	removeEventListener(node, element, type, listener): void {
-		removeListener(element, type, listener);
-	},
-});
+/** The host that owns `node`. */
+export function getHost(node: Node): Host {
+	return HostContext.expect(node);
+}
 
 const HostContext = createContext<Host>('host');
-
-function isAttached(element: HostElement): boolean {
-	return !!element.node;
-}
 
 function attach(parent: HostElement, child: HostElement): void {
 	child.node = create(parent.node!);

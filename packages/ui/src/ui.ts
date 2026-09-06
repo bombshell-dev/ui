@@ -14,11 +14,9 @@ import { useInputElement } from './elements/input.ts';
 import { useTextElement } from './elements/text.ts';
 import { useFocusNavigation } from './focus-navigation.ts';
 import { useFocus } from './focus.ts';
-import { useHostRenderer } from './host-render.ts';
 import { createHost, type Host } from './host.ts';
 import { routeKeyEvent } from './keyboard.ts';
 import { layout } from './layout.ts';
-import { RenderApi } from './render.ts';
 import { createInputLoop } from './input-loop.ts';
 
 export interface UIOptions {
@@ -71,7 +69,6 @@ export async function createUI(options: UIOptions): Promise<UI> {
 	useBoxElement(host);
 	useTextElement(host);
 	useInputElement(host);
-	useHostRenderer(host);
 
 	const rendererOptions = { height, output, term };
 	const { setup, render } = inline
@@ -80,14 +77,11 @@ export async function createUI(options: UIOptions): Promise<UI> {
 	let stopped = false;
 
 	// Deliberately naive: every request immediately lays out and renders the entire Host tree.
-	RenderApi.around(host.root, {
-		requestRender([node], next) {
-			if (!stopped) {
-				next(node);
-				render([...layout(host.root)]);
-			}
-		},
-	});
+	host.onRequestRender = () => {
+		if (!stopped) {
+			render([...layout(host.root)]);
+		}
+	};
 
 	output.write(setup.apply);
 
