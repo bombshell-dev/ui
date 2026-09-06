@@ -1,4 +1,3 @@
-import { id } from './core.ts';
 import { close, open, text as ttyText } from '@bomb.sh/tty';
 import { describe, expect, test } from 'vitest';
 import { useBoxElement } from './elements/box.ts';
@@ -22,10 +21,10 @@ describe('layout', () => {
 			host.insertBefore(parent, second, first);
 
 			expect([...layout(host.root)]).toEqual([
-				open(id(parent.node!)),
-				open(id(second.node!)),
+				open(parent.node!.id),
+				open(second.node!.id),
 				close(),
-				open(id(first.node!)),
+				open(first.node!.id),
 				close(),
 				close(),
 			]);
@@ -45,9 +44,9 @@ describe('layout', () => {
 			host.insertBefore(host.element, parent);
 
 			expect([...layout(host.root)]).toEqual([
-				open(id(parent.node!)),
+				open(parent.node!.id),
 				ttyText('Hello, '),
-				open(id(child.node!)),
+				open(child.node!.id),
 				close(),
 				ttyText('World!'),
 				close(),

@@ -1,7 +1,6 @@
 import { text } from '@bomb.sh/tty';
-import { type Node, create, createContext, destroy, LifecycleApi } from './core.ts';
+import { Node, createContext } from './core.ts';
 import {
-	getElement,
 	setElement,
 	type HostElementChild,
 	type HostElement,
@@ -56,7 +55,7 @@ export interface Host {
 }
 
 export function createHost(): Host {
-	const root = create();
+	const root = Node.createRoot();
 	const element: HostElement = {
 		type: 'element',
 		name: 'root',
@@ -69,17 +68,6 @@ export function createHost(): Host {
 
 	setElement(root, element);
 	useRootLayout(root, element);
-
-	LifecycleApi.around(root, {
-		destroy([node], next) {
-			const target = getElement(node);
-			if (target.detach) {
-				target.detach(node);
-			}
-			target.node = null;
-			return next(node);
-		},
-	});
 
 	const host: Host = {
 		root,
@@ -195,8 +183,14 @@ export function getHost(node: Node): Host {
 const HostContext = createContext<Host>('host');
 
 function attach(parent: HostElement, child: HostElement): void {
-	child.node = create(parent.node!);
+	child.node = parent.node!.createChild();
 	setElement(child.node, child);
+	child.node.ondestroy = (node) => {
+		if (child.detach) {
+			child.detach(node);
+		}
+		child.node = null;
+	};
 
 	if (child.attach) {
 		child.attach(child.node);
@@ -209,9 +203,7 @@ function attach(parent: HostElement, child: HostElement): void {
 }
 
 function detach(child: HostElement): void {
-	if (child.node) {
-		destroy(child.node);
-	}
+	child.node?.destroy();
 }
 
 function useRootLayout(root: Node, element: HostElement): void {

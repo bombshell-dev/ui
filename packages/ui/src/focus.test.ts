@@ -1,4 +1,4 @@
-import { destroy, type Node } from './core.ts';
+import type { Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
 import { FocusApi, useFocus } from './focus.ts';
 import { createHost as createHostWithoutFocus, type Host } from './host.ts';
@@ -12,7 +12,7 @@ describe('focus', () => {
 			const host = createHost();
 
 			expect(getFocus(host.root)).toBe(host.root);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('focuses the first focusable element connected to an empty host', () => {
@@ -23,7 +23,7 @@ describe('focus', () => {
 
 			expect(input.node).not.toBeNull();
 			expect(getFocus(host.root)).toBe(input.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('does not replace the focus when another focusable element is connected', () => {
@@ -35,7 +35,7 @@ describe('focus', () => {
 			host.insertBefore(host.element, second);
 
 			expect(getFocus(host.root)).toBe(first.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('does not inherit focusability from an ancestor', () => {
@@ -51,7 +51,7 @@ describe('focus', () => {
 
 			expect(getFocus(host.root)).toBe(sibling.node);
 			expect(getFocus(host.root)).not.toBe(child.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 	});
 
@@ -74,7 +74,7 @@ describe('focus', () => {
 			}
 
 			expect(visited).toEqual([first.node, nested.node, last.node, first.node]);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('does nothing when there is only one focusable element', () => {
@@ -85,7 +85,7 @@ describe('focus', () => {
 			advanceFocus(host.root);
 
 			expect(getFocus(host.root)).toBe(input.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('uses current host order after a child moves', () => {
@@ -104,7 +104,7 @@ describe('focus', () => {
 			advanceFocus(host.root);
 
 			expect(getFocus(host.root)).toBe(third.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 	});
 
@@ -122,7 +122,7 @@ describe('focus', () => {
 			expect(getFocus(host.root)).toBe(last.node);
 			retreatFocus(host.root);
 			expect(getFocus(host.root)).toBe(second.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('does nothing when there is only one focusable element', () => {
@@ -133,7 +133,7 @@ describe('focus', () => {
 			retreatFocus(host.root);
 
 			expect(getFocus(host.root)).toBe(input.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 	});
 
@@ -148,7 +148,7 @@ describe('focus', () => {
 			setFocus(second.node!);
 
 			expect(getFocus(host.root)).toBe(second.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('rejects a non-focusable element', () => {
@@ -157,7 +157,7 @@ describe('focus', () => {
 			host.insertBefore(host.element, element);
 
 			expect(() => setFocus(element.node!)).toThrow(TypeError);
-			destroy(host.root);
+			host.root.destroy();
 		});
 	});
 
@@ -172,7 +172,7 @@ describe('focus', () => {
 			host.removeChild(host.element, first);
 
 			expect(getFocus(host.root)).toBe(second.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('uses the host root after the only focusable element is detached', () => {
@@ -183,7 +183,7 @@ describe('focus', () => {
 			host.removeChild(host.element, input);
 
 			expect(getFocus(host.root)).toBe(host.root);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('does not move focus when a non-focused element is detached', () => {
@@ -196,7 +196,7 @@ describe('focus', () => {
 			host.removeChild(host.element, second);
 
 			expect(getFocus(host.root)).toBe(first.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 
 		test('moves focus outside a subtree before the subtree is detached', () => {
@@ -211,7 +211,7 @@ describe('focus', () => {
 			host.removeChild(host.element, parent);
 
 			expect(getFocus(host.root)).toBe(sibling.node);
-			destroy(host.root);
+			host.root.destroy();
 		});
 	});
 
@@ -226,8 +226,8 @@ describe('focus', () => {
 		expect(getFocus(firstHost.root)).toBe(first.node);
 		expect(getFocus(secondHost.root)).toBe(second.node);
 
-		destroy(firstHost.root);
-		destroy(secondHost.root);
+		firstHost.root.destroy();
+		secondHost.root.destroy();
 	});
 });
 

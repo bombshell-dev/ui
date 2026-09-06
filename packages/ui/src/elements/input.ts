@@ -1,4 +1,4 @@
-import { createApi, createContext, id, type Node } from '../core.ts';
+import { createApi, createContext, type Node } from '../core.ts';
 import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import type { HostEvent } from '@clack/ui/events';
 import { addListener, dispatch, type Dispatched } from '../events.ts';
@@ -76,7 +76,7 @@ export function useInputElement(host: Host): void {
 			// const caret = Math.min(model.caret, [...value].length);
 			const color = focused ? rgba(255, 255, 255) : rgba(100, 100, 100);
 			const border = { color, top: 1, right: 1, bottom: 1, left: 1 };
-			yield open(id(node), {
+			yield open(node.id, {
 				border,
 				layout: {
 					height: fit(3),

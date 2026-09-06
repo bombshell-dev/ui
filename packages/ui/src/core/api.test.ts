@@ -8,14 +8,14 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			add: (_node: Node, a: number, b: number) => a + b,
 		});
-		expect(api.methods.add(new Node(), 2, 3)).toBe(5);
+		expect(api.methods.add(Node.createRoot(), 2, 3)).toBe(5);
 	});
 
 	test('a core receives the node it is invoked on', () => {
 		const api = createApi('test', {
 			self: (node: Node) => node,
 		});
-		const n = new Node();
+		const n = Node.createRoot();
 		expect(api.methods.self(n)).toBe(n);
 	});
 
@@ -23,21 +23,21 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			add: (_node: Node, a: number, b: number) => a + b,
 		});
-		expect(api.invoke('add', [new Node(), 2, 3])).toBe(5);
+		expect(api.invoke('add', [Node.createRoot(), 2, 3])).toBe(5);
 	});
 
 	test('invokes the core directly when no middleware is installed', () => {
 		const api = createApi('test', {
 			num: (_node: Node, value: number) => value,
 		});
-		expect(api.methods.num(new Node(), 7)).toBe(7);
+		expect(api.methods.num(Node.createRoot(), 7)).toBe(7);
 	});
 
 	test('middleware surrounds a core function', () => {
 		const api = createApi('test', {
 			num: (_node: Node, value: number) => value,
 		});
-		const n = new Node();
+		const n = Node.createRoot();
 		api.around(n, {
 			num: (args, next) => next(...args) * 2,
 		});
@@ -48,7 +48,7 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			num: (_node: Node, value: number) => value,
 		});
-		const n = new Node();
+		const n = Node.createRoot();
 		let seen: Node | undefined;
 		api.around(n, {
 			num: (args, next) => {
@@ -64,8 +64,8 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			self: (node: Node) => node,
 		});
-		const root = new Node();
-		const target = new Node(root);
+		const root = Node.createRoot();
+		const target = root.createChild();
 		api.around(root, {
 			self: (_args, next) => next(target),
 		});
@@ -76,18 +76,18 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			num: (_node: Node, value: number) => value,
 		});
-		const parent = new Node();
+		const parent = Node.createRoot();
 		api.around(parent, {
 			num: (args, next) => next(...args) * 2,
 		});
-		expect(api.methods.num(new Node(parent), 5)).toBe(10);
+		expect(api.methods.num(parent.createChild(), 5)).toBe(10);
 	});
 
 	test('composes middleware on a node in the order it was installed', () => {
 		const api = createApi('test', {
 			seq: (_node: Node, order: string[]) => order,
 		});
-		const n = new Node();
+		const n = Node.createRoot();
 		api.around(n, {
 			seq: (args, next) => next(args[0], args[1].concat('one')).concat('/one'),
 		});
@@ -105,7 +105,7 @@ describe('createApi', () => {
 			foo: (_node: Node) => 1,
 			bar: (_node: Node) => 1,
 		});
-		const n = new Node();
+		const n = Node.createRoot();
 		api.around(n, {
 			foo: (args, next) => next(...args) * 100,
 		});
@@ -117,12 +117,12 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			seq: (_node: Node, order: string[]) => order,
 		});
-		const root = new Node();
-		const a = new Node(root);
+		const root = Node.createRoot();
+		const a = root.createChild();
 		api.around(a, {
 			seq: (args, next) => next(args[0], args[1].concat('a')).concat('/a'),
 		});
-		const b = new Node(root);
+		const b = root.createChild();
 		api.around(b, {
 			seq: (args, next) => next(args[0], args[1].concat('b')).concat('/b'),
 		});
@@ -135,15 +135,15 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			seq: (_node: Node, order: string[]) => order,
 		});
-		const grand = new Node();
+		const grand = Node.createRoot();
 		api.around(grand, {
 			seq: (args, next) => next(args[0], args[1].concat('grand')).concat('/grand'),
 		});
-		const parent = new Node(grand);
+		const parent = grand.createChild();
 		api.around(parent, {
 			seq: (args, next) => next(args[0], args[1].concat('parent')).concat('/parent'),
 		});
-		const child = new Node(parent);
+		const child = parent.createChild();
 		api.around(child, {
 			seq: (args, next) => next(args[0], args[1].concat('child')).concat('/child'),
 		});
@@ -161,8 +161,8 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			seq: (_node: Node, order: string[]) => order,
 		});
-		const parent = new Node();
-		const child = new Node(parent);
+		const parent = Node.createRoot();
+		const child = parent.createChild();
 		parent.children.add(child);
 
 		api.around(parent, {
@@ -182,8 +182,8 @@ describe('createApi', () => {
 		const api = createApi('test', {
 			num: (_node: Node, value: number) => value,
 		});
-		const parent = new Node();
-		const child = new Node(parent);
+		const parent = Node.createRoot();
+		const child = parent.createChild();
 		api.around(child, {
 			num: (args, next) => next(...args) * 2,
 		});

@@ -1,5 +1,4 @@
 import { open, close, text, type OpenElement } from '@bomb.sh/tty';
-import { id } from '../core.ts';
 import { type Host } from '../host.ts';
 import { LayoutApi, layout } from '../layout.ts';
 import { getElement } from '../elements.ts';
@@ -18,7 +17,7 @@ export function useBoxElement(host: Host) {
 			const element = getElement(node);
 			if (element.name === 'box') {
 				let content = '';
-				yield open(id(node), element.properties);
+				yield open(node.id, element.properties);
 				for (const child of element.children) {
 					if (child.type === 'element') {
 						if (content !== '') {
