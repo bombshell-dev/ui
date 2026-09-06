@@ -9,10 +9,8 @@ import {
 	type HostLiteral,
 } from './elements.ts';
 import { LayoutApi, layout } from './layout.ts';
-import { EmitApi } from './emit.ts';
 import {
 	addListener,
-	deliver,
 	removeListener,
 	type HostEventType,
 	type HostEventListener,
@@ -61,13 +59,6 @@ export function createHost(): Host {
 			}
 			element.node = null;
 			return next(node);
-		},
-	});
-
-	EmitApi.around(root, {
-		emit([node, event], next): void {
-			next(node, event);
-			deliver(getElement(node), event);
 		},
 	});
 

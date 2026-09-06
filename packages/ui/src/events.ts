@@ -65,7 +65,7 @@ export function removeListener(element: HostElement, type: string, listener: Any
  * Run `event` through the listeners registered on `element`. Listeners added
  * while the event is being delivered are not called for it.
  */
-export function deliver(element: HostElement, event: AnyHostEvent): void {
+function deliver(element: HostElement, event: AnyHostEvent): void {
 	const listeners = registry.get(element)?.get(event.type);
 	if (!listeners || listeners.size === 0) {
 		return;
@@ -79,12 +79,20 @@ export function deliver(element: HostElement, event: AnyHostEvent): void {
 	}
 }
 
+export interface DispatchOptions {
+	bubbles?: boolean;
+}
+
 /**
- * Deliver `event` to `target` and then each of its ancestors in turn.
- * `stopPropagation` ends the walk once the current element's listeners have
- * all run.
+ * Dispatch `event` to the listeners registered on `target` and its parents
+ * unless stopPropagation is called or this is non-bubbling.
  */
-export function dispatch(target: HostElement, event: AnyHostEvent): void {
+// oxlint-disable-next-line max-params
+export function dispatch(
+	target: HostElement,
+	event: AnyHostEvent,
+	options?: DispatchOptions,
+): void {
 	let stopped = false;
 	const state = event as Mutable<Dispatched<AnyHostEvent>>;
 	state.stopPropagation = () => {
@@ -93,7 +101,7 @@ export function dispatch(target: HostElement, event: AnyHostEvent): void {
 
 	for (let element: HostElement | null = target; element; element = element.parent) {
 		deliver(element, event);
-		if (stopped) {
+		if (stopped || !options?.bubbles) {
 			break;
 		}
 	}

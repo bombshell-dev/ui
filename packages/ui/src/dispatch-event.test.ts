@@ -19,9 +19,21 @@ describe('dispatch', () => {
 		addListener(outer, '@test/dispatch', () => calls.push('outer'));
 		addListener(inner, '@test/dispatch', () => calls.push('inner'));
 
-		dispatch(inner, { type: '@test/dispatch', target: inner });
+		dispatch(inner, { type: '@test/dispatch', target: inner }, { bubbles: true });
 
 		expect(calls).toEqual(['inner', 'outer', 'root']);
+	});
+
+	test('stops at the target unless the event bubbles', () => {
+		const host = createHost();
+		const [outer, inner] = createTree(host, ['outer', 'inner']);
+		const calls: string[] = [];
+		addListener(outer, '@test/dispatch', () => calls.push('outer'));
+		addListener(inner, '@test/dispatch', () => calls.push('inner'));
+
+		dispatch(inner, { type: '@test/dispatch', target: inner });
+
+		expect(calls).toEqual(['inner']);
 	});
 
 	test('keeps target fixed while currentTarget follows the walk', () => {
@@ -34,7 +46,7 @@ describe('dispatch', () => {
 		addListener(outer, '@test/dispatch', record);
 		addListener(inner, '@test/dispatch', record);
 
-		dispatch(inner, { type: '@test/dispatch', target: inner });
+		dispatch(inner, { type: '@test/dispatch', target: inner }, { bubbles: true });
 
 		expect(seen).toEqual([
 			[true, 'inner'],
@@ -53,7 +65,7 @@ describe('dispatch', () => {
 		});
 		addListener(inner, '@test/dispatch', () => calls.push('inner second'));
 
-		dispatch(inner, { type: '@test/dispatch', target: inner });
+		dispatch(inner, { type: '@test/dispatch', target: inner }, { bubbles: true });
 
 		expect(calls).toEqual(['inner first', 'inner second']);
 	});
@@ -64,7 +76,7 @@ describe('dispatch', () => {
 		const calls: string[] = [];
 		addListener(host.element, '@test/dispatch', () => calls.push('root'));
 
-		dispatch(inner, { type: '@test/dispatch', target: inner });
+		dispatch(inner, { type: '@test/dispatch', target: inner }, { bubbles: true });
 
 		expect(calls).toEqual(['root']);
 	});
@@ -93,7 +105,7 @@ describe('dispatch', () => {
 		addListener(inner, '@test/dispatch', () => calls.push('inner'));
 		host.insertBefore(outer, inner);
 
-		dispatch(inner, { type: '@test/dispatch', target: inner });
+		dispatch(inner, { type: '@test/dispatch', target: inner }, { bubbles: true });
 
 		expect(calls).toEqual(['inner', 'outer']);
 	});

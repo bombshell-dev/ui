@@ -1,6 +1,6 @@
 import type { Dispatched, HostEvent } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
-import { emit, EmitApi } from './emit.ts';
+import { dispatch } from './events.ts';
 import type { HostElement } from './elements.ts';
 import { createHost, type Host } from './host.ts';
 
@@ -21,19 +21,19 @@ describe('event listeners', () => {
 		const host = createHost();
 		const target = host.createElement('probe');
 		const events: EventSnapshot[] = [];
-		host.addEventListener(target, '@test/input', (event: HostEvent) => {
+		host.addEventListener(target, '@test/probe', (event) => {
 			events.push(snapshot(event, target));
 		});
 
 		expect(target.node).toBeNull();
 		host.insertBefore(host.element, target);
 
-		emit(target.node!, { type: '@test/input', value: 'hello' });
+		dispatch(target, { type: '@test/probe', target, value: 42 });
 
 		expect(events).toEqual([
 			{
-				type: '@test/input',
-				value: 'hello',
+				type: '@test/probe',
+				value: 42,
 				target: true,
 			},
 		]);
@@ -48,7 +48,7 @@ describe('event listeners', () => {
 		host.addEventListener(first, '@test/focus', () => calls.push('first focus'));
 		host.addEventListener(second, '@test/input', () => calls.push('second input'));
 
-		emit(first.node!, { type: '@test/input' });
+		dispatch(first, { type: '@test/input', target: first });
 
 		expect(calls).toEqual(['first input']);
 	});
@@ -67,7 +67,7 @@ describe('event listeners', () => {
 		host.addEventListener(target, '@test/input', first);
 		host.addEventListener(target, '@test/input', second);
 
-		emit(target.node!, { type: '@test/input' });
+		dispatch(target, { type: '@test/input', target: target });
 
 		expect(calls).toEqual(['first', 'second']);
 	});
@@ -84,11 +84,11 @@ describe('event listeners', () => {
 			host.addEventListener(target, '@test/input', later);
 		});
 
-		emit(target.node!, { type: '@test/input' });
+		dispatch(target, { type: '@test/input', target: target });
 
 		expect(calls).toEqual(['first']);
 
-		emit(target.node!, { type: '@test/input' });
+		dispatch(target, { type: '@test/input', target: target });
 
 		expect(calls).toEqual(['first', 'first', 'later']);
 	});
@@ -102,7 +102,7 @@ describe('event listeners', () => {
 			value = event.value;
 		});
 
-		emit(target.node!, { type: '@test/probe', value: 42 });
+		dispatch(target, { type: '@test/probe', target, value: 42 });
 
 		expect(value).toBe(42);
 	});
@@ -119,8 +119,8 @@ describe('event listeners', () => {
 
 		host.removeEventListener(target, '@test/input', listener);
 		host.removeEventListener(target, '@test/input', listener);
-		emit(target.node!, { type: '@test/input' });
-		emit(target.node!, { type: '@test/focus' });
+		dispatch(target, { type: '@test/input', target: target });
+		dispatch(target, { type: '@test/focus', target: target });
 
 		expect(calls).toEqual(['@test/focus']);
 	});
@@ -135,38 +135,12 @@ describe('event listeners', () => {
 		host.insertBefore(first, target);
 		const firstNode = target.node;
 
-		emit(target.node!, { type: '@test/input' });
+		dispatch(target, { type: '@test/input', target: target });
 		host.insertBefore(second, target);
-		emit(target.node!, { type: '@test/input' });
+		dispatch(target, { type: '@test/input', target: target });
 
 		expect(target.node).not.toBe(firstNode);
 		expect(calls).toBe(2);
-	});
-
-	test('rejects an event whose target does not match its node', () => {
-		const host = createHost();
-		const target = attach(host, 'target');
-		const other = attach(host, 'other');
-		let calls = 0;
-		let failure: unknown;
-		host.addEventListener(target, '@test/input', () => calls++);
-
-		try {
-			EmitApi.methods.emit(target.node!, {
-				type: '@test/input',
-				target: other,
-			});
-		} catch (error) {
-			failure = error;
-		}
-
-		expect(failure).toMatchObject({
-			name: 'InvalidEventTargetError',
-			code: 'CLACK_UI_INVALID_EVENT_TARGET',
-			node: target.node,
-			target: other,
-		});
-		expect(calls).toBe(0);
 	});
 
 	test('propagates listener errors to the emitter', () => {
@@ -177,7 +151,7 @@ describe('event listeners', () => {
 			throw reason;
 		});
 
-		expect(() => emit(target.node!, { type: '@test/input' })).toThrowError(reason);
+		expect(() => dispatch(target, { type: '@test/input', target: target })).toThrowError(reason);
 	});
 });
 

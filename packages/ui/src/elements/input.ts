@@ -1,7 +1,7 @@
 import { createApi, createContext, id, type Node } from '../core.ts';
 import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import type { HostEvent } from '@clack/ui/events';
-import { emit } from '../emit.ts';
+import { dispatch } from '../events.ts';
 import { getElement } from '../elements.ts';
 import { type Host, HostApi } from '../host.ts';
 import { LayoutApi } from '../layout.ts';
@@ -192,10 +192,8 @@ function withModel(node: Node, fn: (model: InputModel) => void): void {
 		const original = model.content;
 		fn(model);
 		if (original !== model.content) {
-			emit(node, {
-				type: 'input',
-				value: model.content,
-			});
+			const element = getElement(node);
+			dispatch(element, { type: 'input', target: element, value: model.content });
 		}
 	}
 }
