@@ -5,7 +5,8 @@ on:
     branches: [main]
   pull_request:
 
-permissions: {}
+permissions:
+  contents: read
 
 env:
   MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS: node,pnpm
