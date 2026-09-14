@@ -30,6 +30,7 @@
 		"dev": "bsh dev",
 		"build": "pnpm --filter \"@clack/*\" run build",
 		"format": "bsh format",
+		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
 		"test": "bsh test"
 	},
