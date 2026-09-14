@@ -2,4 +2,7 @@ packages:
   - 'packages/*'
 
 catalog:
-  clayterm: latest
+
+publicHoistPattern:
+  - oxlint
+  - oxfmt
