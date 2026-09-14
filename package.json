@@ -34,7 +34,9 @@
 		"test": "bsh test"
 	},
 	"devDependencies": {
-		"@bomb.sh/tools": "^0.5.4"
+		"@bomb.sh/tools": "^0.6.1",
+		"@types/node": "^22.20.0",
+		"vitest": "^4.1.9"
 	},
 	"devEngines": {
 		"packageManager": {

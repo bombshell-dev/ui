@@ -1,7 +1,9 @@
 packages:
   - 'packages/*'
+  - 'examples/*'
 
 catalog:
+  '@bomb.sh/tty': '^0.7.0'
 
 publicHoistPattern:
   - oxlint
