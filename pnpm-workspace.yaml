@@ -1,5 +1,10 @@
 packages:
   - 'packages/*'
+  - 'examples/*'
 
 catalog:
-  clayterm: latest
+  '@bomb.sh/tty': '^0.7.0'
+
+publicHoistPattern:
+  - oxlint
+  - oxfmt
