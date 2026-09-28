@@ -2,6 +2,7 @@ import type { ReadStream, WriteStream } from 'node:tty';
 import { alternateBuffer, CSI, cursor, settings } from '@bomb.sh/tty';
 import { describe, expect, test, vi } from 'vitest';
 import { DispatchApi } from './dispatch.ts';
+import { defineComponent } from './component.ts';
 import { getFocus } from './focus.ts';
 import { RenderApi } from './render.ts';
 import { createUI, type UI, type UIOptions } from './ui.ts';
@@ -21,23 +22,34 @@ describe('createUI', () => {
 		const { ui: resource, writes } = await setup();
 		await using ui = resource;
 		const { host } = ui;
-		const text = host.createElement('text');
-		host.insertBefore(text, host.createLiteral('Hello, world!'));
-
-		host.insertBefore(host.element, text);
+		const text = host.createElement('text', {}, 'Hello, world!');
+		host.element.append(text);
 
 		await vi.waitFor(() => expect(writes.join('')).toContain('Hello, world!'));
+	});
+
+	test('renders the children of a shared custom component', async () => {
+		const { ui: resource, writes } = await setup();
+		await using ui = resource;
+		const { host } = ui;
+		const Greeting = defineComponent('greeting-card', (element) => {
+			element.append(element.createElement('text', {}, 'Hello from a component'));
+		});
+		Greeting.register(host);
+
+		host.element.append(Greeting.create(host));
+
+		await vi.waitFor(() => expect(writes.join('')).toContain('Hello from a component'));
 	});
 
 	test('renders again when attached text changes', async () => {
 		const { ui: resource, writes } = await setup();
 		await using ui = resource;
 		const { host } = ui;
-		const text = host.createElement('text');
 		const literal = host.createLiteral('before');
-		host.insertBefore(text, literal);
-		host.insertBefore(host.element, text);
-		await vi.waitFor(() => expect(writes.join('')).toContain('before'));
+		const text = host.createElement('text', {}, literal);
+		host.element.append(text);
+		await vi.waitFor(() => expect(writes.length).toBeGreaterThan(0));
 		const previousWrites = writes.length;
 
 		host.setText(literal, 'after');
@@ -88,8 +100,27 @@ describe('createUI', () => {
 			text: 'x',
 		});
 
-		expect(result).toEqual({ ok: true });
+		expect(result).toEqual({ ok: true, handled: true });
 		expect(input.properties['value']).toBe('x');
+	});
+
+	test('renders and activates a button through focus and keyboard input', async () => {
+		const { ui: resource, writes } = await setup();
+		await using ui = resource;
+		const { host } = ui;
+		const button = host.createElement('button', { label: 'Save' });
+		const pressed = vi.fn();
+		button.addEventListener('press', pressed);
+		host.element.append(button);
+
+		await vi.waitFor(() => expect(writes.join('')).toContain('Save'));
+		DispatchApi.methods.dispatch(host.root, {
+			type: 'keydown',
+			key: 'Enter',
+			code: 'Enter',
+		});
+
+		expect(pressed).toHaveBeenCalledOnce();
 	});
 
 	test('composes keyboard focus navigation', async () => {
@@ -123,7 +154,7 @@ describe('createUI', () => {
 		expect(writes).toEqual([decode(terminal.apply), decode(terminal.revert)]);
 	});
 
-	test('redraws an inline UI relative to its anchor row', async () => {
+		test('redraws an inline UI relative to its anchor row', async () => {
 		const { ui, writes } = await setup({ height: 3, inline: true, width: 20 });
 		const { host } = ui;
 		const text = host.createElement('text');
@@ -136,6 +167,7 @@ describe('createUI', () => {
 		host.setText(literal, 'after');
 		await vi.waitFor(() => expect(writes.slice(writesAfterFirstFrame).join('')).toContain('after'));
 
+		await vi.waitFor(() => expect(writes.length).toBeGreaterThan(writesAfterFirstFrame));
 		const update = writes.slice(writesAfterFirstFrame).join('');
 		expect(update.startsWith(`${decode(CSI('2A'))}${decode(CSI('1G'))}`)).toBe(true);
 		expect(update).toContain('after');

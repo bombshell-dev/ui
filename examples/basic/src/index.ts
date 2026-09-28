@@ -1,4 +1,4 @@
-import { type BoxProps, createUI, rgba, type TextProps, type HostElement } from '@clack/ui';
+import { createUI, rgba } from '@clack/ui';
 
 const cyan = rgba(0, 205, 205);
 const green = rgba(0, 205, 0);
@@ -15,44 +15,35 @@ await using ui = await createUI({
 
 const { host } = ui;
 
-const app = box(
+const app = host.createElement(
+	'box',
 	{
 		layout: { direction: 'ttb', gap: 1, padding: { top: 1, bottom: 1, left: 2, right: 2 } },
 		border: { color: blue, top: 1, right: 1, bottom: 1, left: 1 },
 	},
-	text({ color: cyan }, '@clack/ui'),
-	box(
+	host.createElement('text', { color: cyan }, '@clack/ui'),
+	host.createElement(
+		'box',
 		{ layout: { direction: 'ttb' } },
-		row('status ', text({ color: green }, '● ready')),
-		row('version', text({ color: white }, '0.0.0')),
-		row('render ', text({ color: white }, '@bomb.sh/tty')),
+		host.createElement(
+			'box',
+			{ layout: { direction: 'ltr', gap: 1 } },
+			host.createElement('text', { color: gray }, 'status '),
+			host.createElement('text', { color: green }, '● ready'),
+		),
+		host.createElement(
+			'box',
+			{ layout: { direction: 'ltr', gap: 1 } },
+			host.createElement('text', { color: gray }, 'version'),
+			host.createElement('text', { color: white }, '0.0.0'),
+		),
+		host.createElement(
+			'box',
+			{ layout: { direction: 'ltr', gap: 1 } },
+			host.createElement('text', { color: gray }, 'render '),
+			host.createElement('text', { color: white }, '@bomb.sh/tty'),
+		),
 	),
 );
 
-host.insertBefore(host.element, app);
-
-function box(properties: Omit<BoxProps, 'key'>, ...children: HostElement[]): HostElement {
-	const element = host.createElement('box');
-	setProperties(element, properties);
-	for (const child of children) {
-		host.insertBefore(element, child);
-	}
-	return element;
-}
-
-function text(properties: TextProps, content: string): HostElement {
-	const element = host.createElement('text');
-	setProperties(element, properties);
-	host.insertBefore(element, host.createLiteral(content));
-	return element;
-}
-
-function row(label: string, value: HostElement): HostElement {
-	return box({ layout: { direction: 'ltr', gap: 1 } }, text({ color: gray }, label), value);
-}
-
-function setProperties(element: HostElement, properties: object): void {
-	for (const [name, value] of Object.entries(properties)) {
-		host.setProperty(element, name, value);
-	}
-}
+host.element.append(app);

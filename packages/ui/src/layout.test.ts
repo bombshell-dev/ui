@@ -1,8 +1,8 @@
 import { id } from './core.ts';
 import { close, open, text as ttyText } from '@bomb.sh/tty';
 import { describe, expect, test } from 'vitest';
-import { useBoxElement } from './elements/box.ts';
-import { useTextElement } from './elements/text.ts';
+import { Box } from './primitives/box.ts';
+import { Text } from './primitives/text.ts';
 import { createHost } from './host.ts';
 import { layout } from './layout.ts';
 
@@ -10,7 +10,7 @@ describe('layout', () => {
 	describe('box', () => {
 		test('lays out host children in element order', () => {
 			const host = createHost();
-			useBoxElement(host);
+			Box.register(host);
 
 			const parent = host.createElement('box');
 			const first = host.createElement('box');
@@ -33,7 +33,7 @@ describe('layout', () => {
 
 		test('coalesces runs of text literals around child elements', () => {
 			const host = createHost();
-			useBoxElement(host);
+			Box.register(host);
 
 			const parent = host.createElement('box');
 			const child = host.createElement('box');
@@ -56,9 +56,34 @@ describe('layout', () => {
 	});
 
 	describe('text', () => {
+		test('reuses packed child layouts and invalidates ancestors after mutation', () => {
+			const host = createHost();
+			Box.register(host);
+			Text.register(host);
+			const parent = host.createElement('box');
+			const child = host.createElement('text', {}, 'before');
+			parent.append(child);
+			host.element.append(parent);
+
+			expect([...layout(host.root)]).toEqual([
+				open(id(parent.node!)),
+				ttyText('before'),
+				close(),
+			]);
+			expect([...layout(host.root)]).toMatchObject([{ directive: 5 }]);
+
+			child.textContent = 'after';
+
+			expect([...layout(host.root)]).toEqual([
+				open(id(parent.node!)),
+				ttyText('after'),
+				close(),
+			]);
+		});
+
 		test('coalesces literals with the enclosing properties', () => {
 			const host = createHost();
-			useTextElement(host);
+			Text.register(host);
 
 			const element = host.createElement('text');
 			host.setProperty(element, 'color', 1);

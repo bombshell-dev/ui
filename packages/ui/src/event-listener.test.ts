@@ -1,5 +1,5 @@
 import type { HostEvent } from '@clack/ui/events';
-import { describe, expect, expectTypeOf, test } from 'vitest';
+import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { emit, EmitApi } from './emit.ts';
 import type { HostElement } from './elements.ts';
 import { createHost, type Host } from './host.ts';
@@ -51,6 +51,41 @@ describe('event listeners', () => {
 		emit(first.node!, { type: '@test/input' });
 
 		expect(calls).toEqual(['first input']);
+	});
+
+	test('supports event properties and bubbles events through host elements', () => {
+		const host = createHost();
+		const parent = attach(host, 'parent');
+		const calls: string[] = [];
+		const child = host.createElement('child', {
+			'on@test/input': (event: HostEvent) =>
+				calls.push(`property:${event.currentTarget === child}`),
+		});
+		parent.append(child);
+		host.addEventListener(parent, '@test/input', (event) => {
+			calls.push(`parent:${event.currentTarget === parent}`);
+		});
+
+		emit(child.node!, { type: '@test/input' });
+
+		expect(calls).toEqual(['property:true', 'parent:true']);
+	});
+
+	test('allows a listener to stop event bubbling', () => {
+		const host = createHost();
+		const parent = attach(host, 'parent');
+		const child = host.createElement('child');
+		parent.append(child);
+		const calls: string[] = [];
+		host.addEventListener(child, '@test/input', (event) => {
+			calls.push('child');
+			event.stopPropagation?.();
+		});
+		host.addEventListener(parent, '@test/input', () => calls.push('parent'));
+
+		emit(child.node!, { type: '@test/input' });
+
+		expect(calls).toEqual(['child']);
 	});
 
 	test('invokes distinct listeners in registration order without duplicating one listener', () => {
@@ -167,6 +202,20 @@ describe('event listeners', () => {
 			target: other,
 		});
 		expect(calls).toBe(0);
+	});
+
+	test('reports listener handling and propagation state', () => {
+		const host = createHost();
+		const parent = attach(host, 'parent');
+		const target = attach(host, 'target');
+		host.insertBefore(parent, target);
+		const listener = vi.fn((event: HostEvents['@test/input']) => event.stopPropagation?.());
+		host.addEventListener(target, '@test/input', listener);
+
+		const result = emit(target.node!, { type: '@test/input' });
+
+		expect(result).toEqual({ handled: true, stopped: true });
+		expect(listener).toHaveBeenCalledOnce();
 	});
 
 	test('propagates listener errors to the emitter', () => {

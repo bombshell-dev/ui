@@ -77,9 +77,13 @@ async function nextFrame<T>(iterator: AsyncIterator<T>): Promise<T> {
 async function receive<T>(result: PromiseLike<IteratorResult<T>>): Promise<T> {
 	const item = await result;
 	if (item.done) {
-		throw new Error('render frame iterator stopped');
+		throw new RenderFrameStoppedError();
 	}
 	return item.value;
+}
+
+class RenderFrameStoppedError extends Error {
+	name = 'RenderFrameStoppedError';
 }
 
 async function expectPending<T>(result: PromiseLike<T>): Promise<void> {

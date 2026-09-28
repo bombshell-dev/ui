@@ -1,11 +1,11 @@
 import type { KeyDown, KeyEvent, KeyRepeat, KeyUp } from '@bomb.sh/tty';
 import type { Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { DispatchApi, useDispatch } from './dispatch.ts';
-import { getFocus, setFocusable, useFocus } from './focus.ts';
-import { useFocusNavigation } from './focus-navigation.ts';
+import { DispatchApi, installDispatch } from './dispatch.ts';
+import { getFocus, setFocusable, installFocus } from './focus.ts';
+import { installFocusNavigation } from './focus-navigation.ts';
 import { createHost, type Host } from './host.ts';
-import { KeyboardApi, useKeyboard } from './keyboard.ts';
+import { KeyboardApi, installKeyboard } from './keyboard.ts';
 
 const { dispatch } = DispatchApi.methods;
 
@@ -55,10 +55,10 @@ interface RecordedKeyEvent {
 
 function setup(): Setup {
 	const host = createHost();
-	useDispatch(host);
-	useFocus(host);
-	useKeyboard(host);
-	useFocusNavigation(host);
+	installDispatch(host);
+	installFocus(host);
+	installKeyboard(host);
+	installFocusNavigation(host);
 
 	return {
 		host,

@@ -1,6 +1,6 @@
 import { type Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { useHostRenderer } from './host-render.ts';
+import { installHostRenderer } from './host-render.ts';
 import { createHost, type Host } from './host.ts';
 import { RenderApi } from './render.ts';
 
@@ -42,6 +42,19 @@ describe('host renderer', () => {
 		host.setProperty(element, 'color', undefined);
 
 		expectRequests(requests, node, node);
+	});
+
+	test('does not request a render when an attached property is unchanged', () => {
+		const { host, requests } = setup();
+		const element = host.createElement('box');
+		host.insertBefore(host.element, element);
+		requests.length = 0;
+
+		host.setProperty(element, 'color', 1);
+		requests.length = 0;
+		host.setProperty(element, 'color', 1);
+
+		expectRequests(requests);
 	});
 
 	test('requests a render when attached text changes', () => {
@@ -127,7 +140,7 @@ function setup(): { host: Host; requests: Node[] } {
 	const host = createHost();
 	const requests: Node[] = [];
 
-	useHostRenderer(host);
+	installHostRenderer(host);
 	RenderApi.around(host.root, {
 		requestRender([node], next) {
 			requests.push(node);

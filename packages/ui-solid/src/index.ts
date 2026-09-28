@@ -1,6 +1,6 @@
 export { rgba } from '@clack/ui';
-export { Box, Text } from './components.ts';
-export type { BoxProps, HostElements, InputProps, TextProps } from './elements.ts';
+export { Box, Button, Dialog, Input, Text } from './components.ts';
+export type { BoxProps, ButtonProps, DialogProps, HostElements, InputProps, TextProps } from './elements.ts';
 export {
 	createRoot,
 	type Root,

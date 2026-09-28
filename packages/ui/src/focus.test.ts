@@ -1,6 +1,6 @@
 import { destroy, type Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { FocusApi, useFocus } from './focus.ts';
+import { FocusApi, installFocus } from './focus.ts';
 import { createHost as createHostWithoutFocus, type Host } from './host.ts';
 import type { HostElement } from './elements.ts';
 
@@ -233,7 +233,7 @@ describe('focus', () => {
 
 function createHost(): Host {
 	const host = createHostWithoutFocus();
-	useFocus(host);
+	installFocus(host);
 	return host;
 }
 

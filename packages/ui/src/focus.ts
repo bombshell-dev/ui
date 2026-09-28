@@ -3,23 +3,28 @@ import { getElement, type HostElement, type HostElementChild } from './elements.
 import { HostApi, type Host } from './host.ts';
 
 export const FocusApi = createApi('focus', {
-	setFocusable(node): void {
-		FocusableContext.set(node, true);
+	setFocusable(node, focusable = true): void {
+		FocusableContext.set(node, focusable);
+		ensureFocus(node);
 
 		const host = getHost(node);
 		const focus = getFocus(node);
 
-		if (focus === host.root) {
-			FocusContext.expect(node).current = node;
+		if (!focusable && focus === node) {
+			FocusApi.methods.setFocus(host.root);
+		} else if (focus === host.root && focusable) {
+			FocusApi.methods.setFocus(node);
 		}
 	},
 	setFocus(node): void {
+		ensureFocus(node);
 		if (!isFocusable(node) && node !== getHost(node).root) {
 			throw new UnfocusableElementError(node);
 		}
-		FocusContext.expect(node).current = node;
+		transitionFocus(node, node);
 	},
 	getFocus(node): Node {
+		ensureFocus(node);
 		return FocusContext.expect(node).current;
 	},
 
@@ -60,7 +65,7 @@ export const FocusApi = createApi('focus', {
 
 export const { setFocusable, getFocus, setFocus, advanceFocus, retreatFocus } = FocusApi.methods;
 
-export function useFocus(host: Host): void {
+export function installFocus(host: Host): void {
 	FocusContext.set(host.root, { current: host.root });
 	HostApi.around(host.root, {
 		removeChild([root, parent, removed], next) {
@@ -88,8 +93,25 @@ const { getHost } = HostApi.methods;
 const FocusContext = createContext<{ current: Node }>('focus');
 const FocusableContext = createContext<boolean>('focusable', false);
 
+function ensureFocus(node: Node): void {
+	const host = getHost(node);
+	if (!FocusContext.hasOwn(host.root)) {
+		FocusContext.set(host.root, { current: host.root });
+	}
+}
+
 function isFocusable(node: Node): boolean {
 	return FocusableContext.hasOwn(node) && FocusableContext.expect(node);
+}
+
+function transitionFocus(node: Node, next: Node): void {
+	const focus = FocusContext.expect(node);
+	const previous = focus.current;
+	if (previous === next) return;
+
+	focus.current = next;
+	getElement(previous).blur?.(previous);
+	getElement(next).focus?.(next);
 }
 
 interface Range {

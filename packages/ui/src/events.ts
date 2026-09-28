@@ -8,6 +8,10 @@ export interface HostEvents {}
 export interface HostEvent<T extends HostEventType = HostEventType> {
 	type: T;
 	target: HostElement;
+	currentTarget?: HostElement;
+	bubbles?: boolean;
+	cancelBubble?: boolean;
+	stopPropagation?: () => void;
 }
 
 export type HostEventType = keyof HostEvents;

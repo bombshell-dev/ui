@@ -3,11 +3,11 @@ import type { Host } from './host.ts';
 
 export const DispatchApi = createApi('dispatch', {
 	dispatch(_node, _event: unknown): Result {
-		return Ok;
+		return { ok: true, handled: false };
 	},
 });
 
-export function useDispatch(host: Host): void {
+export function installDispatch(host: Host): void {
 	DispatchApi.around(host.root, {
 		dispatch(args, next) {
 			try {
@@ -20,10 +20,11 @@ export function useDispatch(host: Host): void {
 }
 
 export type Result =
-	| typeof Ok
+	| {
+			ok: true;
+			handled: boolean;
+	  }
 	| {
 			ok: false;
 			reason: unknown;
 	  };
-
-const Ok = { ok: true } as const;

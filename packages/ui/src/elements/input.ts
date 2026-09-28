@@ -1,12 +1,11 @@
-import { createApi, createContext, id, type Node } from '../core.ts';
-import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
+import { createApi, createContext, type Node } from '../core.ts';
+import { ComponentElement, defineComponent } from '../component.ts';
 import type { HostEvent } from '@clack/ui/events';
 import { emit } from '../emit.ts';
-import { getElement } from '../elements.ts';
-import { type Host, HostApi } from '../host.ts';
-import { LayoutApi } from '../layout.ts';
-import { getFocus, setFocusable } from '../focus.ts';
-import { KeyboardApi } from '../keyboard.ts';
+import type { HostElement } from '../elements.ts';
+import { setFocusable } from '../focus.ts';
+import type { KeyDown, KeyRepeat } from '../keyboard.ts';
+import { fit, percent, rgba } from '../values.ts';
 
 export interface InputEvent extends HostEvent<'input'> {
 	value: string;
@@ -28,84 +27,84 @@ declare module '@clack/ui/elements' {
 	}
 }
 
-export function useInputElement(host: Host): void {
-	const { root } = host;
+/** A browser-like single-line input composed from box and text children. */
+export class InputElement extends ComponentElement<InputProps> {
+	content = '';
+	caret = 0;
+	private inputBox: HostElement | undefined;
+	private inputText: HostElement | undefined;
 
-	HostApi.around(root, {
-		createElement([root, name], next) {
-			const element = next(root, name);
-			if (element.name === 'input') {
-				const model = { content: '', caret: 0 };
-				element.attach = (node) => {
-					setFocusable(node);
-					InputContext.set(node, model);
-				};
+	constructor(element: HostElement) {
+		super(element);
+		Object.defineProperties(element.properties, {
+			value: { get: () => this.content },
+			caret: { get: () => this.caret },
+		});
+	}
 
-				// make value and caret accessible to the public <input/>
-				Object.defineProperties(element.properties, {
-					value: {
-						get() {
-							return model.content;
-						},
-					},
-					caret: {
-						get() {
-							return model.caret;
-						},
-					},
-				});
-			}
-			return element;
-		},
-	});
+	create(): void {
+		this.inputBox = this.element.createElement('box', {
+			border: { color: rgba(100, 100, 100), top: 1, right: 1, bottom: 1, left: 1 },
+			layout: {
+				height: fit(3),
+				width: percent(0.3),
+				padding: { top: 1, right: 1, bottom: 1, left: 1 },
+			},
+		});
+		this.inputText = this.inputBox.createElement('text');
+		this.inputBox.append(this.inputText);
+		this.element.append(this.inputBox);
+		this.syncText();
+	}
 
-	LayoutApi.around(root, {
-		*layout([node], next) {
-			const element = getElement(node);
-			if (element.name !== 'input') {
-				return yield* next(node);
-			}
+	connectedCallback(node: Node): void {
+		setFocusable(node);
+		InputContext.set(node, this);
+	}
 
-			const focused = node === getFocus(node);
-			const model = InputContext.expect(node);
-			const value = model.content;
-			// commented out until @bomb.sh/tty can render carets
-			// const caret = Math.min(model.caret, [...value].length);
-			const color = focused ? rgba(255, 255, 255) : rgba(100, 100, 100);
-			const border = { color, top: 1, right: 1, bottom: 1, left: 1 };
-			yield open(id(node), {
-				border,
-				layout: {
-					height: fit(3),
-					width: percent(0.3),
-					padding: { top: 1, right: 1, bottom: 1, left: 1 },
-				},
-			});
-			yield text(value || ' ');
-			yield close();
-		},
-	});
+	focusedCallback(): void {
+		this.inputBox?.setProperty('border', {
+			color: rgba(255, 255, 255),
+			top: 1,
+			right: 1,
+			bottom: 1,
+			left: 1,
+		});
+	}
 
-	KeyboardApi.around(root, {
-		keydown([node, event], next) {
-			if (!handleKeyEvent(node, event)) {
-				return next(node, event);
-			}
-		},
-		keyrepeat([node, event], next) {
-			if (!handleKeyEvent(node, event)) {
-				return next(node, event);
-			}
-		},
-	});
+	blurredCallback(): void {
+		this.inputBox?.setProperty('border', {
+			color: rgba(100, 100, 100),
+			top: 1,
+			right: 1,
+			bottom: 1,
+			left: 1,
+		});
+	}
+
+	keydown(event: KeyDown): boolean {
+		return handleKeyEvent(this.node!, event);
+	}
+
+	keyrepeat(event: KeyRepeat): boolean {
+		return handleKeyEvent(this.node!, event);
+	}
+
+	private syncText(): void {
+		if (this.inputText) {
+			this.inputText.textContent = this.content || ' ';
+		}
+	}
 }
 
+export const Input = defineComponent('input', InputElement);
+
 export const InputApi = createApi('input', {
-	insert(node, text: string): void {
+	insert(node, value: string): void {
 		withModel(node, (model) => {
 			// Inputs are single-line, so discard CR/LF. Spreading the string produces
 			// Unicode code points rather than UTF-16 code units.
-			const inserted = [...text.replace(/[\r\n]/g, '')];
+			const inserted = [...value.replace(/[\r\n]/g, '')];
 			const codepoints = [...model.content];
 			const caret = model.caret;
 
@@ -149,15 +148,12 @@ export const InputApi = createApi('input', {
 	},
 	moveBack(node): void {
 		withModel(node, (model) => {
-			const caret = model.caret;
-			model.caret = Math.max(0, caret - 1);
+			model.caret = Math.max(0, model.caret - 1);
 		});
 	},
 	moveForward(node): void {
 		withModel(node, (model) => {
-			const caret = model.caret;
-			const codepoints = [...model.content];
-			model.caret = Math.min(codepoints.length, caret + 1);
+			model.caret = Math.min([...model.content].length, model.caret + 1);
 		});
 	},
 	moveMin(node): void {
@@ -175,23 +171,19 @@ export const InputApi = createApi('input', {
 export const { insert, deleteForward, deleteBackward, moveForward, moveBack, moveMin, moveMax } =
 	InputApi.methods;
 
-interface InputModel {
-	content: string;
-	caret: number;
-}
-
-const InputContext = createContext<InputModel>('input');
+const InputContext = createContext<InputElement>('input');
 
 function isInput(node: Node): boolean {
 	return InputContext.hasOwn(node);
 }
 
-function withModel(node: Node, fn: (model: InputModel) => void): void {
+function withModel(node: Node, fn: (model: InputElement) => void): void {
 	if (isInput(node)) {
 		const model = InputContext.expect(node);
 		const original = model.content;
 		fn(model);
 		if (original !== model.content) {
+			model.syncText();
 			emit(node, {
 				type: 'input',
 				value: model.content,
@@ -202,7 +194,7 @@ function withModel(node: Node, fn: (model: InputModel) => void): void {
 
 function handleKeyEvent(node: Node, event: KeyDown | KeyRepeat): boolean {
 	if (isInput(node)) {
-		if (event.text && event.text?.length > 0) {
+		if (event.text && event.text.length > 0) {
 			insert(node, event.text);
 			return true;
 		} else if (event.code === 'Backspace') {

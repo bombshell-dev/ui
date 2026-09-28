@@ -1,0 +1,16 @@
+{
+	"name": "@examples/design-system",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "tsx src/index.ts"
+	},
+	"dependencies": {
+		"@bomb.sh/tty": "^0.7.0",
+		"@clack/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0",
+		"tsx": "^4.19.0"
+	}
+}

@@ -1,10 +1,10 @@
 import type { KeyDown, KeyEvent } from '@bomb.sh/tty';
 import type { Node } from './core.ts';
 import { describe, expect, test } from 'vitest';
-import { DispatchApi, useDispatch } from './dispatch.ts';
-import { setFocus, setFocusable, useFocus } from './focus.ts';
+import { DispatchApi, installDispatch } from './dispatch.ts';
+import { setFocus, setFocusable, installFocus } from './focus.ts';
 import { createHost, type Host } from './host.ts';
-import { KeyboardApi, useKeyboard } from './keyboard.ts';
+import { KeyboardApi, installKeyboard } from './keyboard.ts';
 
 const { dispatch } = DispatchApi.methods;
 
@@ -35,12 +35,12 @@ describe('keyboard dispatch', () => {
 		}
 	});
 
-	test('returns ordinary dispatch success without a handled payload', () => {
+		test('returns ordinary dispatch success with an unhandled result', () => {
 		const host = setupKeyboardHost();
 		const target = createFocusable(host);
 		recordKeyboard(target, []);
 
-		expect(dispatch(host.root, keydown('a', 'a'))).toEqual({ ok: true });
+			expect(dispatch(host.root, keydown('a', 'a'))).toEqual({ ok: true, handled: false });
 	});
 
 	test('delegates non-key and malformed key-like events unchanged', () => {
@@ -75,9 +75,9 @@ interface RecordedKeyEvent {
 
 function setupKeyboardHost(): Host {
 	const host = createHost();
-	useDispatch(host);
-	useFocus(host);
-	useKeyboard(host);
+	installDispatch(host);
+	installFocus(host);
+	installKeyboard(host);
 	return host;
 }
 

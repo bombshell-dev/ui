@@ -1,5 +1,5 @@
 /* oxlint-disable bombshell-dev/exported-function-async -- React root creation is synchronous. */
-import { HostApi, type Host } from '@clack/ui';
+import { HostApi, installBuiltins, type Host } from '@clack/ui';
 import type { HostElement } from '@clack/ui/elements';
 import type { ReactNode } from 'react';
 import { LegacyRoot } from 'react-reconciler/constants.js';
@@ -22,6 +22,7 @@ export interface Root {
 /** Create a React root which reconciles into an attached Host element. */
 export function createRoot(element: HostElement, options: RootOptions = {}): Root {
 	const host = HostApi.methods.getHost(element.node!);
+	installBuiltins(host);
 	const container: Container = {
 		element,
 		host,

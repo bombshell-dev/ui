@@ -3,12 +3,15 @@ import type { KeyDown, KeyRepeat } from '@bomb.sh/tty';
 import { type Node } from '../core.ts';
 import type { HostEvents } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
-import { DispatchApi, useDispatch } from '../dispatch.ts';
+import { DispatchApi, installDispatch } from '../dispatch.ts';
 import type { HostElement } from '../elements.ts';
-import { getFocus, setFocusable, useFocus } from '../focus.ts';
+import { getFocus, setFocusable, installFocus } from '../focus.ts';
 import { createHost, type Host } from '../host.ts';
-import { KeyboardApi, useKeyboard } from '../keyboard.ts';
-import { InputApi, type InputProps, useInputElement } from './input.ts';
+import { KeyboardApi, installKeyboard } from '../keyboard.ts';
+import { layout } from '../layout.ts';
+import { installHostRenderer } from '../host-render.ts';
+import { RenderApi } from '../render.ts';
+import { Input, InputApi, type InputProps } from './input.ts';
 
 const { dispatch } = DispatchApi.methods;
 
@@ -214,8 +217,8 @@ describe('input', () => {
 
 		test('keeps state isolated between input elements', () => {
 			const host = createHost();
-			useFocus(host);
-			useInputElement(host);
+			installFocus(host);
+			Input.register(host);
 			const first = createInput(host);
 			const second = createInput(host);
 
@@ -223,6 +226,34 @@ describe('input', () => {
 
 			expectState(first, 'x', 1);
 			expectState(second, '', 0);
+		});
+
+		test('derives layout from the current model', () => {
+			const { node } = setup();
+
+			insert(node, 'hello');
+
+			expect([...layout(node)]).toContainEqual({ directive: 3, content: 'hello' });
+		});
+
+		test('requests renders for content changes but not caret-only changes', () => {
+			const { host, node } = setup();
+			installHostRenderer(host);
+			const requests: Array<{ node: Node; reason: string }> = [];
+			RenderApi.around(host.root, {
+				requestRender([requestedNode, reason], next) {
+					requests.push({ node: requestedNode, reason });
+					return next(requestedNode, reason);
+				},
+			});
+
+			insert(node, 'hello');
+			expect(requests).toHaveLength(1);
+			expect(requests[0]?.reason).toBe('text');
+
+			requests.length = 0;
+			moveBack(node);
+			expect(requests).toEqual([]);
 		});
 	});
 
@@ -369,7 +400,7 @@ describe('input', () => {
 
 		test('delegates a key targeting a non-input node exactly once', () => {
 			const host = setupKeyboardHost();
-			useInputElement(host);
+			Input.register(host);
 			const target = createFocusable(host);
 			const event = keydown('x', 'x');
 			const delegated: Array<{ target: boolean; event: boolean }> = [];
@@ -398,17 +429,17 @@ type InputCall = [method: string, argument?: string];
 
 function setup(): { host: Host; input: HostElement; node: Node } {
 	const host = createHost();
-	useFocus(host);
-	useInputElement(host);
+	installFocus(host);
+	Input.register(host);
 	const input = createInput(host);
 	return { host, input, node: input.node! };
 }
 
 function setupKeyboardHost(): Host {
 	const host = createHost();
-	useDispatch(host);
-	useFocus(host);
-	useKeyboard(host);
+	installDispatch(host);
+	installFocus(host);
+	installKeyboard(host);
 	return host;
 }
 
@@ -417,7 +448,7 @@ function setupKeyboardInput(options: { focus?: boolean } = {}): {
 	node: Node;
 } {
 	const host = setupKeyboardHost();
-	useInputElement(host);
+	Input.register(host);
 	const input = createInput(host);
 	const node = input.node!;
 	if (options.focus ?? true) {
