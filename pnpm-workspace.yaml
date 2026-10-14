@@ -3,7 +3,7 @@ packages:
   - 'examples/*'
 
 catalog:
-  '@bomb.sh/tty': '^0.7.0'
+  '@bomb.sh/tty': '^0.9.0'
 
 publicHoistPattern:
   - oxlint

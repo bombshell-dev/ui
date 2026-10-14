@@ -1,8 +1,9 @@
 import type { HostEvent } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
 import type { Node } from './core.ts';
-import type { HostElement } from './elements.ts';
-import { createHost, type Host, HostApi } from './host.ts';
+import { getElement, type HostElement } from './elements.ts';
+import { createHost, type Host } from './host.ts';
+import { emit as emitElement } from './event-api.ts';
 import type { HostEventData } from './events.ts';
 
 interface TestInputEvent extends HostEvent<'@test/input'> {
@@ -181,5 +182,5 @@ function snapshot(event: HostEvent, target: HostElement): EventSnapshot {
 }
 
 function emit(node: Node, event: HostEventData): void {
-	HostApi.at(node).emit(event);
+	emitElement(getElement(node), event);
 }

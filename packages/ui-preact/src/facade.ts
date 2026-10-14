@@ -72,8 +72,8 @@ abstract class PreactNodeBase<Child extends HostElementChild> {
 		const parent = this[hostChild].parent;
 		if (!parent) return null;
 
-		const index = parent.children.indexOf(this[hostChild]);
-		const sibling = parent.children[index + 1];
+		const index = parent.childNodes.indexOf(this[hostChild]);
+		const sibling = parent.childNodes[index + 1];
 		return sibling ? this.ownerDocument.wrap(sibling) : null;
 	}
 
@@ -102,12 +102,16 @@ class PreactElementNode extends PreactNodeBase<HostElement> implements ElementHa
 	}
 
 	get childNodes(): PreactNode[] {
-		return this.element.children.map((child) => this.ownerDocument.wrap(child));
+		return this.children.map((child) => this.ownerDocument.wrap(child));
 	}
 
 	get firstChild(): PreactNode | null {
-		const child = this.element.children[0];
+		const child = this.children[0];
 		return child ? this.ownerDocument.wrap(child) : null;
+	}
+
+	private get children(): HostElementChild[] {
+		return (this.element.childrenContainer ?? this.element).childNodes;
 	}
 
 	setAttribute(name: string, value: unknown): void {

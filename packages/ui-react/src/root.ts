@@ -3,11 +3,13 @@ import { HostApi, type Host } from '@clack/ui';
 import type { HostElement } from '@clack/ui/elements';
 import type { ReactNode } from 'react';
 import { LegacyRoot } from 'react-reconciler/constants.js';
-import { type Container, reconciler } from './reconciler.ts';
+import { registerHostCommit, type Container, reconciler } from './reconciler.ts';
 
 export interface RootOptions {
 	/** Called once after React commits a set of Host mutations. */
 	onCommit?: (host: Host) => void;
+	/** Called when React cannot render or recover a subtree. */
+	onError?: (error: unknown) => void;
 }
 
 export interface Root {
@@ -22,11 +24,13 @@ export interface Root {
 /** Create a React root which reconciles into an attached Host element. */
 export function createRoot(element: HostElement, options: RootOptions = {}): Root {
 	const host = HostApi.at(element.node!).getHost();
+	const onError = options.onError ?? ((error: unknown) => console.error(error));
 	const container: Container = {
 		element,
 		host,
 		onCommit: () => options.onCommit?.(host),
 	};
+	registerHostCommit(host, container.onCommit);
 	const fiberRoot = reconciler.createContainer(
 		container,
 		LegacyRoot,
@@ -34,10 +38,11 @@ export function createRoot(element: HostElement, options: RootOptions = {}): Roo
 		false,
 		null,
 		'clack',
+		onError,
+		onError,
+		onError,
 		noop,
-		noop,
-		noop,
-		noop,
+		null,
 	);
 
 	return {

@@ -50,7 +50,7 @@ export class RenderApi extends Api {
 	}
 
 	/** Runs the output phase; requests during it schedule the next frame. */
-	paint(callback: () => Promise<void>): Promise<void> {
+	paint<T>(callback: () => Promise<T>): Promise<T> {
 		return callback();
 	}
 

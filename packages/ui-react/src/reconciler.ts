@@ -1,9 +1,9 @@
 /* oxlint-disable max-params -- host-config signatures are fixed by react-reconciler */
-import type { Host } from '@clack/ui';
+import { EventApi, getElementHost, type Host } from '@clack/ui';
 import type { HostElement, HostElementChild, HostLiteral } from '@clack/ui/elements';
 import type { HostEventListener, HostEventType } from '@clack/ui/events';
 import { createContext } from 'react';
-import createReconciler, { type ReactContext } from 'react-reconciler';
+import createReconciler, { type Fiber, type ReactContext } from 'react-reconciler';
 import { DefaultEventPriority, NoEventPriority } from 'react-reconciler/constants.js';
 
 type Props = Record<string, unknown>;
@@ -17,12 +17,40 @@ export interface Container {
 	onCommit(): void;
 }
 
+type HostContainer = Container | HostElement;
+
+const hostCommits = new WeakMap<Host, () => void>();
+
+export function registerHostCommit(host: Host, onCommit: () => void): void {
+	hostCommits.set(host, onCommit);
+	installReactEvents(host);
+}
+
+function installReactEvents(host: Host): void {
+	if (eventHosts.has(host)) return;
+	eventHosts.add(host);
+	EventApi.decorate(host.root, () => ({
+		getEventParent(element) {
+			const handle = handles.get(element);
+			// Deleted fibers lose ancestry before passive cleanup releases their handles.
+			if (!handle?.return) return super.getEventParent(element);
+			// Portal fibers retain the logical React ancestry, not the mount container's.
+			for (let parent: Fiber | null = handle.return; parent; parent = parent.return) {
+				if (handles.has(parent.stateNode)) return parent.stateNode as HostElement;
+				if (parent.tag === 3) return containerParts(parent.stateNode.containerInfo).element;
+			}
+			return null;
+		},
+	}));
+}
+
 export const reconciler = createReconciler<
 	string,
 	Props,
-	Container,
+	HostContainer,
 	Instance,
 	TextInstance,
+	never,
 	never,
 	never,
 	never,
@@ -31,22 +59,40 @@ export const reconciler = createReconciler<
 	never,
 	ReturnType<typeof setTimeout>,
 	number,
-	null
+	null,
+	null,
+	null,
+	never,
+	never,
+	never
 >({
+	rendererVersion: '0.0.0',
+	rendererPackageName: '@clack/ui-react',
+	extraDevToolsConfig: null,
+	bindToConsole(methodName, args) {
+		return () => {
+			const method = console[methodName as keyof Console];
+			if (typeof method === 'function') Reflect.apply(method, console, args);
+		};
+	},
 	supportsMutation: true,
 	supportsPersistence: false,
 	supportsHydration: false,
 	isPrimaryRenderer: true,
 
-	createInstance(type, props, container) {
-		const instance = container.host.createElement(type);
-		owners.set(instance, container.host);
-		updateProperties({ host: container.host, instance, previous: {}, next: props });
+	createInstance(type, props, container, _context, internalInstanceHandle) {
+		const { host } = containerParts(container);
+		installReactEvents(host);
+		const instance = host.createElement(type);
+		owners.set(instance, host);
+		handles.set(instance, internalInstanceHandle);
+		updateProperties({ host, instance, previous: {}, next: props });
 		return instance;
 	},
 	createTextInstance(content, container) {
-		const instance = container.host.createLiteral(content);
-		owners.set(instance, container.host);
+		const { host } = containerParts(container);
+		const instance = host.createLiteral(content);
+		owners.set(instance, host);
 		return instance;
 	},
 
@@ -57,25 +103,30 @@ export const reconciler = createReconciler<
 		owner(parent).insertBefore(parent, child);
 	},
 	appendChildToContainer(container, child) {
-		container.host.insertBefore(container.element, child);
+		const { host, element } = containerParts(container);
+		host.insertBefore(element, child);
 	},
 	insertBefore(parent, child, anchor) {
 		owner(parent).insertBefore(parent, child, anchor);
 	},
 	insertInContainerBefore(container, child, anchor) {
-		container.host.insertBefore(container.element, child, anchor);
+		const { host, element } = containerParts(container);
+		host.insertBefore(element, child, anchor);
 	},
 	removeChild(parent, child) {
 		owner(parent).removeChild(parent, child);
 	},
 	removeChildFromContainer(container, child) {
-		container.host.removeChild(container.element, child);
+		const { host, element } = containerParts(container);
+		host.removeChild(element, child);
 	},
 	clearContainer(container) {
-		removeAllChildren(container.host, container.element);
+		const { host, element } = containerParts(container);
+		removeAllChildren(host, element);
 	},
 
-	commitUpdate(instance, _type, previous, next) {
+	commitUpdate(instance, _type, previous, next, internalInstanceHandle) {
+		handles.set(instance, internalInstanceHandle);
 		updateProperties({ host: owner(instance), instance, previous, next });
 	},
 	commitTextUpdate(instance, _previous, next) {
@@ -83,7 +134,9 @@ export const reconciler = createReconciler<
 	},
 
 	prepareForCommit: () => null,
-	resetAfterCommit: (container) => container.onCommit(),
+	resetAfterCommit(container) {
+		containerParts(container).onCommit();
+	},
 
 	setCurrentUpdatePriority(priority) {
 		currentUpdatePriority = priority;
@@ -104,7 +157,9 @@ export const reconciler = createReconciler<
 	finalizeInitialChildren: () => false,
 	getPublicInstance: (instance) => instance,
 	preparePortalMount: () => {},
-	detachDeletedInstance: () => {},
+	detachDeletedInstance(instance) {
+		handles.delete(instance);
+	},
 	getInstanceFromNode: () => null,
 	beforeActiveInstanceBlur: () => {},
 	afterActiveInstanceBlur: () => {},
@@ -118,10 +173,14 @@ export const reconciler = createReconciler<
 	hideTextInstance: () => {},
 	unhideTextInstance: () => {},
 	maySuspendCommit: () => false,
+	maySuspendCommitOnUpdate: () => false,
+	maySuspendCommitInSyncRender: () => false,
 	preloadInstance: () => true,
-	startSuspendingCommit: () => {},
+	startSuspendingCommit: () => null,
 	suspendInstance: () => {},
+	suspendOnActiveViewTransition: () => {},
 	waitForCommitToBeReady: () => null,
+	getSuspendedCommitReason: () => null,
 	NotPendingTransition: null,
 	HostTransitionContext: createContext(null) as unknown as ReactContext<null>,
 	resetFormInstance: () => {},
@@ -133,8 +192,21 @@ export const reconciler = createReconciler<
 });
 
 const owners = new WeakMap<HostElementChild, Host>();
+const handles = new WeakMap<HostElement, Fiber>();
+const eventHosts = new WeakSet<Host>();
 const hostContext = {};
 let currentUpdatePriority: number = NoEventPriority;
+
+function containerParts(container: HostContainer): Container {
+	if ('host' in container && 'element' in container) return container;
+	const host = getElementHost(container);
+	owners.set(container, host);
+	return {
+		host,
+		element: container,
+		onCommit: () => hostCommits.get(host)?.(),
+	};
+}
 
 class MissingHostOwnerError extends Error {
 	readonly code = 'CLACK_REACT_MISSING_HOST_OWNER';
@@ -207,5 +279,7 @@ function updateProperties({ host, instance, previous, next }: PropertiesUpdate):
 }
 
 function removeAllChildren(host: Host, parent: HostElement): void {
-	for (const child of parent.children.slice()) host.removeChild(parent, child);
+	for (const child of (parent.childrenContainer ?? parent).childNodes.slice()) {
+		host.removeChild(parent, child);
+	}
 }

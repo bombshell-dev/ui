@@ -1,4 +1,9 @@
-import type { HostElements as CoreHostElements, InputEvent } from '@clack/ui';
+import type {
+	HostElements as CoreHostElements,
+	HostElement,
+	BrowserElement,
+	InputEvent,
+} from '@clack/ui';
 import type { ComponentChildren } from 'preact';
 import { describe, expectTypeOf, test } from 'vitest';
 import type { JSX } from './jsx-runtime.ts';
@@ -19,6 +24,17 @@ declare module '@clack/ui/elements' {
 }
 
 describe('Preact host elements', () => {
+	test('keeps browser capabilities out of core element refs', () => {
+		expectTypeOf<
+			Extract<
+				keyof HostElement,
+				'ownerDocument' | 'style' | 'getBoundingClientRect' | 'dispatchEvent'
+			>
+		>().toEqualTypeOf<never>();
+		expectTypeOf<BrowserElement['dispatchEvent']>().toBeFunction();
+		expectTypeOf<BrowserElement['getBoundingClientRect']>().toBeFunction();
+	});
+
 	test('maps box and text properties from the core registry', () => {
 		expectTypeOf<JSX.IntrinsicElements['box']['layout']>().toEqualTypeOf<
 			CoreHostElements['box']['layout']

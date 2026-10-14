@@ -1,6 +1,7 @@
 // oxlint-disable bombshell-dev/exported-function-async -- Solid components render synchronously.
 import { fixed, grow, percent } from '@bomb.sh/tty';
-import { type JSXElement, rgba } from '@clack/ui-solid';
+import { rgba } from '@clack/ui';
+import type { JSXElement } from '@clack/ui-solid';
 import { createSignal } from 'solid-js';
 
 /** Render the interactive hello-world example. */

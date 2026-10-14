@@ -4,6 +4,9 @@ import { DispatchApi } from './dispatch.ts';
 import { FocusApi } from './focus.ts';
 import { Api } from './core/api.ts';
 import type { Node } from './core/node.ts';
+import { getElement } from './elements.ts';
+
+export type { KeyDown, KeyEvent, KeyRepeat, KeyUp };
 
 export class KeyboardApi extends Api {
 	constructor(node: Node) {
@@ -26,9 +29,13 @@ export class KeyboardApi extends Api {
 		}));
 	}
 
-	keydown(_event: KeyDown): void {}
+	keydown(event: KeyDown): void {
+		getElement(this.node).keydown?.(event);
+	}
 	keyup(_event: KeyUp): void {}
-	keyrepeat(_event: KeyRepeat): void {}
+	keyrepeat(event: KeyRepeat): void {
+		getElement(this.node).keyrepeat?.(event);
+	}
 }
 
 function isKeyEvent(value: unknown): value is KeyEvent {

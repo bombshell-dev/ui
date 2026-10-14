@@ -20,7 +20,7 @@ export class LifecycleApi extends Api {
 
 	destroy(node: Node) {
 		for (const child of node.children) {
-			this.destroy(child);
+			LifecycleApi.at(child).destroy(child);
 		}
 		node.parent?.children.delete(node);
 	}
@@ -33,3 +33,7 @@ export class LifecycleApi extends Api {
 const IdContext = createContext<string>('id');
 
 export const lifecycle = LifecycleApi.init(new Node());
+
+export function id(node: Node): string {
+	return LifecycleApi.at(node).id(node);
+}

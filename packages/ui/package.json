@@ -30,6 +30,26 @@
 			"types": "./dist/events.d.mts",
 			"import": "./dist/events.mjs"
 		},
+		"./browser": {
+			"types": "./dist/browser.d.mts",
+			"import": "./dist/browser.mjs"
+		},
+		"./standard-elements": {
+			"types": "./dist/standard-elements.d.mts",
+			"import": "./dist/standard-elements.mjs"
+		},
+		"./primitives": {
+			"types": "./dist/primitives.d.mts",
+			"import": "./dist/primitives.mjs"
+		},
+		"./components": {
+			"types": "./dist/components.d.mts",
+			"import": "./dist/components.mjs"
+		},
+		"./parts": {
+			"types": "./dist/parts.d.mts",
+			"import": "./dist/parts.mjs"
+		},
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {

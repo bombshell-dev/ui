@@ -39,7 +39,7 @@ export function createRoot(element: HostElement): Root {
 	function unmount(): void {
 		dispose?.();
 		dispose = undefined;
-		for (const child of element.children.slice()) {
+		for (const child of (element.childrenContainer ?? element).childNodes.slice()) {
 			host.removeChild(element, child);
 		}
 	}
@@ -104,13 +104,14 @@ const universal = createUniversalRenderer<HostElementChild>({
 		return node.parent ?? undefined;
 	},
 	getFirstChild(node) {
-		return node.type === 'element' ? node.children[0] : undefined;
+		return node.type === 'element' ? (node.childrenContainer ?? node).childNodes[0] : undefined;
 	},
 	getNextSibling(node) {
 		const parent = node.parent;
 		if (!parent) return undefined;
-		const index = parent.children.indexOf(node);
-		return parent.children[index + 1];
+		const siblings = (parent.childrenContainer ?? parent).childNodes;
+		const index = siblings.indexOf(node);
+		return siblings[index + 1];
 	},
 });
 

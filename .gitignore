@@ -65,6 +65,7 @@ jspm_packages/
 # common cache locations
 .cache
 .temp
+/tmp/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test

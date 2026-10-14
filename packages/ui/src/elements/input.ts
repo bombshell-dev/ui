@@ -1,12 +1,12 @@
-import { lifecycle, type Node } from '../core.ts';
-import { open, close, text, fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
+import { fit, percent, rgba, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import type { HostEvent } from '@clack/ui/events';
-import { getElement, type HostElement } from '../elements.ts';
-import { type Host, HostApi } from '../host.ts';
-import { LayoutApi } from '../layout.ts';
-import { FocusApi } from '../focus.ts';
-import { KeyboardApi } from '../keyboard.ts';
-import { Api } from '../core/api.ts';
+import type { HostElement, PropertyChange } from '../elements.ts';
+import type { HTMLAttributes } from '../browser-types.ts';
+import { ComponentElement, defineElement, template } from '../component.ts';
+import { Box, type BoxProps } from '../primitives/box.ts';
+import { Text } from '../primitives/text.ts';
+import { TextEditor } from '../parts/text-editor.ts';
+import { Focusable } from '../parts/focusable.ts';
 
 export interface InputEvent extends HostEvent<'input'> {
 	value: string;
@@ -18,7 +18,12 @@ declare module '@clack/ui/events' {
 	}
 }
 
-export interface InputProps {
+export interface InputProps extends HTMLAttributes {
+	disabled?: boolean;
+	hidden?: boolean;
+	value?: string;
+	defaultValue?: string;
+	layout?: BoxProps['layout'];
 	oninput?: (event: InputEvent) => void;
 }
 
@@ -28,185 +33,116 @@ declare module '@clack/ui/elements' {
 	}
 }
 
-export function useInputElement(host: Host): void {
-	const { root } = host;
+/** A single-line input composed from the built-in box and text primitives. */
+export class InputElement extends Focusable(ComponentElement<InputProps>) {
+	readonly editor: TextEditor;
+	private inputBox?: HostElement;
+	private inputText?: HostElement;
+	private hasValueProp: boolean;
+	private replacingValue = false;
 
-	HostApi.decorate(root, () => ({
-		createElement(name) {
-			const element: HostElement = super.createElement(name);
-			if (element.name === 'input') {
-				element.attach = (node) => {
-					FocusApi.at(node).setFocusable();
-					InputApi.init(node);
-				};
+	constructor(element: HostElement) {
+		super(element);
+		this.hasValueProp = element.properties.value != null;
+		this.editor = new TextEditor({
+			content: String(element.properties.value ?? element.properties.defaultValue ?? ''),
+			onChange: (editor) => {
+				this.updateText();
+				if (this.node && !this.replacingValue) {
+					this.emit({ type: 'input', value: editor.content });
+				}
+			},
+		});
+		Object.defineProperties(element.properties, {
+			value: {
+				get: () => this.editor.content,
+				set: (value: unknown) => {
+					this.hasValueProp = value != null;
+					this.replaceValue(value ?? this.props.defaultValue ?? '');
+				},
+			},
+			caret: { get: () => this.editor.caret },
+		});
+	}
 
-				// make value and caret accessible to the public <input/>
-				Object.defineProperties(element.properties, {
-					value: {
-						get() {
-							return InputApi.at(element.node!).content;
-						},
-					},
-					caret: {
-						get() {
-							return InputApi.at(element.node!).caret;
-						},
-					},
-				});
-			}
-			return element;
-		},
-	}));
+	override get focusable(): boolean {
+		return !this.props.disabled && !this.isHiddenInput();
+	}
 
-	LayoutApi.decorate(root, () => ({
-		*layout() {
-			const { node } = this;
-			const element = getElement(node);
-			if (element.name !== 'input') {
-				return yield* super.layout();
-			}
+	override propertyChanged(change: PropertyChange): void {
+		super.propertyChanged(change);
+		const { name, value } = change;
+		if (name === 'defaultValue' && !this.hasValueProp) this.replaceValue(value ?? '');
+	}
 
-			const focused = node === FocusApi.at(node).getFocus();
-			const input = InputApi.at(node);
-			const value = input.content;
-			// commented out until @bomb.sh/tty can render carets
-			// const caret = Math.min(model.caret, [...value].length);
-			const color = focused ? rgba(255, 255, 255) : rgba(100, 100, 100);
-			const border = { color, top: 1, right: 1, bottom: 1, left: 1 };
-			yield open(lifecycle.id(node), {
-				border,
+	override create(): HostElement {
+		if (!this.hasValueProp) this.replaceValue(this.props.defaultValue ?? '');
+		const box = template(this.host, Box);
+		if (this.isHiddenInput()) {
+			this.inputBox = box({ layout: { height: fit(0), width: fit(0) } });
+			return this.inputBox;
+		}
+		const text = template(this.host, Text);
+		this.inputText = text({}, this.editor.content || ' ');
+		this.inputBox = box(
+			{
+				border: { color: rgba(100, 100, 100), top: 1, right: 1, bottom: 1, left: 1 },
 				layout: {
 					height: fit(3),
 					width: percent(0.3),
 					padding: { top: 1, right: 1, bottom: 1, left: 1 },
+					...this.props.layout,
 				},
-			});
-			yield text(value || ' ');
-			yield close();
-		},
-	}));
-}
-
-export class InputApi extends Api {
-	content = '';
-	caret = 0;
-
-	constructor(location: Node) {
-		super(location);
-
-		KeyboardApi.decorate(location, () => ({
-			keydown(event) {
-				const { node } = this;
-				if (!handleKeyEvent(node, event)) {
-					return super.keydown(event);
-				}
 			},
-			keyrepeat(event) {
-				const { node } = this;
-				if (!handleKeyEvent(node, event)) {
-					return super.keyrepeat(event);
-				}
-			},
-		}));
+			this.inputText,
+		);
+		return this.inputBox;
 	}
 
-	insert(text: string): void {
-		this.update(() => {
-			// Inputs are single-line, so discard CR/LF. Spreading the string produces
-			// Unicode code points rather than UTF-16 code units.
-			const inserted = [...text.replace(/[\r\n]/g, '')];
-			const codepoints = [...this.content];
-			const caret = this.caret;
+	override focusChangedCallback(focused: boolean): void {
+		this.inputBox?.setProperty('border', {
+			color: focused ? rgba(255, 255, 255) : rgba(100, 100, 100),
+			top: 1,
+			right: 1,
+			bottom: 1,
+			left: 1,
+		});
+	}
+	override keydown(event: KeyDown): boolean {
+		return this.handleKey(event);
+	}
+	override keyrepeat(event: KeyRepeat): boolean {
+		return this.handleKey(event);
+	}
 
-			// The caret is a code-point index. Insert each new code point independently,
-			// then advance by exactly the number that survived normalization.
-			codepoints.splice(caret, 0, ...inserted);
-			this.content = codepoints.join('');
-			this.caret = caret + inserted.length;
-		});
+	private handleKey(event: KeyDown | KeyRepeat): boolean {
+		if (!this.node || this.props.disabled || this.isHiddenInput()) return false;
+		return this.editor.handleKey(event);
 	}
-	deleteBackward(): void {
-		this.update(() => {
-			const codepoints = [...this.content];
-			let caret = this.caret;
-			const length = codepoints.length;
-			if (caret > length) {
-				console.warn('caret mismatch: ${caret}, value length: ${length}');
-				caret = length;
-			}
-			if (caret > 0) {
-				codepoints.splice(caret - 1, 1);
-				this.content = codepoints.join('');
-				this.caret = caret - 1;
-			}
-		});
-	}
-	deleteForward(): void {
-		this.update(() => {
-			const codepoints = [...this.content];
-			let caret = this.caret;
-			const length = codepoints.length;
-			if (caret > length) {
-				console.warn('caret mismatch: ${caret}, value length: ${length}');
-				caret = length;
-			}
-			if (caret < length) {
-				codepoints.splice(caret, 1);
-				this.content = codepoints.join('');
-			}
-		});
-	}
-	moveBack(): void {
-		const caret = this.caret;
-		this.caret = Math.max(0, caret - 1);
-	}
-	moveForward(): void {
-		const caret = this.caret;
-		const codepoints = [...this.content];
-		this.caret = Math.min(codepoints.length, caret + 1);
-	}
-	moveMin(): void {
-		this.caret = 0;
-	}
-	moveMax(): void {
-		this.caret = [...this.content].length;
-	}
-	update<T>(fn: () => T): T {
-		const original = this.content;
-		const value = fn();
-		if (original !== this.content) {
-			HostApi.at(this.node).emit({
-				type: 'input',
-				value: this.content,
-			});
+
+	private replaceValue(value: unknown): void {
+		const previous = this.editor.content;
+		this.replacingValue = true;
+		try {
+			this.editor.content = String(value);
+			if (this.editor.content !== previous) this.editor.moveMax();
+		} finally {
+			this.replacingValue = false;
 		}
-		return value;
+	}
+	private updateText(): void {
+		if (this.inputText) this.inputText.textContent = this.editor.content || ' ';
+	}
+	private isHiddenInput(): boolean {
+		return (
+			Boolean(this.props.hidden) ||
+			this.props['aria-hidden'] === true ||
+			this.props.style?.clipPath !== undefined
+		);
 	}
 }
 
-function handleKeyEvent(node: Node, event: KeyDown | KeyRepeat): boolean {
-	const input = InputApi.at(node);
-	if (event.text && event.text?.length > 0) {
-		input.insert(event.text);
-		return true;
-	} else if (event.code === 'Backspace') {
-		input.deleteBackward();
-		return true;
-	} else if (event.code === 'Delete') {
-		input.deleteForward();
-		return true;
-	} else if (event.code === 'ArrowLeft') {
-		input.moveBack();
-		return true;
-	} else if (event.code === 'ArrowRight') {
-		input.moveForward();
-		return true;
-	} else if (event.code === 'Home') {
-		input.moveMin();
-		return true;
-	} else if (event.code === 'End') {
-		input.moveMax();
-		return true;
-	}
-	return false;
-}
+export const Input = defineElement('input', {
+	define: InputElement,
+	dependencies: [Box, Text],
+});

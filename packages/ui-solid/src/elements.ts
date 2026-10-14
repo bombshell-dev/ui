@@ -17,5 +17,7 @@ export type HostElements = {
 };
 
 export type BoxProps = HostElements['box'];
+export type ButtonProps = HostElements['button'];
+export type DialogProps = HostElements['dialog'];
 export type InputProps = HostElements['input'];
 export type TextProps = HostElements['text'];

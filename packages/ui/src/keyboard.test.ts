@@ -5,8 +5,36 @@ import { DispatchApi } from './dispatch.ts';
 import { FocusApi } from './focus.ts';
 import { createHost, type Host } from './host.ts';
 import { KeyboardApi } from './keyboard.ts';
+import { Input } from './elements/input.ts';
 
 describe('keyboard dispatch', () => {
+	test.each(['keydown', 'keyrepeat'] as const)(
+		'node-local middleware can intercept and delegate input %s defaults',
+		(type) => {
+			const host = setupKeyboardHost();
+			Input.register(host);
+			const input = host.createElement('input');
+			host.insertBefore(host.element, input);
+			const observed: string[] = [];
+			KeyboardApi.decorate(input.node!, () => ({
+				keydown(event) {
+					observed.push(event.text!);
+					if (event.text !== 'x') super.keydown(event);
+				},
+				keyrepeat(event) {
+					observed.push(event.text!);
+					if (event.text !== 'x') super.keyrepeat(event);
+				},
+			}));
+
+			DispatchApi.at(host.root).dispatch({ ...keydown('x', 'x'), type });
+			expect(input.properties.value).toBe('');
+			DispatchApi.at(host.root).dispatch({ ...keydown('y', 'y'), type });
+			expect(input.properties.value).toBe('y');
+			expect(observed).toEqual(['x', 'y']);
+		},
+	);
+
 	test('routes keydown, keyup, and keyrepeat to the currently focused node', () => {
 		const host = setupKeyboardHost();
 		const first = createFocusable(host);

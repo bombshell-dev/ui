@@ -1,18 +1,34 @@
-import { createContext, type Node } from './core.ts';
+import { createContext, LifecycleApi, type Node } from './core.ts';
 import { Api } from './core/api.ts';
 import { getElement, type HostElement, type HostElementChild } from './elements.ts';
 import { HostApi, type Host } from './host.ts';
 
 export class FocusApi extends Api {
 	current: Node;
+	private transitionVersion = 0;
 
 	constructor(location: Node) {
 		super(location);
 		this.current = location;
 
+		// Moves destroy nodes without passing through HostApi.removeChild.
+		LifecycleApi.decorate(location, () => ({
+			destroy(node) {
+				const focus = FocusApi.at(this.node);
+				const host = getHost(this.node);
+				if (node !== host.root && contains(node, focus.current)) {
+					focus.setFocus(host.root);
+				}
+				return super.destroy(node);
+			},
+		}));
+
 		HostApi.decorate(location, () => ({
 			removeChild(parent, removed) {
-				const node = parent.node!;
+				if (!parent.node || (removed.type === 'element' && !removed.node)) {
+					return super.removeChild(parent, removed);
+				}
+				const node = parent.node;
 				const focus = FocusApi.at(node);
 				const host = getHost(node);
 				if (removed.type === 'element' && contains(removed.node!, focus.current)) {
@@ -34,26 +50,41 @@ export class FocusApi extends Api {
 		}));
 	}
 
-	setFocusable(): void {
+	setFocusable(focusable = true): void {
 		const { node } = this;
-		FocusableContext.set(node, true);
+		FocusableContext.set(node, focusable);
 
 		const host = getHost(node);
 
-		if (this.current === host.root) {
-			this.current = node;
+		if (!focusable && this.current === node) {
+			this.setFocus(host.root);
+		} else if (this.current === host.root && focusable) {
+			this.setFocus(node);
 		}
 	}
 
-	setFocus(node: Node): void {
-		if (!isFocusable(node) && node !== getHost(node).root) {
+	setFocus(node: Node, options: { force?: boolean } = {}): void {
+		if (!options.force && !isFocusable(node) && node !== getHost(node).root) {
 			throw new UnfocusableElementError(node);
 		}
-		this.current = node;
+		const previous = this.current;
+		if (previous !== node) {
+			this.current = node;
+			const version = ++this.transitionVersion;
+			getElement(previous).blurredCallback?.(previous);
+			// A redirect away and back also supersedes this transition's notification.
+			if (this.current === node && this.transitionVersion === version) {
+				getElement(node).focusedCallback?.(node);
+			}
+		}
 	}
 
 	getFocus(): Node {
 		return this.current;
+	}
+
+	canFocus(node: Node): boolean {
+		return isFocusable(node);
 	}
 
 	advanceFocus(): void {
@@ -91,6 +122,28 @@ export class FocusApi extends Api {
 	}
 }
 
+export function installFocus(host: Host): void {
+	try {
+		FocusApi.at(host.root);
+	} catch {
+		FocusApi.init(host.root);
+	}
+}
+
+export function setFocusable(node: Node, focusable = true): void {
+	const root = HostApi.at(node).getHost().root;
+	installFocus(HostApi.at(root).getHost());
+	FocusApi.at(node).setFocusable(focusable);
+}
+
+export function setFocus(node: Node): void {
+	FocusApi.at(node).setFocus(node);
+}
+
+export function getFocus(node: Node): Node {
+	return FocusApi.at(node).getFocus();
+}
+
 function getHost(node: Node): Host {
 	return HostApi.at(node).getHost();
 }
@@ -113,14 +166,14 @@ function* forward(range: Range): Iterable<HostElement> {
 	};
 	const tiers: Tier[] = [
 		{
-			siblings: range.start.type === 'element' ? range.start.children : [],
+			siblings: range.start.type === 'element' ? range.start.childNodes : [],
 			index: 0,
 		},
 	];
 
 	let current = range.start;
 	while (current.parent) {
-		const siblings = current.parent.children;
+		const siblings = current.parent.childNodes;
 		tiers.unshift({ siblings, index: siblings.indexOf(current) + 1 });
 		current = current.parent;
 	}
@@ -139,7 +192,7 @@ function* forward(range: Range): Iterable<HostElement> {
 			if (child !== range.start) {
 				yield child;
 			}
-			tiers.push({ siblings: child.children, index: 0 });
+			tiers.push({ siblings: child.childNodes, index: 0 });
 		}
 	}
 }
@@ -157,8 +210,8 @@ function* reverse(range: Range): Iterable<HostElement> {
 		// host.element acts as the position after the entire tree.
 		if (range.start.type === 'element') {
 			tiers.push({
-				siblings: range.start.children,
-				index: range.start.children.length - 1,
+				siblings: range.start.childNodes,
+				index: range.start.childNodes.length - 1,
 			});
 		}
 	} else {
@@ -166,7 +219,7 @@ function* reverse(range: Range): Iterable<HostElement> {
 
 		while (current.parent) {
 			const parent = current.parent;
-			const siblings = parent.children;
+			const siblings = parent.childNodes;
 
 			tiers.unshift({
 				siblings,
@@ -200,8 +253,8 @@ function* reverse(range: Range): Iterable<HostElement> {
 
 		if (child?.type === 'element') {
 			tiers.push({
-				siblings: child.children,
-				index: child.children.length - 1,
+				siblings: child.childNodes,
+				index: child.childNodes.length - 1,
 				owner: child,
 			});
 		}
@@ -216,14 +269,14 @@ function* concat<A>(...iterables: Iterable<A>[]): Generator<A> {
 
 function findFocus(elements: Iterable<HostElement>): Node | undefined {
 	for (const element of elements) {
-		if (isFocusable(element.node!)) {
+		if (element.node && isFocusable(element.node)) {
 			return element.node!;
 		}
 	}
 }
 
 function lastElementOf(element: HostElement): HostElement {
-	const { children } = element;
+	const children = element.childNodes;
 	let last: HostElement | undefined = void 0;
 	for (let i = children.length - 1; i >= 0; i--) {
 		const child = children[i];

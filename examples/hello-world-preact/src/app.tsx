@@ -1,6 +1,6 @@
 // oxlint-disable bombshell-dev/exported-function-async -- Preact components render synchronously.
 import { fixed, grow, percent } from '@bomb.sh/tty';
-import { rgba } from '@clack/ui-preact';
+import { rgba } from '@clack/ui';
 import type { VNode } from 'preact';
 import { useState } from 'preact/hooks';
 

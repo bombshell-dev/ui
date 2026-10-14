@@ -1,17 +1,175 @@
 // oxlint-disable max-params
-import type { KeyDown, KeyRepeat } from '@bomb.sh/tty';
+import { fit, type KeyDown, type KeyRepeat } from '@bomb.sh/tty';
 import { type Node } from '../core.ts';
 import type { HostEvents } from '@clack/ui/events';
 import { describe, expect, expectTypeOf, test } from 'vitest';
 import { DispatchApi } from '../dispatch.ts';
+import { defineElement } from '../component.ts';
+import { EventApi } from '../event-api.ts';
 import type { HostElement } from '../elements.ts';
 import { FocusApi } from '../focus.ts';
 import { createHost, type Host } from '../host.ts';
 import { KeyboardApi } from '../keyboard.ts';
-import { InputApi, type InputProps, useInputElement } from './input.ts';
+import { Input, InputElement, type InputProps } from './input.ts';
 
 describe('input', () => {
-	describe('InputApi', () => {
+	test.each(['value', 'defaultValue'] as const)(
+		'preserves edited %s and caret across disconnect and cross-parent moves',
+		(property) => {
+			const { host, input, component } = setupTrackedInput({ [property]: 'ab' });
+			const first = host.createElement('box');
+			const second = host.createElement('box');
+			host.insertBefore(host.element, first);
+			host.insertBefore(host.element, second);
+			host.insertBefore(first, input);
+			insert(input.node!, 'cd');
+			moveBack(input.node!);
+			const previous = input.node;
+			const editor = component.editor;
+
+			host.insertBefore(second, input);
+
+			expect(input.node).not.toBe(previous);
+			expect(component.editor).toBe(editor);
+			expectState(input, 'abcd', 3);
+			expect(input.textContent).toBe('abcd');
+			host.removeChild(second, input);
+			expectState(input, 'abcd', 3);
+			host.insertBefore(first, input);
+			expect(component.editor).toBe(editor);
+			expectState(input, 'abcd', 3);
+			expect(input.textContent).toBe('abcd');
+		},
+	);
+
+	test('honors value and defaultValue changes while disconnected', () => {
+		const { host, input } = setup();
+		insert(input.node!, 'edited');
+		host.removeChild(host.element, input);
+		input.setProperty('defaultValue', 'new');
+		host.insertBefore(host.element, input);
+		expectState(input, 'new', 3);
+		host.removeChild(host.element, input);
+		input.setProperty('value', 'replacement');
+		host.insertBefore(host.element, input);
+		expectState(input, 'replacement', 11);
+	});
+
+	test('disabled inputs reject focus and keyboard editing and honor property changes', () => {
+		const host = setupKeyboardHost();
+		Input.register(host);
+		const input = host.createElement('input', { value: 'ab', disabled: true });
+		host.insertBefore(host.element, input);
+		const focus = FocusApi.at(host.root);
+		expect(focus.getFocus()).toBe(host.root);
+		expect(focus.canFocus(input.node!)).toBe(false);
+		expect(() => focus.setFocus(input.node!)).toThrow(TypeError);
+		KeyboardApi.at(input.node!).keydown(keydown('x', 'x'));
+		KeyboardApi.at(input.node!).keyrepeat({ ...keydown('Backspace'), type: 'keyrepeat' });
+		expectState(input, 'ab', 2);
+
+		input.setProperty('disabled', false);
+		expect(focus.getFocus()).toBe(input.node);
+		DispatchApi.at(host.root).dispatch(keydown('x', 'x'));
+		expectState(input, 'abx', 3);
+		input.setProperty('disabled', true);
+		expect(focus.getFocus()).toBe(host.root);
+		expect(focus.canFocus(input.node!)).toBe(false);
+		KeyboardApi.at(input.node!).keydown(keydown('Delete'));
+		expectState(input, 'abx', 3);
+		host.removeChild(host.element, input);
+		input.setProperty('disabled', false);
+		host.insertBefore(host.element, input);
+		expect(focus.getFocus()).toBe(input.node);
+		expectState(input, 'abx', 3);
+		host.removeChild(host.element, input);
+		input.setProperty('disabled', true);
+		host.insertBefore(host.element, input);
+		expect(focus.getFocus()).toBe(host.root);
+		expect(focus.canFocus(input.node!)).toBe(false);
+	});
+
+	test.each(['hidden', 'aria-hidden', 'style'] as const)(
+		'updates focus eligibility and rejects editing when %s hides the input',
+		(property) => {
+			const host = setupKeyboardHost();
+			Input.register(host);
+			const input = host.createElement('input', { value: 'ab' });
+			host.insertBefore(host.element, input);
+			const focus = FocusApi.at(host.root);
+			expect(focus.getFocus()).toBe(input.node);
+			input.setProperty(property, property === 'style' ? { clipPath: 'inset(50%)' } : true);
+			expect(focus.canFocus(input.node!)).toBe(false);
+			expect(focus.getFocus()).toBe(host.root);
+			KeyboardApi.at(input.node!).keydown(keydown('x', 'x'));
+			expectState(input, 'ab', 2);
+			input.setProperty(property, property === 'style' ? {} : false);
+			expect(focus.getFocus()).toBe(input.node);
+			KeyboardApi.at(input.node!).keyrepeat({ ...keydown('x', 'x'), type: 'keyrepeat' });
+			expectState(input, 'abx', 3);
+		},
+	);
+
+	test('retains direct editor edits while disconnected without emitting input', () => {
+		const { host, input, component } = setupTrackedInput();
+		const editor = component.editor;
+		let events = 0;
+		host.addEventListener(input, 'input', () => events++);
+		host.removeChild(host.element, input);
+		expect(component.keydown(keydown('x', 'x'))).toBe(false);
+		expect(component.keyrepeat({ ...keydown('x', 'x'), type: 'keyrepeat' })).toBe(false);
+		editor.insert('a😀b');
+		editor.moveBack();
+		expectState(input, 'a😀b', 2);
+		host.insertBefore(host.element, input);
+		expect(component.editor).toBe(editor);
+		expectState(input, 'a😀b', 2);
+		expect(input.textContent).toBe('a😀b');
+		expect(events).toBe(0);
+	});
+
+	test.each(['disabled', 'hidden'] as const)(
+		'direct editor commands remain available when %s prevents keyboard editing',
+		(property) => {
+			const { host, input, component } = setupTrackedInput({ [property]: true });
+			const values: string[] = [];
+			host.addEventListener(input, 'input', (event) => values.push(event.value));
+			component.editor.insert('a😀b');
+			component.editor.moveBack();
+			expectState(input, 'a😀b', 2);
+			KeyboardApi.at(input.node!).keydown(keydown('x', 'x'));
+			expectState(input, 'a😀b', 2);
+			expect(values).toEqual(['a😀b']);
+		},
+	);
+
+	test('uses a caller-provided layout width for content-sized inputs', () => {
+		const host = createHost();
+		Input.register(host);
+		const input = host.createElement('input', { layout: { width: fit() } });
+		host.insertBefore(host.element, input);
+		const box = input.children.find((child) => child.type === 'element');
+
+		expect(box?.type === 'element' ? box.properties.layout : undefined).toMatchObject({
+			width: fit(),
+		});
+	});
+
+	describe('editing', () => {
+		test('exposes the same editor and clamps programmatic replacement without inspecting children', () => {
+			const { host, input, component } = setupTrackedInput();
+			const editor = component.editor;
+			const values: string[] = [];
+			host.addEventListener(input, 'input', (event) => values.push(event.value));
+			editor.content = 'a😀bc';
+			editor.caret = 20;
+			expectState(input, 'a😀bc', 4);
+			editor.content = 'x\r\n';
+			expect(component.editor).toBe(editor);
+			expectState(input, 'x', 1);
+			expect(input.textContent).toBe('x');
+			expect(values).toEqual(['a😀bc', 'x']);
+		});
 		test('starts empty with the caret at zero', () => {
 			const { input } = setup();
 
@@ -208,9 +366,8 @@ describe('input', () => {
 		});
 
 		test('keeps state isolated between input elements', () => {
-			const host = createHost();
-			FocusApi.init(host.root);
-			useInputElement(host);
+			const host = setupKeyboardHost();
+			Input.register(host);
 			const first = createInput(host);
 			const second = createInput(host);
 
@@ -222,6 +379,40 @@ describe('input', () => {
 	});
 
 	describe('input event', () => {
+		test.each(['', '\r\n'])(
+			'preserves the middle-edit caret after a normalized same-value controlled write (%j)',
+			(lineBreaks) => {
+				const { host, input, node } = setup();
+				input.setProperty('value', 'abcd');
+				moveMin(node);
+				moveForward(node);
+				moveForward(node);
+				const values: string[] = [];
+				host.addEventListener(input, 'input', (event) => {
+					values.push(event.value);
+					input.setProperty('value', event.value + lineBreaks);
+				});
+
+				insert(node, 'x');
+
+				expectState(input, 'abxcd', 3);
+				expect(input.textContent).toBe('abxcd');
+				expect(values).toEqual(['abxcd']);
+				input.setProperty('value', 'abxcd' + lineBreaks);
+				expectState(input, 'abxcd', 3);
+				expect(values).toEqual(['abxcd']);
+			},
+		);
+
+		test('property replacements update the view without emitting user input', () => {
+			const { host, input } = setup();
+			let events = 0;
+			host.addEventListener(input, 'input', () => events++);
+			input.setProperty('value', 'a\n😀');
+			expectState(input, 'a😀', 2);
+			expect(input.textContent).toBe('a😀');
+			expect(events).toBe(0);
+		});
 		test('types the oninput prop with the registered input event', () => {
 			expectTypeOf<NonNullable<InputProps['oninput']>>()
 				.parameter(0)
@@ -273,57 +464,125 @@ describe('input', () => {
 	});
 
 	describe('keymap', () => {
+		test('observes state before and after keyboard editing and semantic input delivery', () => {
+			const { host, input, node } = setupKeyboardInput();
+			const observations: Array<[string, unknown, unknown]> = [];
+			const event = keydown('x', 'x');
+			KeyboardApi.decorate(host.root, () => ({
+				keydown(received) {
+					expect(this.node).toBe(node);
+					expect(received).toBe(event);
+					observations.push(['before', input.properties.value, input.properties.caret]);
+					super.keydown(received);
+					observations.push(['after', input.properties.value, input.properties.caret]);
+				},
+			}));
+			EventApi.decorate(host.root, () => ({
+				emit(received) {
+					if (received.type === 'input') {
+						expect(received.target).toBe(input);
+						observations.push(['emit', received.value, input.properties.caret]);
+					}
+					return super.emit(received);
+				},
+			}));
+			host.addEventListener(input, 'input', (received) => {
+				observations.push(['listener', received.value, input.properties.caret]);
+			});
+
+			DispatchApi.at(host.root).dispatch(event);
+
+			expect(observations).toEqual([
+				['before', '', 0],
+				['emit', 'x', 1],
+				['listener', 'x', 1],
+				['after', 'x', 1],
+			]);
+			expectState(input, 'x', 1);
+		});
+
+		test('node-local keyboard middleware suppresses only its input', () => {
+			const { host, input, node } = setupKeyboardInput();
+			const other = createInput(host);
+			const observed: Node[] = [];
+			recordDelegatedKeydown(host, (target) => observed.push(target));
+			let suppressed = 0;
+			KeyboardApi.decorate(node, () => ({
+				keydown() {
+					suppressed++;
+				},
+			}));
+			let events = 0;
+			host.addEventListener(input, 'input', () => events++);
+
+			DispatchApi.at(host.root).dispatch(keydown('x', 'x'));
+			FocusApi.at(host.root).setFocus(other.node!);
+			DispatchApi.at(host.root).dispatch(keydown('y', 'y'));
+
+			expect(suppressed).toBe(1);
+			expect(observed).toEqual([node, other.node]);
+			expectState(input, '', 0);
+			expectState(other, 'y', 1);
+			expect(events).toBe(0);
+		});
+
 		test.each([
 			{
 				name: 'inserts printable text',
 				event: keydown('x', 'x'),
-				expected: ['insert', 'x'],
+				value: 'axbc',
+				caret: 2,
 			},
 			{
 				name: 'maps Backspace to deleteBackward',
 				event: keydown('Backspace'),
-				expected: ['deleteBackward'],
+				value: 'bc',
+				caret: 0,
 			},
 			{
 				name: 'maps Delete to deleteForward',
 				event: keydown('Delete'),
-				expected: ['deleteForward'],
+				value: 'ac',
+				caret: 1,
 			},
 			{
 				name: 'maps ArrowLeft to moveBack',
 				event: keydown('ArrowLeft'),
-				expected: ['moveBack'],
+				value: 'abc',
+				caret: 0,
 			},
 			{
 				name: 'maps ArrowRight to moveForward',
 				event: keydown('ArrowRight'),
-				expected: ['moveForward'],
+				value: 'abc',
+				caret: 2,
 			},
 			{
 				name: 'maps Home to moveMin',
 				event: keydown('Home'),
-				expected: ['moveMin'],
+				value: 'abc',
+				caret: 0,
 			},
 			{
 				name: 'maps End to moveMax',
 				event: keydown('End'),
-				expected: ['moveMax'],
+				value: 'abc',
+				caret: 3,
 			},
-		])('$name', ({ event, expected }) => {
-			const { host, node } = setupKeyboardInput();
-			const calls: InputCall[] = [];
-			recordInput(node, calls);
+		])('$name', ({ event, value, caret }) => {
+			const { host, input, node } = setupKeyboardInput();
+			input.setProperty('value', 'abc');
+			moveMin(node);
+			moveForward(node);
 
 			DispatchApi.at(host.root).dispatch(event);
 
-			const [method, argument] = expected;
-			expect(calls).toEqual([argument === undefined ? [method] : [method, argument]]);
+			expectState(input, value, caret);
+			expect(input.textContent).toBe(value);
 		});
 
 		test('uses input keydown behavior for keyrepeat', () => {
-			const { host, node } = setupKeyboardInput();
-			const calls: InputCall[] = [];
-			recordInput(node, calls);
+			const { host, input } = setupKeyboardInput();
 			const event: KeyRepeat = {
 				type: 'keyrepeat',
 				key: 'x',
@@ -333,19 +592,17 @@ describe('input', () => {
 
 			DispatchApi.at(host.root).dispatch(event);
 
-			expect(calls).toEqual([['insert', 'x']]);
+			expectState(input, 'x', 1);
 		});
 
 		test('allows an ancestor decorator to observe a recognized input binding', () => {
-			const { host, node } = setupKeyboardInput();
-			const calls: InputCall[] = [];
+			const { host, input } = setupKeyboardInput();
 			let delegations = 0;
-			recordInput(node, calls);
 			recordDelegatedKeydown(host, () => delegations++);
 
 			DispatchApi.at(host.root).dispatch(keydown('x', 'x'));
 
-			expect(calls).toEqual([['insert', 'x']]);
+			expectState(input, 'x', 1);
 			expect(delegations).toBe(1);
 		});
 
@@ -364,7 +621,7 @@ describe('input', () => {
 
 		test('delegates a key targeting a non-input node exactly once', () => {
 			const host = setupKeyboardHost();
-			useInputElement(host);
+			Input.register(host);
 			const target = createFocusable(host);
 			const event = keydown('x', 'x');
 			const delegated: Array<{ target: boolean; event: boolean }> = [];
@@ -378,23 +635,18 @@ describe('input', () => {
 		});
 
 		test('makes the first attached input the keyboard target', () => {
-			const { host, node } = setupKeyboardInput({ focus: false });
-			const calls: InputCall[] = [];
-			recordInput(node, calls);
+			const { host, input, node } = setupKeyboardInput({ focus: false });
 
 			expect(getFocus(host.root) === node).toBe(true);
 			DispatchApi.at(host.root).dispatch(keydown('x', 'x'));
-			expect(calls).toEqual([['insert', 'x']]);
+			expectState(input, 'x', 1);
 		});
 	});
 });
 
-type InputCall = [method: string, argument?: string];
-
 function setup(): { host: Host; input: HostElement; node: Node } {
-	const host = createHost();
-	FocusApi.init(host.root);
-	useInputElement(host);
+	const host = setupKeyboardHost();
+	Input.register(host);
 	const input = createInput(host);
 	return { host, input, node: input.node! };
 }
@@ -409,16 +661,41 @@ function setupKeyboardHost(): Host {
 
 function setupKeyboardInput(options: { focus?: boolean } = {}): {
 	host: Host;
+	input: HostElement;
 	node: Node;
 } {
 	const host = setupKeyboardHost();
-	useInputElement(host);
+	Input.register(host);
 	const input = createInput(host);
 	const node = input.node!;
 	if (options.focus ?? true) {
 		setFocusable(node);
 	}
-	return { host, node };
+	return { host, input, node };
+}
+
+function setupTrackedInput(properties: InputProps = {}): {
+	host: Host;
+	input: HostElement;
+	component: InputElement;
+} {
+	const host = setupKeyboardHost();
+	let component!: InputElement;
+	class CapturingInput extends InputElement {
+		constructor(element: HostElement) {
+			super(element);
+			// oxlint-disable-next-line typescript/no-this-alias
+			component = this;
+		}
+	}
+	const TrackedInput = defineElement('tracked-input', {
+		define: CapturingInput,
+		dependencies: [Input],
+	});
+	TrackedInput.register(host);
+	const input = TrackedInput.create(host, properties);
+	host.insertBefore(host.element, input);
+	return { host, input, component };
 }
 
 function createInput(host: Host): HostElement {
@@ -434,31 +711,31 @@ function typeText(node: Node, value: string): void {
 }
 
 function deleteBackward(node: Node): void {
-	InputApi.at(node).deleteBackward();
+	KeyboardApi.at(node).keydown(keydown('Backspace'));
 }
 
 function deleteForward(node: Node): void {
-	InputApi.at(node).deleteForward();
+	KeyboardApi.at(node).keydown(keydown('Delete'));
 }
 
 function insert(node: Node, text: string): void {
-	InputApi.at(node).insert(text);
+	KeyboardApi.at(node).keydown(keydown('x', text));
 }
 
 function moveBack(node: Node): void {
-	InputApi.at(node).moveBack();
+	KeyboardApi.at(node).keydown(keydown('ArrowLeft'));
 }
 
 function moveForward(node: Node): void {
-	InputApi.at(node).moveForward();
+	KeyboardApi.at(node).keydown(keydown('ArrowRight'));
 }
 
 function moveMax(node: Node): void {
-	InputApi.at(node).moveMax();
+	KeyboardApi.at(node).keydown(keydown('End'));
 }
 
 function moveMin(node: Node): void {
-	InputApi.at(node).moveMin();
+	KeyboardApi.at(node).keydown(keydown('Home'));
 }
 
 function keydown(code: KeyDown['code'], text?: string): KeyDown {
@@ -483,32 +760,6 @@ function getFocus(node: Node): Node {
 
 function setFocusable(node: Node): void {
 	FocusApi.at(node).setFocusable();
-}
-
-function recordInput(node: Node, calls: InputCall[]): void {
-	InputApi.decorate(node, () => ({
-		insert(text) {
-			calls.push(['insert', text]);
-		},
-		deleteBackward() {
-			calls.push(['deleteBackward']);
-		},
-		deleteForward() {
-			calls.push(['deleteForward']);
-		},
-		moveBack() {
-			calls.push(['moveBack']);
-		},
-		moveForward() {
-			calls.push(['moveForward']);
-		},
-		moveMin() {
-			calls.push(['moveMin']);
-		},
-		moveMax() {
-			calls.push(['moveMax']);
-		},
-	}));
 }
 
 function recordDelegatedKeydown(host: Host, listener: (node: Node, event: KeyDown) => void): void {

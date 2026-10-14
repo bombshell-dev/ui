@@ -1,6 +1,16 @@
 import { stdin, stdout } from 'node:process';
 import { fixed, grow, percent } from '@bomb.sh/tty';
-import { type BoxProps, createUI, type HostElement, rgba, type TextProps } from '@clack/ui';
+import {
+	Box,
+	type BoxProps,
+	createUI,
+	type HostElement,
+	Input,
+	registerComponents,
+	rgba,
+	Text,
+	type TextProps,
+} from '@clack/ui';
 
 const blue = rgba(0, 0, 238);
 const cyan = rgba(0, 205, 205);
@@ -8,6 +18,7 @@ const gray = rgba(127, 127, 127);
 
 await using ui = await createUI({ input: stdin, output: stdout });
 const { host } = ui;
+registerComponents(host, [Box, Text, Input]);
 
 const sayInput = host.createElement('input');
 const toInput = host.createElement('input');
@@ -37,7 +48,7 @@ const app = box(
 		layout: {
 			direction: 'ttb',
 			gap: 1,
-			padding: { top: 1, bottom: 1, left: 2, right: 2 },
+			padding: { left: 1, right: 1 },
 			width: fixed(40),
 		},
 		border: { color: blue, top: 1, right: 1, bottom: 1, left: 1 },

@@ -42,9 +42,9 @@ export function useHostRenderer(host: Host): void {
 	}));
 
 	FocusApi.decorate(host.root, () => ({
-		setFocus(node) {
+		setFocus(node, options) {
 			const original = this.current;
-			super.setFocus(node);
+			super.setFocus(node, options);
 			if (original !== node) {
 				RenderApi.at(node).request();
 			}
