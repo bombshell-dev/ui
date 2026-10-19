@@ -1,0 +1,14 @@
+diff --git a/dist/commands/test.mjs b/dist/commands/test.mjs
+index e07ebb287e5a450dfde4df7e973b459a4b5651b3..8fb3b952fef033bb32f749bc1bcfdccf6763a7a0 100644
+--- a/dist/commands/test.mjs
++++ b/dist/commands/test.mjs
+@@ -18,6 +18,9 @@ async function test(ctx) {
+ 		...ctx.args
+ 	]);
+ 	for await (const line of stdio) console.info(line);
++	// Without forwarding Vitest's exit status, failing tests still make `bsh test`
++	// exit successfully, allowing CI to pass despite test failures.
++	process.exitCode = stdio.exitCode ?? 1;
+ }
+ //#endregion
+ export { test };
