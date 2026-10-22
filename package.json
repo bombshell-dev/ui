@@ -35,12 +35,13 @@
 		"test": "bsh test"
 	},
 	"devDependencies": {
-		"@bomb.sh/tools": "^0.6.1",
+		"@bomb.sh/tools": "^0.8.0",
+		"@changesets/cli": "^2.30.0",
 		"@termless/core": "^0.10.2",
 		"@termless/test": "^0.10.2",
 		"@types/node": "^22.20.0",
 		"node-pty": "1.2.0-beta.15",
-		"vitest": "^4.1.9"
+		"vitest": "^5.0.5"
 	},
 	"devEngines": {
 		"packageManager": {
