@@ -1,5 +1,6 @@
 # build artifacts
 dist
+tmp/
 
 # macOS specific files
 .DS_Store

@@ -29,6 +29,7 @@
 	},
 	"scripts": {
 		"dev": "bsh dev",
+		"bench": "NODE_OPTIONS=--experimental-strip-types vitest bench bench/render.bench.ts --reporter=verbose --experimental.viteModuleRunner=false",
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
