@@ -11,6 +11,3 @@ onlyBuiltDependencies:
 publicHoistPattern:
   - oxlint
   - oxfmt
-
-patchedDependencies:
-  '@bomb.sh/tools@0.6.1': patches/@bomb.sh__tools@0.6.1.patch
