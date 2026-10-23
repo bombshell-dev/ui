@@ -1,0 +1,9 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "@clack/ui-preact",
+		"types": ["node"]
+	},
+	"include": ["src"]
+}

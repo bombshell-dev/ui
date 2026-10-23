@@ -1,3 +1,13 @@
 {
-	"extends": "@bomb.sh/tools/tsconfig.json"
+	"extends": "@bomb.sh/tools/tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"@clack/ui": ["./packages/ui/src/index.ts"],
+			"@clack/ui-preact": ["./packages/ui-preact/src/index.ts"],
+			"@clack/ui-preact/jsx-runtime": ["./packages/ui-preact/src/jsx-runtime.ts"],
+			"@clack/ui-preact/jsx-dev-runtime": ["./packages/ui-preact/src/jsx-dev-runtime.ts"]
+		},
+		"composite": false
+	},
+	"include": ["*.ts"]
 }
