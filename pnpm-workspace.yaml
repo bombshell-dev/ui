@@ -1,13 +1,11 @@
 packages:
-  - 'packages/*'
-  - 'examples/*'
-
+  - packages/*
+  - examples/*
 catalog:
-  '@bomb.sh/tty': '^0.7.0'
-
+  '@bomb.sh/tty': ^0.10.0
 onlyBuiltDependencies:
   - node-pty
-
 publicHoistPattern:
   - oxlint
   - oxfmt
+  - vitest
