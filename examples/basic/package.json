@@ -1,0 +1,11 @@
+{
+	"name": "@examples/basic",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node --experimental-strip-types src/index.ts"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*"
+	}
+}

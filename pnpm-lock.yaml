@@ -30,11 +30,23 @@ importers:
         specifier: 1.2.0-beta.15
         version: 1.2.0-beta.15
 
+  examples/basic:
+    dependencies:
+      '@clack/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+
   packages/ui:
     dependencies:
       '@bomb.sh/tty':
         specifier: 'catalog:'
         version: 0.10.0
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+      hueful:
+        specifier: ^0.8.1
+        version: 0.8.1
 
 packages:
 
@@ -968,6 +980,9 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
   '@termless/core@0.10.2':
     resolution: {integrity: sha512-xr/TvnhzB0R7g24W3EcwP8UQ+ztYd5ybk4oxR/PkcEh92O5NRjl9mCkqz/wvTcGX3u77AcmA8w5Ox16T22DOCA==}
     engines: {bun: '>=1.0.0', node: '>=23.6.0'}
@@ -1285,6 +1300,9 @@ packages:
 
   hookable@6.1.2:
     resolution: {integrity: sha512-+abwxtiEA52GCVIsQqut3S/uKTbUwYIp4Pe/vv+6py5XiXBCqMZHg6pA6Y5qhgLSEys0/cYuPbO0z1QFj5ZCmg==}
+
+  hueful@0.8.1:
+    resolution: {integrity: sha512-5JmU/74TAKM9BCRcwY046VImUb6dhvrsB2kvj5eEJ1eaCKu6EPPxtONF/kueY9PdzYgUz3g5zrrj+YENz2xy3A==}
 
   import-without-cache@0.4.1:
     resolution: {integrity: sha512-vXoV9PjKHEednCUu01e98TkImxy67e3BJXbTIOmIq4Hyzw3IAwYRcuPkfeTzJzwyyts4kjuA73x+pWJLc4f86A==}
@@ -2330,6 +2348,8 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
+  '@standard-schema/spec@1.1.0': {}
+
   '@termless/core@0.10.2(node-pty@1.2.0-beta.15)':
     optionalDependencies:
       '@napi-rs/canvas': 1.0.11
@@ -2534,6 +2554,8 @@ snapshots:
     optional: true
 
   hookable@6.1.2: {}
+
+  hueful@0.8.1: {}
 
   import-without-cache@0.4.1: {}
 
