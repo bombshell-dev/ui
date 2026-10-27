@@ -3,8 +3,12 @@
 Run the full Vitest `createUI` frame benchmark matrix with:
 
 ```sh
-pnpm --filter @clack/ui bench
+pnpm bench
 ```
+
+The same command runs in CodSpeed on pushes to `main` and pull requests. CI uses
+walltime for elapsed time, including async frame output, then runs the benchmarks
+again with memory tracking to report allocations and peak memory.
 
 `createUI()` and fixture construction are outside the timed
 sample. The initial-render comparison measures starting `ui.main()` through its first
