@@ -16,77 +16,46 @@ export type NodeType =
 	| typeof TEXT_NODE
 	| typeof DOCUMENT_NODE;
 
-export interface EventListener<
-	Type extends string = string,
-	Target extends EventTarget = EventTarget,
-> {
-	(this: Target, event: Event<Type>): void;
+interface DefaultEventMap {}
+
+type TypedListener<E extends Event> = ((ev: E) => void) | { handleEvent(object: E): void };
+
+interface ListenerOptions {
+	once?: boolean;
+	passive?: boolean;
+	signal?: AbortSignal;
 }
 
-export abstract class EventTarget {
-	#registry = new Map<
-		string,
-		{
-			capture: Map<EventListener, EventRegistration>;
-			bubble: Map<EventListener, EventRegistration>;
-		}
-	>();
+const NONE = 0;
+const AT_TARGET = 2;
+const BUBBLING_PHASE = 3;
 
-	// oxlint-disable-next-line bombshell-dev/max-params -- Matches the DOM EventTarget signature.
-	addEventListener<Type extends string>(
-		type: Type,
-		listener: EventListener<Type, this>,
-		capture = false,
+class TypedEventTarget<T extends Record<keyof T, Event>> extends EventTarget {
+	override addEventListener<K extends keyof T & string>(
+		type: K,
+		callback: TypedListener<T[K]>,
+		options?: ListenerOptions,
+	): void;
+	override addEventListener(
+		type: string,
+		callback: TypedListener<Event>,
+		options?: ListenerOptions,
 	): void {
-		let listeners = this.#registry.get(type);
-		if (!listeners) {
-			listeners = { capture: new Map(), bubble: new Map() };
-			this.#registry.set(type, listeners);
-		}
-		const map = capture ? listeners.capture : listeners.bubble;
-		const callback = listener as EventListener;
-		if (!map.has(callback)) {
-			map.set(callback, { listener: callback, removed: false });
-		}
+		super.addEventListener(type, callback, options);
 	}
 
-	// oxlint-disable-next-line bombshell-dev/max-params -- Matches the DOM EventTarget signature.
-	removeEventListener<Type extends string>(
-		type: Type,
-		listener: EventListener<Type, this>,
-		capture?: boolean,
-	): void {
-		const listeners = this.#registry.get(type);
-		const map = capture ? listeners?.capture : listeners?.bubble;
-
-		if (map) {
-			const callback = listener as EventListener;
-			const registration = map.get(callback);
-			if (registration) {
-				registration.removed = true;
-				map.delete(callback);
-			}
-		}
-	}
-
-	abstract dispatchEvent(event: Event): boolean;
-
-	protected listenersFor(eventType: string, capture: boolean): EventRegistration[] {
-		const listeners = this.#registry.get(eventType);
-		if (!listeners) {
-			return [];
-		}
-		const map = capture ? listeners.capture : listeners.bubble;
-		return [...map.values()];
+	override removeEventListener<K extends keyof T & string>(
+		type: K,
+		callback: TypedListener<T[K]>,
+	): void;
+	override removeEventListener(type: string, callback: TypedListener<Event>): void {
+		super.removeEventListener(type, callback);
 	}
 }
 
-interface EventRegistration {
-	listener: EventListener;
-	removed: boolean;
-}
-
-export abstract class Node<Owner extends Document | null = Document | null> extends EventTarget {
+export abstract class Node<
+	Owner extends Document | null = Document | null,
+> extends TypedEventTarget<DefaultEventMap> {
 	parentNode: Node | null;
 	readonly ownerDocument: Owner;
 	readonly nodeName: string;
@@ -181,100 +150,40 @@ export abstract class Node<Owner extends Document | null = Document | null> exte
 		return node;
 	}
 
-	dispatchEvent(event: Event): boolean {
-		if (event.eventPhase !== Event.NONE) {
+	override dispatchEvent(event: Event): boolean {
+		if (event.eventPhase !== NONE) {
 			throw new InvalidStateError('cannot dispatch an event that is already dispatching');
 		}
 
 		const path: Node[] = [];
-
-		for (let current = this.parentNode; current; current = current.parentNode) {
+		for (let current: Node | null = this; current; current = current.parentNode) {
 			path.push(current);
 		}
 
-		Event.prepare({ event, target: this, currentTarget: null, phase: Event.NONE });
-
-		const propagation = Event.currentPropagation(event);
+		Object.defineProperties(event, {
+			target: { value: this, configurable: true },
+			composedPath: { value: () => [...path], configurable: true },
+		});
 
 		try {
-			for (let i = path.length - 1; i >= 0; i--) {
-				if (!propagation.ancestor) {
-					return !event.defaultPrevented;
-				}
-				const currentTarget = path[i]!;
-				const registrations = currentTarget.listenersFor(event.type, true);
-				for (const registration of registrations) {
-					if (registration.removed) {
-						continue;
-					}
-					Event.prepare({ event, target: this, currentTarget, phase: Event.CAPTURING_PHASE });
-					registration.listener.call(currentTarget, event);
-					if (!propagation.immediate) {
-						return !event.defaultPrevented;
-					}
-				}
+			const end = event.bubbles ? path.length : 1;
+			for (let i = 0; i < end && !event.cancelBubble; i++) {
+				Object.defineProperties(event, {
+					currentTarget: { value: path[i], configurable: true },
+					eventPhase: { value: i === 0 ? AT_TARGET : BUBBLING_PHASE, configurable: true },
+				});
+				// To avoid triggering the bubbling phase again
+				EventTarget.prototype.dispatchEvent.call(path[i], event);
 			}
-
-			if (!propagation.ancestor) {
-				return !event.defaultPrevented;
-			}
-
-			const captures = [...this.listenersFor(event.type, true)];
-			for (const registration of captures) {
-				if (registration.removed) {
-					continue;
-				}
-				Event.prepare({ event, target: this, currentTarget: this, phase: Event.AT_TARGET });
-				registration.listener.call(this, event);
-				if (!propagation.immediate) {
-					return !event.defaultPrevented;
-				}
-			}
-
-			if (!propagation.ancestor) {
-				return !event.defaultPrevented;
-			}
-
-			const bubbles = [...this.listenersFor(event.type, false)];
-			for (const registration of bubbles) {
-				if (registration.removed) {
-					continue;
-				}
-				Event.prepare({ event, target: this, currentTarget: this, phase: Event.AT_TARGET });
-				registration.listener.call(this, event);
-				if (!propagation.immediate) {
-					return !event.defaultPrevented;
-				}
-			}
-
-			if (!event.bubbles) {
-				return !event.defaultPrevented;
-			}
-
-			for (let i = 0; i < path.length; i++) {
-				if (!propagation.ancestor) {
-					return !event.defaultPrevented;
-				}
-				const currentTarget = path[i]!;
-				const registrations = [...currentTarget.listenersFor(event.type, false)];
-				for (const registration of registrations) {
-					if (registration.removed) {
-						continue;
-					}
-					Event.prepare({ event, target: this, currentTarget, phase: Event.BUBBLING_PHASE });
-					registration.listener.call(currentTarget, event);
-					if (!propagation.immediate) {
-						return !event.defaultPrevented;
-					}
-				}
-			}
-
-			return !event.defaultPrevented;
 		} finally {
-			Event.prepare({ event, target: this, currentTarget: null, phase: Event.NONE });
-			propagation.ancestor = true;
-			propagation.immediate = true;
+			Object.defineProperties(event, {
+				currentTarget: { value: null, configurable: true },
+				eventPhase: { value: NONE, configurable: true },
+				composedPath: { value: () => [], configurable: true },
+			});
 		}
+
+		return !event.defaultPrevented;
 	}
 
 	protected notify(): void {
@@ -312,7 +221,7 @@ export class Document extends Node<null> {
 
 	createElementNS(namespace: string, tagName: string): Element {
 		if (namespace !== 'http://www.w3.org/1999/xhtml') {
-			throw new DOMExecption('only HTML namespace is supported');
+			throw new DOMException('only HTML namespace is supported');
 		}
 		return this.createElement(tagName);
 	}
@@ -422,87 +331,7 @@ export class Attr extends Node<Document> {
 	}
 }
 
-export interface EventOptions {
-	bubbles?: boolean;
-	cancelable?: boolean;
-	composed?: boolean;
-}
-
-export type EventPhase = 0 | 1 | 2 | 3;
-
-export class Event<Type extends string = string> {
-	static readonly NONE = 0;
-	static readonly CAPTURING_PHASE = 1;
-	static readonly AT_TARGET = 2;
-	static readonly BUBBLING_PHASE = 3;
-
-	readonly type: Type;
-	readonly bubbles: boolean;
-	readonly cancelable: boolean;
-	readonly composed: boolean;
-
-	#eventPhase: EventPhase = Event.NONE;
-	#defaultPrevented = false;
-	#target: Node | null = null;
-	#currentTarget: Node | null = null;
-	#propagation = { ancestor: true, immediate: true };
-
-	static prepare(options: {
-		event: Event;
-		target: Node | null;
-		currentTarget: Node | null;
-		phase: EventPhase;
-	}) {
-		const { event, target, currentTarget, phase } = options;
-		event.#target = target;
-		event.#currentTarget = currentTarget;
-		event.#eventPhase = phase;
-	}
-
-	static currentPropagation(event: Event) {
-		return event.#propagation;
-	}
-
-	constructor(type: Type, options?: EventOptions) {
-		const { bubbles = false, cancelable = false, composed = false } = options ?? {};
-		this.type = type;
-		this.bubbles = bubbles;
-		this.cancelable = cancelable;
-		this.composed = composed;
-	}
-
-	get eventPhase() {
-		return this.#eventPhase;
-	}
-
-	get defaultPrevented() {
-		return this.#defaultPrevented;
-	}
-
-	get target() {
-		return this.#target;
-	}
-
-	get currentTarget() {
-		return this.#currentTarget;
-	}
-
-	stopPropagation(): void {
-		this.#propagation.ancestor = false;
-	}
-
-	stopImmediatePropagation(): void {
-		this.#propagation.immediate = false;
-	}
-
-	preventDefault(): void {
-		if (this.cancelable) {
-			this.#defaultPrevented = true;
-		}
-	}
-}
-
-export class DOMExecption extends Error {
+export class DOMException extends Error {
 	override name = 'DOMException';
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options);
