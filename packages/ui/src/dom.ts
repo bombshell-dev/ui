@@ -1,8 +1,12 @@
+import { StyleDeclaration } from './style.ts';
+
 /**
  * Container type for valid names of createElement()
  */
 export interface Elements {
 	document: Element;
+	div: Element;
+	span: Element;
 }
 
 export class Document {
@@ -44,10 +48,12 @@ export class Node {
 
 export class Element extends Node {
 	readonly tagName: string;
+	readonly style: StyleDeclaration;
 
 	constructor(tagName: keyof Elements, notify: Node['notify']) {
 		super(tagName.toUpperCase(), notify);
 		this.tagName = tagName;
+		this.style = new StyleDeclaration(this.notify);
 	}
 
 	get children(): Element[] {

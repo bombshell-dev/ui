@@ -32,7 +32,7 @@
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
-		"test": "bsh test"
+		"test": "bsh test --exclude '**/node_modules/**' --exclude '**/dist/**'"
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
