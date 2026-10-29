@@ -29,6 +29,7 @@
 	"scripts": {
 		"dev": "bsh dev",
 		"build": "pnpm --filter \"@clack/*\" run build",
+		"bench": "pnpm -r --workspace-concurrency=1 --if-present bench",
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
@@ -36,16 +37,18 @@
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
+		"@codspeed/vitest-plugin": "6.1.0",
 		"@termless/core": "^0.10.2",
 		"@termless/test": "^0.10.2",
 		"@types/node": "^22.20.0",
-		"node-pty": "1.2.0-beta.15"
+		"node-pty": "1.2.0-beta.15",
+		"vitest": "5.0.5"
 	},
 	"devEngines": {
 		"packageManager": {
 			"name": "pnpm",
 			"version": "10.7.0",
-			"onFail": "error"
+			"onFail": "warn"
 		},
 		"runtime": {
 			"name": "node",
