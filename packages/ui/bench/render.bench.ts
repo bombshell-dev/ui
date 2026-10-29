@@ -15,7 +15,6 @@ const benchmarkOptions = {
 	warmupTime: 50,
 	warmupIterations: 2,
 };
-
 const cases = nodeCounts.flatMap((nodeCount) =>
 	shapes.map((shape) => ({ name: `${shape} (${nodeCount})`, nodeCount, shape })),
 );
@@ -39,7 +38,8 @@ test('initial render', async ({ bench }) => {
 	await bench.compare(...entries, benchmarkOptions);
 });
 
-test.for(workloads)('%s', async (workload, { bench }) => {
+// bump timeout for CI as it runs slower and hits Vitest's default timeout in the CodSpeed runner
+test.for(workloads)('%s', { timeout: 180_000 }, async (workload, { bench }) => {
 	const entries = cases.map((benchmarkCase) => {
 		let fixture: UIWorkloadFixture;
 		let iteration = 0;
