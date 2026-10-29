@@ -29,7 +29,7 @@
 	"scripts": {
 		"dev": "bsh dev",
 		"build": "pnpm --filter \"@clack/*\" run build",
-		"bench": "pnpm -r --workspace-concurrency=1 --if-present bench",
+		"bench": "vitest bench --reporter=verbose",
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
@@ -37,6 +37,7 @@
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
+		"@codspeed/vitest-plugin": "^6.1.0",
 		"@termless/core": "^0.10.2",
 		"@termless/test": "^0.10.2",
 		"@types/node": "^22.20.0",
