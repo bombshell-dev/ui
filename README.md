@@ -1,14 +1,15 @@
 # `@clack/ui`
 
-Make your terminal sing with a flexible and performat UI!
+> [!WARNING]
+> this project is an **early alpha release** and is not recommended for use in production.
 
-Built on [`@bomb.sh/tty`](https://github.com/bombshell-dev/clayterm), a low-level, platform-independent terminal renderer and event parser for JavaScript.
+`ui` is a web-based TUI engine built on [`@bomb.sh/tty`](https://github.com/bombshell-dev/clayterm), our low-level, platform-independent terminal renderer and event parser for JavaScript.
 
-Looking for help? Start with our [Getting Started][docs] guide.
+Looking for help? Join our [Discord][discord].
 
 ## Install
 
-The UI is comes with bindings to various rendering libraries. You may directly install `@clack/ui` by running the following command, but recommend using a binding for improved DX.
+UI provides web-based bindings, which allows us to support any JavaScript framework. You may directly install `@clack/ui` by running the following command.
 
 ```sh
 npm install @clack/ui
@@ -22,11 +23,10 @@ npm install @clack/ui
 
 ## Documentation
 
-Visit our [official documentation][docs].
+Coming soon 🙈
 
 ## Support
 
 Having trouble? Get help in the official [Bombshell Discord][discord].
 
-[docs]: https://bomb.sh/docs/ui
 [discord]: https://bomb.sh/chat
