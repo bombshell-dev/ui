@@ -37,7 +37,6 @@
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
-		"@codspeed/vitest-plugin": "6.1.0",
 		"@termless/core": "^0.10.2",
 		"@termless/test": "^0.10.2",
 		"@types/node": "^22.20.0",

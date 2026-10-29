@@ -29,7 +29,7 @@
 	},
 	"scripts": {
 		"dev": "bsh dev",
-		"bench": "NODE_OPTIONS=--experimental-strip-types vitest bench bench/render.bench.ts --reporter=verbose",
+		"bench": "NODE_OPTIONS=--experimental-strip-types vitest bench bench/render.bench.ts --reporter=verbose --experimental.viteModuleRunner=false",
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
@@ -49,5 +49,8 @@
 			"version": "^22.14.0",
 			"onFail": "error"
 		}
+	},
+	"devDependencies": {
+		"@codspeed/vitest-plugin": "6.1.0"
 	}
 }
