@@ -6,9 +6,9 @@ export default {
 		...(config.overrides ?? []),
 		{
 			files: [
-				'packages/dom/src/**/*.ts',
-				'packages/dom/test/browser/*.ts',
-				'packages/dom/test/browser/*.mts',
+				'packages/web-platform-tests/src/**/*.ts',
+				'packages/web-platform-tests/test/browser/*.ts',
+				'packages/web-platform-tests/test/browser/*.mts',
 			],
 			rules: {
 				// Test registration and factories must return synchronously to the runner.

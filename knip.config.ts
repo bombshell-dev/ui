@@ -1,7 +1,10 @@
-import dom from './packages/dom/knip.json' with { type: 'json' };
+import webPlatformTests from './packages/web-platform-tests/knip.json' with { type: 'json' };
 
 export default {
 	workspaces: {
-		'packages/dom': { entry: dom.entry, project: dom.project },
+		'packages/web-platform-tests': {
+			entry: webPlatformTests.entry,
+			project: webPlatformTests.project,
+		},
 	},
 };

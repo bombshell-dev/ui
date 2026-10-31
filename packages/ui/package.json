@@ -33,7 +33,7 @@
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
-		"test": "pnpm --filter @bomb.sh/dom build && bsh test"
+		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:"
@@ -51,6 +51,6 @@
 		}
 	},
 	"devDependencies": {
-		"@bomb.sh/dom": "workspace:*"
+		"@bomb.sh/web-platform-tests": "workspace:*"
 	}
 }

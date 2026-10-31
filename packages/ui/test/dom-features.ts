@@ -1,4 +1,4 @@
-import type { DOMFeatures } from '@bomb.sh/dom';
+import type { DOMFeatures } from '@bomb.sh/web-platform-tests';
 
 export const domFeatures = {
 	document: {
