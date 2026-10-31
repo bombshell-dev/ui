@@ -10,10 +10,11 @@ export type {
 	CompatibilityExpect,
 	CompatibilityMatchers,
 	CompatibilityContext,
+	CompatibilityTestOptions,
 	DOMFixture,
 	FeatureModule,
 } from './compatibility/context.ts';
-export type { DOMFixtureOptions } from './compatibility/fixture.ts';
+export type { DOMFixtureOptions, DOMDocumentOptions } from './compatibility/fixture.ts';
 export type { DOMGlobalBindings } from './compatibility/globals.ts';
 export type {
 	DOMInputDriver,

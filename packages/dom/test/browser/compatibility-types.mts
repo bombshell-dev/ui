@@ -14,6 +14,9 @@ export function registerBrowserCompatibility(
 		input: (document) => createBrowserInputDriver(document, send),
 		globals: {
 			Document,
+			DOMException,
+			NodeList,
+			TypeError,
 			DOMParser,
 			XMLSerializer,
 			CSSStyleSheet,

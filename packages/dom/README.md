@@ -27,7 +27,7 @@ The runner supplies `describe`, `it`, and Vitest-compatible `expect` matchers an
 
 ### Harness
 
-* `create()`: A factory to create your `Document`,
+* `create(options?)`: A synchronous or asynchronous factory for a fresh `Document`. When a case supplies `DOMDocumentOptions`, honor its markup, MIME type, and URL fragment; the selector matrix uses these to test HTML, XHTML, and `:target`.
 * `globals`: `globalThis` used in test cases. For example, if a test needs to look up a the global `HTMLInputElement`, it will find it on this object.
 * `input`: Optional `HostInput` session for sending keyboard and mouse events. This allows testing of default actions like focus on click, form submit on `Enter`, and trusted events.
 
@@ -42,6 +42,7 @@ pnpm --filter @bomb.sh/dom exec playwright install chromium
 pnpm --filter @bomb.sh/dom test:browser:build
 pnpm --filter @bomb.sh/dom test:browser:input
 pnpm --filter @bomb.sh/dom test:browser:run
+pnpm --filter @bomb.sh/dom test:wpt-selectors
 # Manual, without input: open /compatibility.html on the printed URL
 pnpm --filter @bomb.sh/dom test:browser
 ```
@@ -49,11 +50,13 @@ In order to ensure the validity of the test suite itself as a browser compatibil
 
 The automation CLI uses Playwright's Chromium with an isolated browser context and fresh standards-mode iframe per case.
 
+The [selector WPT omission check](docs/wpt-selectors.md) compares the adapted registrations with actual pinned upstream case names. Its cache is ignored, and results are printed rather than committed.
+
 The suite asserts resulting DOM behavior, never browser pixel values. Browser target resolution uses the browser's own rectangles and iframe coordinate offsets; a terminal adapter must use its own renderer.
 
 #### Known Chromium disagreements
 
-The following seven cases are allowed to fail when validating the suite in Chromium. They remain enabled, and the runner reports their failures and returns a nonzero exit code. Other failures require investigation.
+The following eight cases are allowed to fail when validating the suite in Chromium. They remain enabled, and the runner reports their failures and returns a nonzero exit code. Other failures require investigation.
 
 | Feature and case | Chromium behavior | Retained expectation/reference |
 | --- | --- | --- |
@@ -64,6 +67,7 @@ The following seven cases are allowed to fail when validating the suite in Chrom
 | [`elements.input.radioGroups`](src/compatibility/elements/input/radio-groups.ts): groups radios by tree and nonempty name | The previous group member stays checked after a checked detached radio changes name. | [Radio group updates](https://html.spec.whatwg.org/multipage/input.html#radio-button-state-(type=radio)); [WPT disconnected groups](https://github.com/web-platform-tests/wpt/blob/master/html/semantics/forms/the-input-element/radio-disconnected-group-owner.html). |
 | [`elements.input.labels`](src/compatibility/elements/input/labels.ts): keeps retained labels live when a detached control moves under a label | Retained labels stay empty. | [Live labels in the same tree](https://html.spec.whatwg.org/multipage/forms.html#dom-lfe-labels). |
 | [`elements.textarea.labels`](src/compatibility/elements/textarea/labels.ts): keeps retained labels live when a detached control moves under a label | Retained labels stay empty. | Same live-label rule. |
+| [`element.selectors`](src/compatibility/element/selectors/grammar.ts): WPT `querySelector-mixed-case.html`, mixed HTML/SVG/MathML tree with various mixed-case attributes | `[viewbox]` matches four elements where WPT expects two HTML elements. | The [pinned upstream case](https://github.com/web-platform-tests/wpt/blob/b719612f963a05ece9c89a7dd7598c1c59618874/dom/nodes/querySelector-mixed-case.html) produces the same failure in Chromium; its assertions remain unchanged. |
 
 ### Coverage boundaries
 

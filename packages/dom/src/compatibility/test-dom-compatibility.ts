@@ -1,5 +1,10 @@
 import { domFeaturesSchema, enabled, type DOMFeatures, type DOMFeaturePath } from './features.ts';
-import type { CompatibilityContext, CompatibilityRunner, FeatureModule } from './context.ts';
+import type {
+	CompatibilityContext,
+	CompatibilityRunner,
+	CompatibilityTestOptions,
+	FeatureModule,
+} from './context.ts';
 import { withFixture, type DOMFixtureOptions } from './fixture.ts';
 import { registry } from './registry.ts';
 
@@ -52,9 +57,14 @@ export function testDOMCompatibility<D>(options: DOMCompatibilityOptions<D>): vo
 	}
 	const context: CompatibilityContext = {
 		runner: options.runner,
-		test(name, run, requires = []) {
-			if (!requires.every((path) => enabled(features, path))) return;
-			options.runner.it(name, () => withFixture(options, run));
+		test(name, run, request = {}) {
+			const testOptions: CompatibilityTestOptions = Array.isArray(request)
+				? { requires: request }
+				: (request as CompatibilityTestOptions);
+			if (!(testOptions.requires ?? []).every((path) => enabled(features, path))) return;
+			options.runner.it(name, () =>
+				withFixture({ ...options, document: testOptions.document }, run),
+			);
 		},
 	};
 	function register(prefix: string, entries: typeof selected): void {

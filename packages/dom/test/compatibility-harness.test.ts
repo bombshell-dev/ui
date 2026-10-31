@@ -17,7 +17,7 @@ import {
 	featureShape,
 	type DOMFeatures,
 } from '../src/compatibility/features.ts';
-import { withFixture } from '../src/compatibility/fixture.ts';
+import { withFixture, type DOMDocumentOptions } from '../src/compatibility/fixture.ts';
 import { registry } from '../src/compatibility/registry.ts';
 import { testDOMCompatibility } from '../src/compatibility/test-dom-compatibility.ts';
 import type { DOMDocument } from '../src/compatibility/contracts/nodes.ts';
@@ -77,7 +77,7 @@ function recordingRunner(): {
 }
 
 describe('compatibility catalogue', () => {
-	it('has exactly one registered kebab-case module per schema leaf, outside runner discovery', () => {
+	it('has one registered entrypoint per leaf and reachable colocated support modules, outside runner discovery', () => {
 		const directory = new URL('../src/compatibility/', import.meta.url);
 		const allFiles = sourceFiles(directory);
 		const files = allFiles
@@ -88,7 +88,42 @@ describe('compatibility catalogue', () => {
 		const paths = featurePaths().toSorted();
 		expect(allFiles.filter((file) => /\.(?:test|spec)\.ts$/.test(file))).toEqual([]);
 		expect(Object.keys(registry).toSorted()).toEqual(paths);
-		expect(files).toEqual(paths.map(featureFile).toSorted());
+		const entrypoints = paths.map(featureFile).toSorted();
+		for (const entrypoint of entrypoints) expect(files, entrypoint).toContain(entrypoint);
+		const supportFiles = files.filter((file) => !entrypoints.includes(file));
+		const knownFiles = new Set(allFiles);
+		const reachableByEntrypoint = new Map<string, Set<string>>();
+		function reachableFrom(entrypoint: string): Set<string> {
+			const cached = reachableByEntrypoint.get(entrypoint);
+			if (cached) return cached;
+			const reachable = new Set<string>();
+			const pending = [entrypoint];
+			while (pending.length) {
+				const file = pending.pop()!;
+				if (reachable.has(file)) continue;
+				reachable.add(file);
+				const source = readFileSync(new URL(file, directory), 'utf8');
+				for (const match of source.matchAll(
+					/\b(?:from\s*|import\s*\(\s*)['"](\.[^'"]+\.ts)['"]/g,
+				)) {
+					const imported = new URL(match[1]!, new URL(file, directory));
+					if (!imported.href.startsWith(directory.href)) continue;
+					const relative = decodeURIComponent(imported.href.slice(directory.href.length));
+					if (knownFiles.has(relative)) pending.push(relative);
+				}
+			}
+			reachableByEntrypoint.set(entrypoint, reachable);
+			return reachable;
+		}
+		for (const file of supportFiles) {
+			const owner = entrypoints.find((entrypoint) =>
+				file.startsWith(`${entrypoint.slice(0, -3)}/`),
+			);
+			expect(owner, `${file} must be below a registered feature entrypoint`).toBeDefined();
+			expect(reachableFrom(owner!), `${file} must be imported by its owning feature`).toContain(
+				file,
+			);
+		}
 		for (const file of files)
 			expect(file).toMatch(/^(?:[a-z]+(?:-[a-z]+)*\/)*[a-z]+(?:-[a-z]+)*\.ts$/);
 	});
@@ -596,5 +631,123 @@ describe('host input fixture', () => {
 			),
 		).rejects.toBe(failure);
 		expect(disposed).toBe(true);
+	});
+});
+
+describe('requested document creation', () => {
+	it('forwards the exact request and awaits creation and disposal after a case fails', async () => {
+		const request: DOMDocumentOptions = {
+			contentType: 'application/xhtml+xml',
+			content: '<html xmlns="http://www.w3.org/1999/xhtml"><body id="target"/></html>',
+			fragment: 'target',
+		};
+		const created = Promise.withResolvers<Document>();
+		const disposalStarted = Promise.withResolvers<void>();
+		const disposalFinished = Promise.withResolvers<void>();
+		const subject = new Document();
+		const calls: string[] = [];
+		const failure = new Error('case failure');
+		let settled = false;
+		const operation = withFixture(
+			{
+				document: request,
+				create(options) {
+					expect(options).toBe(request);
+					calls.push('create');
+					return created.promise;
+				},
+				globals(document) {
+					expectTypeOf(document).toEqualTypeOf<Document>();
+					expect(document).toBe(subject);
+					calls.push('globals');
+					return {};
+				},
+				async dispose(document) {
+					expectTypeOf(document).toEqualTypeOf<Document>();
+					expect(document).toBe(subject);
+					calls.push('dispose started');
+					disposalStarted.resolve();
+					await disposalFinished.promise;
+					calls.push('dispose finished');
+				},
+			},
+			({ document, cleanup }) => {
+				expect(document).toBe(subject);
+				calls.push('case');
+				cleanup(() => {
+					calls.push('cleanup');
+				});
+				throw failure;
+			},
+		);
+		const result = operation.catch((error: unknown) => {
+			settled = true;
+			return error;
+		});
+		expect(calls).toEqual(['create']);
+		created.resolve(subject);
+		await disposalStarted.promise;
+		expect(calls).toEqual(['create', 'globals', 'case', 'cleanup', 'dispose started']);
+		expect(settled).toBe(false);
+		disposalFinished.resolve();
+		expect(await result).toBe(failure);
+		expect(calls.at(-1)).toBe('dispose finished');
+	});
+	it('does not start a case or dispose an absent document when asynchronous creation rejects', async () => {
+		const failure = new Error('document creation failed');
+		const calls: string[] = [];
+		await expect(
+			withFixture(
+				{
+					async create(options) {
+						expect(options).toBeUndefined();
+						calls.push('create');
+						await Promise.resolve();
+						throw failure;
+					},
+					globals() {
+						calls.push('globals');
+						return {};
+					},
+					dispose() {
+						calls.push('dispose');
+					},
+				},
+				() => {
+					calls.push('case');
+				},
+			),
+		).rejects.toBe(failure);
+		expect(calls).toEqual(['create']);
+	});
+	it('uses fresh asynchronous documents for registered cases without document requests', async () => {
+		const recording = recordingRunner();
+		const created: Document[] = [],
+			disposed: Document[] = [];
+		testDOMCompatibility({
+			runner: recording.runner,
+			features: flags(['events.dispatch.target']),
+			async create(request) {
+				expect(request).toBeUndefined();
+				await Promise.resolve();
+				const document = new Document();
+				created.push(document);
+				return document;
+			},
+			globals(document) {
+				expectTypeOf(document).toEqualTypeOf<Document>();
+				expect(document).toBe(created.at(-1));
+				return { Event };
+			},
+			async dispose(document) {
+				await Promise.resolve();
+				disposed.push(document);
+			},
+		});
+		expect(created).toHaveLength(0);
+		for (const test of recording.tests) await test.run();
+		expect(created).toHaveLength(3);
+		expect(new Set(created).size).toBe(3);
+		expect(disposed).toEqual(created);
 	});
 });

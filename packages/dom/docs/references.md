@@ -12,5 +12,7 @@ Additional WPT adaptations retain pinned sources, authors, license notices, and
 their exact scope in the [state and style](wpt-state-styles.md),
 [CSS and forms](wpt-css-forms.md), [shadow and input](wpt-shadow-input.md), and
 [range, selection, traversal, and parsing](wpt-ranges-parsing.md) inventories.
+The [selector adaptations](wpt-selectors.md) retain the complete shared selector
+matrix and identify the upstream files, harness adaptations, and explicit exclusions.
 
 [WPT implicit submission](https://github.com/web-platform-tests/wpt/blob/master/html/semantics/forms/form-submission-0/implicit-submission.optional.html) is optional. The suite keeps this interaction policy independently selectable from input delivery and trusted-event assertions.

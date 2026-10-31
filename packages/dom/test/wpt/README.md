@@ -11,3 +11,7 @@ file-specific authorship and scope in the [state/style](../../docs/wpt-state-sty
 [CSS/forms](../../docs/wpt-css-forms.md), [shadow/input](../../docs/wpt-shadow-input.md),
 and [ranges/parsing](../../docs/wpt-ranges-parsing.md) inventories. The same retained
 WPT license applies; upstream source comments identify additional notices where needed.
+
+The [selector adaptations](../../docs/wpt-selectors.md) preserve the shared
+query-selector/matches matrix and the listed standalone selector regressions.
+Their complete source data and HTML/XHTML fixture markup use the same WPT license.

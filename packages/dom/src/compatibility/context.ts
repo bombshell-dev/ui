@@ -2,6 +2,7 @@ import type { DOMFeaturePath } from './features.ts';
 import type { DOMDocument, DOMElement } from './contracts/nodes.ts';
 import type { DOMGlobals } from './globals.ts';
 import type { DOMInputCapability, DOMTestInput } from './input-driver.ts';
+import type { DOMDocumentOptions } from './fixture.ts';
 
 /** The matcher surface used by the suite, independent of runner internals. */
 export interface CompatibilityMatchers {
@@ -41,12 +42,18 @@ export interface DOMFixture {
 	connect<T extends DOMElement>(element: T): T;
 }
 
+/** Optional prerequisites and document source for an individual case. */
+export interface CompatibilityTestOptions {
+	requires?: readonly DOMFeaturePath[];
+	document?: DOMDocumentOptions;
+}
+
 export interface CompatibilityContext {
 	readonly runner: CompatibilityRunner;
 	test(
 		name: string,
 		run: (fixture: DOMFixture) => void | Promise<void>,
-		requires?: readonly DOMFeaturePath[],
+		options?: readonly DOMFeaturePath[] | CompatibilityTestOptions,
 	): void;
 }
 

@@ -114,7 +114,9 @@ try {
 		await page.waitForFunction(
 			() => document.documentElement.dataset.complete === 'true',
 			undefined,
-			{ timeout: 120_000 },
+			// The WPT matrix loads a fresh HTML/XHTML document for every case.
+			// Individual cases retain their five-second timeout and abort isolation.
+			{ timeout: 600_000 },
 		);
 	} catch (cause) {
 		const report = await page.locator('#results').textContent();

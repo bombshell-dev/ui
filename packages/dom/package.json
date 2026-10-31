@@ -18,6 +18,7 @@
 		"typecheck": "tsc -p tsconfig.json && tsc -p test/browser/tsconfig.json",
 		"test:browser:build": "vite build --config test/browser/vite.config.mjs",
 		"test:browser:run": "node test/browser/run-compatibility.mjs",
+		"test:wpt-selectors": "node --experimental-strip-types scripts/check-wpt-selectors.mjs",
 		"test:browser:input": "node test/browser/run-compatibility.mjs --input-only",
 		"test:browser": "vite --config test/browser/vite.config.mjs --host 127.0.0.1",
 		"format": "bsh format",

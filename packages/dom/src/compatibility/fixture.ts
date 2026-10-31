@@ -8,8 +8,17 @@ import {
 	type DOMTestInput,
 } from './input-driver.ts';
 
+/** Explicit source document requested by a compatibility case. */
+export interface DOMDocumentOptions {
+	contentType: 'text/html' | 'application/xhtml+xml';
+	content: string;
+	/** URL fragment without the leading #, used by selectors such as :target. */
+	fragment?: string;
+}
+
 export interface DOMFixtureOptions<D> {
-	create(): D;
+	/** Construct a fresh document and honor any explicit source/MIME/fragment request. */
+	create(options?: DOMDocumentOptions): D | Promise<D>;
 	globals: DOMGlobalBindings | ((document: D) => DOMGlobalBindings);
 	/** Construct a fresh input session lazily, only when a case uses host input. */
 	input?(document: D): DOMInputDriver;
@@ -27,10 +36,10 @@ export class FixtureFailure extends AggregateError {
 
 /** A case owns its document, bindings and cleanups, including during asynchronous work. */
 export async function withFixture<D>(
-	options: DOMFixtureOptions<D>,
+	options: DOMFixtureOptions<D> & { document?: DOMDocumentOptions },
 	run: (fixture: DOMFixture) => void | Promise<void>,
 ): Promise<void> {
-	const subject = options.create();
+	const subject = await options.create(options.document);
 	const cleanups: (() => void | Promise<void>)[] = [];
 	const failures: unknown[] = [];
 	let driver: DOMInputDriver | undefined;
