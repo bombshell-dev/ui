@@ -33,7 +33,7 @@
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
-		"test": "bsh test"
+		"test": "pnpm --filter @bomb.sh/dom build && bsh test"
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:"
@@ -49,5 +49,8 @@
 			"version": "^22.14.0",
 			"onFail": "error"
 		}
+	},
+	"devDependencies": {
+		"@bomb.sh/dom": "workspace:*"
 	}
 }
