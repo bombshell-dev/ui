@@ -4,31 +4,60 @@ Private workspace package containing reusable DOM compatibility assertions. It c
 
 The suite includes adaptations of [Web Platform Tests (WPT)](https://github.com/web-platform-tests/wpt) covering DOM operations, state/style interactions, input, shadow DOM, forms, CSSOM, selection, traversal, and parsing.
 
-Each adapted file records its upstream sources and original author attribution in comments or source metadata. The original WPT BSD-3-Clause notice and the html5lib parsing corpus MIT notice are retained. See [standards references and licenses](docs/references.md) for the pinned sources, attribution, and applicable licenses.
+The suite uses one upstream WPT revision, recorded in [WPT_REVISION](WPT_REVISION). Browse that revision [here](https://github.com/web-platform-tests/wpt/tree/b719612f963a05ece9c89a7dd7598c1c59618874). Files under `src/wpt` mirror upstream paths with `.ts` appended; the revision applies to all files and cases. See [attribution and licenses](test/wpt/README.md).
+
+### Required WPT correspondence
+
+Each file under `src/wpt` corresponds to its upstream path with the final `.ts` removed. For example, `src/wpt/dom/nodes/Document-createElement.html.ts` adapts `dom/nodes/Document-createElement.html`. Keep upstream spelling and capitalization for tests, helpers, and data. Local harness code lives in `src/shared`; comments explain non-obvious adaptations.
+
+Keep ordinary `context.test` and `expect` calls and readable case names. Preserve upstream inputs, setup, operation order, assertions, exceptions, node identities, and relationships between documents. A file's presence identifies the selected adaptations, not coverage of every upstream case. [Omissions](docs/omissions.md) records skipped upstream cases and why.
+
+The WPT suite must contain only faithful adaptations of existing upstream cases. Do not invent scenarios, add local assertions, extend upstream input matrices, or create specification-derived cases here. Independently authored subtleties, regressions, and implementation-specific checks belong in separate tests outside this suite. Necessary harness adaptations must preserve the upstream behavior being tested. Tests of the harness itself are separate infrastructure tests.
+
+The shared suite is the long-term home of upstream WPT coverage for the UI. Implementation-specific rendering, notification, and lifecycle checks belong in the corresponding UI integration tests.
 
 ```ts
-import { testDOMCompatibility, type DOMFeatures } from '@bomb.sh/web-platform-tests';
+import { testDOMCompatibility } from '@bomb.sh/web-platform-tests';
 import { describe, it, expect } from 'vitest';
-import { features, createDocument, globals, dispose } from './implementation-fixture.ts';
+import { createDocument, dispose } from './implementation-fixture.ts';
+import config from './wpt.config.ts';
 
 testDOMCompatibility({
   runner: { describe, it, expect },
-  features,
+  config,
   create: createDocument,
-  globals,
   dispose,
   // input: document => createHostInputSession(document),
 });
 ```
 
-### Selecting features to verify
+### Selecting tests
 
-Supply a runner with `describe`, `it`, and Vitest-compatible `expect` matchers, plus a set of `features` conforming to the `DOMFeatures` interface. Every feature must be explicitly declared supported or unsupported. The suite registers cases for enabled features and checks their prerequisites before registration.
+The `config` option is optional; omitting it runs all adapted cases. A `WPTConfig` supplies source-path selectors in `include` and `exclude`; an explicit include always wins. Each value is `true` for the entire source file or an array of exact case names and regular expressions matching case names.
+
+When selection excludes every case, the harness registers a todo through `runner.it.todo` to start implementing DOM features and enable their WPT cases.
+
+```ts
+import type { WPTConfig } from '@bomb.sh/web-platform-tests';
+import { globals } from './implementation-fixture.ts';
+
+export default {
+  globals,
+  exclude: { 'dom/nodes/Node-insertBefore.html': true },
+  include: { 'dom/nodes/Node-insertBefore.html': [/reference child/] },
+} satisfies WPTConfig;
+```
+
+Source paths support `*` within a path segment and `**` across directories; `**/` also matches zero directories. Other characters are literal. Case-name strings match exactly. Empty, invalid, or unmatched selectors fail configuration before any cases register, so stale exclusions remain visible.
+
+Cases have no test-to-test prerequisite gates. A selected case exercises its supporting DOM operations and reports failures normally. Globals and host input are resolved lazily when the case uses them. The runner can narrow selected cases further with its usual name filter.
+
+Run `pnpm generate` after adding, moving, or removing source files. The build also regenerates the registry from filenames. Only files exporting `register` are test entrypoints; upstream support files are imported by those tests. `node scripts/generate-registry.mjs --check` verifies that the checked-in registry is current.
 
 ### Harness
 
-* `create(options?)`: A synchronous or asynchronous factory for a fresh `Document`. When a case supplies `DOMDocumentOptions`, honor its markup, MIME type, and URL fragment; the selector matrix uses these to test HTML, XHTML, and `:target`.
-* `globals`: An object containing the implementation's global bindings, or a function that returns them for a document. For example, a test looks up `HTMLInputElement` on this object.
+* `create(options?)`: A synchronous or asynchronous factory for a fresh `Document`. Cases using the default HTML document expect its doctype, `html`, `head`, and `body` tree. When a case supplies `DOMDocumentOptions`, honor its markup, MIME type, and URL fragment; the selector matrix uses these to test HTML, XHTML, and `:target`.
+* `config.globals`: An object containing the implementation's global bindings, or a function that returns them for each fresh document. Tests destructure typed bindings from the fixture, such as `({ document, Node, Text })`. Omitting globals supplies no bindings; accessing a missing binding throws.
 * `input`: An optional factory for a `DOMInputDriver` session that delivers keyboard, text, and mouse input through the implementation's normal host input pipeline. This allows testing of default actions like focus on click, form submission on `Enter`, and trusted events.
 * `dispose(document)`: Optional cleanup for implementation-owned resources after each case, including failures.
 
@@ -48,30 +77,20 @@ pnpm --filter @bomb.sh/web-platform-tests test:browser
 ```
 To validate the test suite itself, run it against an actual browser runtime. Browser dependencies are development-only.
 
-The automation CLI uses Playwright's Chromium with an isolated browser context and fresh standards-mode iframe per case.
+The automation CLI uses Playwright's Chromium with a fresh iframe per case and a new browser context every 500 cases to bound memory use.
 
-The [selector WPT omission check](docs/wpt-selectors.md) compares the adapted registrations with actual pinned upstream case names. Its cache is ignored, and results are printed rather than committed.
+The [selector audit](scripts/check-wpt-selectors.mjs), run by `test:wpt-selectors` and CI, checks registered case names, matrix data, API masks, and fixture bytes against the pinned upstream sources. It covers selector API files in `dom/nodes` plus `is-where-basic.html` and `has-basic.html`; the script records exclusions. Downloads are cached in ignored `node_modules/.cache`, and reports go to stdout. After changing selector adaptations or the suite revision, run this audit and browser validation, and review the assertions against upstream.
 
 The suite asserts resulting DOM behavior, never browser pixel values. Browser target resolution uses the browser's own rectangles and iframe coordinate offsets; a terminal adapter must use its own renderer.
 
-#### Known Chromium disagreements
+#### Browser results
 
-The following eight cases are allowed to fail when validating the suite in Chromium. They remain enabled, and the runner reports their failures and returns a nonzero exit code. Other failures require investigation.
-
-| Feature and case | Chromium behavior | Retained expectation/reference |
-| --- | --- | --- |
-| [`document.xmlSerialization`](src/compatibility/document/xml-serialization.ts): omits a redundant empty default namespace declaration | Retains the child's `xmlns=""` when the inherited namespace is already empty. | [XML serialization](https://w3c.github.io/DOM-Parsing/#xml-serialization-algorithm) omits the redundant declaration; [pinned WPT](https://github.com/web-platform-tests/wpt/blob/b719612f963a05ece9c89a7dd7598c1c59618874/domparsing/XMLSerializer-serializeToString.html). |
-| [`document.xmlSerialization`](src/compatibility/document/xml-serialization.ts): omits a redundant nonempty default namespace declaration | Retains the child's declaration when it repeats the inherited namespace. | Same XML serialization rule and pinned WPT. |
-| [`document.xmlSerialization`](src/compatibility/document/xml-serialization.ts): emits attribute nodes as empty strings even when their values are nonempty | Serializes the attribute's escaped value. | The [Attr serialization branch](https://w3c.github.io/DOM-Parsing/#xml-serializing-a-node) returns an empty string. The local case extends WPT's empty-valued Attr with a nonempty value. |
-| [`focus.removal`](src/compatibility/focus/removal.ts): removing a focused node clears focus without firing blur | Fires `blur` during removal. | [HTML removing steps](https://html.spec.whatwg.org/multipage/infrastructure.html#html-element-removing-steps). |
-| [`elements.input.radioGroups`](src/compatibility/elements/input/radio-groups.ts): groups radios by tree and nonempty name | The previous group member stays checked after a checked detached radio changes name. | [Radio group updates](https://html.spec.whatwg.org/multipage/input.html#radio-button-state-(type=radio)); [WPT disconnected groups](https://github.com/web-platform-tests/wpt/blob/master/html/semantics/forms/the-input-element/radio-disconnected-group-owner.html). |
-| [`elements.input.labels`](src/compatibility/elements/input/labels.ts): keeps retained labels live when a detached control moves under a label | Retained labels stay empty. | [Live labels in the same tree](https://html.spec.whatwg.org/multipage/forms.html#dom-lfe-labels). |
-| [`elements.textarea.labels`](src/compatibility/elements/textarea/labels.ts): keeps retained labels live when a detached control moves under a label | Retained labels stay empty. | Same live-label rule. |
-| [`element.selectors`](src/compatibility/element/selectors/grammar.ts): WPT `querySelector-mixed-case.html`, mixed HTML/SVG/MathML tree with various mixed-case attributes | `[viewbox]` matches four elements where WPT expects two HTML elements. | The [pinned upstream case](https://github.com/web-platform-tests/wpt/blob/b719612f963a05ece9c89a7dd7598c1c59618874/dom/nodes/querySelector-mixed-case.html) produces the same failure in Chromium; its assertions remain unchanged. |
+Browser validation keeps upstream expectations intact. Failures remain enabled
+and produce a nonzero exit code.
 
 ### Coverage boundaries
 
-The [feature catalogue](src/compatibility/features.ts) and [registry](src/compatibility/registry.ts) describe the executable coverage. Harness tests check that every feature has a module, registered cases, and specification references. The [UI feature manifest](../ui/test/dom-features.ts) declares its implementation's supported features; the [UI test README](../ui/test/README.md) explains the integration and how to update those decisions. [WPT references and licenses](docs/references.md) identify the selected upstream adaptations. Passing selected cases does not imply complete standards conformance.
+The [adapted sources](src/wpt) and generated [registry](src/shared/registry.ts) describe the executable coverage. Harness tests check source identity, case selection, and reachability of every source module. The [UI configuration](../ui/test/wpt.config.ts) records the cases enforced by that integration; the [UI test README](../ui/test/README.md) explains how to select additional cases while implementing them. Passing selected cases does not imply complete standards conformance.
 
 Remaining test gaps include:
 

@@ -1,10 +1,12 @@
 export {
 	testDOMCompatibility,
 	CompatibilityConfigurationError,
-} from './compatibility/test-dom-compatibility.ts';
-export type { DOMCompatibilityOptions } from './compatibility/test-dom-compatibility.ts';
-export { domFeaturesSchema } from './compatibility/features.ts';
-export type { DOMFeatures, DOMFeaturePath } from './compatibility/features.ts';
+} from './shared/test-dom-compatibility.ts';
+export type {
+	DOMCompatibilityOptions,
+	WPTConfig,
+	WPTSelectors,
+} from './shared/test-dom-compatibility.ts';
 export type {
 	CompatibilityRunner,
 	CompatibilityExpect,
@@ -12,14 +14,13 @@ export type {
 	CompatibilityContext,
 	CompatibilityTestOptions,
 	DOMFixture,
-	FeatureModule,
-} from './compatibility/context.ts';
-export type { DOMFixtureOptions, DOMDocumentOptions } from './compatibility/fixture.ts';
-export type { DOMGlobalBindings } from './compatibility/globals.ts';
+	CompatibilityModule,
+} from './shared/context.ts';
+export type { DOMFixtureOptions, DOMDocumentOptions } from './shared/fixture.ts';
+export type { DOMGlobalBindings } from './shared/globals.ts';
 export type {
 	DOMInputDriver,
 	DOMTestInput,
 	DOMInputCapability,
 	DOMMouseButton,
-} from './compatibility/input-driver.ts';
-export type { DOMElement } from './compatibility/contracts/nodes.ts';
+} from './shared/input-driver.ts';

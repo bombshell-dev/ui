@@ -1,6 +1,6 @@
-import type { DOMInputDriver, DOMMouseButton } from '../../src/compatibility/input-driver.ts';
+import type { DOMInputDriver, DOMMouseButton } from '../../src/shared/input-driver.ts';
 
-export type BrowserInputCommand =
+type BrowserInputCommand =
 	| { type: 'keyDown' | 'keyUp'; key: string }
 	| { type: 'insertText'; text: string }
 	| { type: 'move'; x: number; y: number }
@@ -23,6 +23,17 @@ export function createBrowserInputDriver(
 	document: Document,
 	send: BrowserInputBridge,
 ): DOMInputDriver {
+	async function moveViewport(x: number, y: number): Promise<void> {
+		let view = document.defaultView;
+		while (view?.frameElement) {
+			const frame = view.frameElement;
+			const rect = frame.getBoundingClientRect();
+			x += rect.left + frame.clientLeft;
+			y += rect.top + frame.clientTop;
+			view = frame.ownerDocument.defaultView;
+		}
+		await send({ type: 'move', x, y });
+	}
 	return {
 		keyboard: {
 			keyDown: (key) => send({ type: 'keyDown', key }),
@@ -30,9 +41,7 @@ export function createBrowserInputDriver(
 		},
 		insertText: (text) => send({ type: 'insertText', text }),
 		mouse: {
-			async move(element) {
-				// The generic suite's contract enters the native-browser adapter here.
-				const target = element as unknown as Element;
+			async move(target) {
 				if (target.ownerDocument !== document || !target.isConnected)
 					throw new BrowserInputError(
 						'Mouse target must be connected to the fixture document',
@@ -42,18 +51,12 @@ export function createBrowserInputDriver(
 				const rect = target.getBoundingClientRect();
 				if (!rect.width || !rect.height)
 					throw new BrowserInputError('Mouse target has no rendered box', target);
-				let x = rect.left + rect.width / 2;
-				let y = rect.top + rect.height / 2;
-				let view = document.defaultView;
-				while (view?.frameElement) {
-					const frame = view.frameElement;
-					const frameRect = frame.getBoundingClientRect();
-					x += frameRect.left + frame.clientLeft;
-					y += frameRect.top + frame.clientTop;
-					view = frame.ownerDocument.defaultView;
-				}
-				await send({ type: 'move', x, y });
+				const view = document.defaultView!;
+				const x = (Math.max(0, rect.left) + Math.min(view.innerWidth, rect.right)) / 2;
+				const y = (Math.max(0, rect.top) + Math.min(view.innerHeight, rect.bottom)) / 2;
+				await moveViewport(Math.floor(x), Math.floor(y));
 			},
+			moveViewport,
 			down: (button) => send({ type: 'down', button }),
 			up: (button) => send({ type: 'up', button }),
 		},

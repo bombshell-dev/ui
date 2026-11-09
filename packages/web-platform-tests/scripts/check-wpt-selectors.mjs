@@ -4,12 +4,12 @@
 // Downloads are cached in ignored node_modules/.cache; no reports are written.
 import { deepStrictEqual } from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { chromium } from 'playwright';
-import { register } from '../src/compatibility/element/selectors.ts';
+import { registry } from '../src/shared/registry.ts';
 import {
 	invalidSelectors,
 	validSelectors,
@@ -17,8 +17,9 @@ import {
 	TEST_QSA,
 	TEST_FIND,
 	TEST_MATCH,
-} from '../src/compatibility/element/selectors/data.ts';
-import * as fixtureMarkup from '../src/compatibility/element/selectors/fixtures.ts';
+} from '../src/wpt/dom/nodes/selectors.js.ts';
+import { html } from '../src/wpt/dom/nodes/ParentNode-querySelector-All-content.html.ts';
+import { xhtml } from '../src/wpt/dom/nodes/ParentNode-querySelector-All-content.xht.ts';
 
 class SelectorAuditError extends Error {
 	constructor(message, details = {}) {
@@ -28,7 +29,7 @@ class SelectorAuditError extends Error {
 	}
 }
 
-const revision = 'b719612f963a05ece9c89a7dd7598c1c59618874';
+const revision = (await readFile(new URL('../WPT_REVISION', import.meta.url), 'utf8')).trim();
 const cacheRoot = new URL(`../node_modules/.cache/wpt-selectors/${revision}/`, import.meta.url);
 const options = { offline: false, json: false, sourceRoot: undefined };
 for (let index = 2; index < process.argv.length; index++) {
@@ -59,6 +60,18 @@ const caseExclusions = new Map([
 		]),
 	],
 ]);
+const matrixSources = [
+	'dom/nodes/selectors.js',
+	'dom/nodes/ParentNode-querySelector-All.js',
+	'dom/nodes/ParentNode-querySelector-All.html',
+	'dom/nodes/ParentNode-querySelector-All-xht.xht',
+	'dom/nodes/ParentNode-querySelector-All-content.html',
+	'dom/nodes/ParentNode-querySelector-All-content.xht',
+	'dom/nodes/Element-matches.js',
+	'dom/nodes/Element-matches-init.js',
+	'dom/nodes/Element-matches.html',
+];
+
 const bootstrapSources = new Set([
 	'dom/nodes/ParentNode-querySelector-All.html',
 	'dom/nodes/ParentNode-querySelector-All-xht.xht',
@@ -156,17 +169,20 @@ function difference(expected, actual) {
 	});
 }
 
-// Record the real public leaf registration, including conditionally required
-// cases, without executing bodies or filtering by an implementation manifest.
+// Record every adapted selector case without executing bodies or applying a config.
 const adapted = [];
-register({ runner: { expect: {} }, test: (name) => adapted.push(name) });
+const selectorModules = Object.entries(registry).filter(
+	([path]) =>
+		(path.startsWith('dom/nodes/') &&
+			/queryselector|^Element-(?:closest|matches|webkitMatchesSelector)/i.test(
+				path.slice('dom/nodes/'.length),
+			)) ||
+		supplementalSources.includes(path),
+);
+for (const [, module] of selectorModules)
+	module.register({ runner: { expect: {} }, test: (name) => adapted.push(name) });
 const adaptedNames = adapted.filter((name) => name.startsWith('WPT '));
-const declaredSources = new Set();
-const moduleRoot = new URL('../src/compatibility/element/selectors/', import.meta.url);
-for (const file of (await readdir(moduleRoot)).filter((name) => name.endsWith('.ts'))) {
-	const module = await import(new URL(file, moduleRoot).href);
-	for (const path of module.sourceFiles ?? []) declaredSources.add(path);
-}
+const declaredSources = new Set([...selectorModules.map(([path]) => path), ...matrixSources]);
 
 const candidates = (await directory('dom/nodes'))
 	.filter(
@@ -247,8 +263,8 @@ try {
 	});
 }
 for (const [markup, extension] of [
-	[fixtureMarkup.html, 'html'],
-	[fixtureMarkup.xhtml, 'xht'],
+	[html, 'html'],
+	[xhtml, 'xht'],
 ]) {
 	const path = `dom/nodes/ParentNode-querySelector-All-content.${extension}`;
 	try {

@@ -1,28 +1,24 @@
+/// <reference lib="dom" />
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
+import type { CompatibilityRunner, CompatibilityModule } from '../src/shared/context.ts';
+import { withFixture, type DOMDocumentOptions } from '../src/shared/fixture.ts';
+import { registry } from '../src/shared/registry.ts';
+import {
+	CompatibilityConfigurationError,
+	testDOMCompatibility,
+	type WPTConfig,
+} from '../src/shared/test-dom-compatibility.ts';
+import { MissingGlobalError } from '../src/shared/globals.ts';
+import { MissingInputError, type DOMInputDriver } from '../src/shared/input-driver.ts';
+
 const { Event, EventTarget } = globalThis;
 // Harness-only factory token: no shared DOM behavior is implemented here.
-class Document {
+class HarnessDocument {
 	createElement(): EventTarget {
 		return new EventTarget();
 	}
 }
-import { featureShape as domFeatures } from '../src/compatibility/features.ts';
-import type { CompatibilityRunner } from '../src/compatibility/context.ts';
-import {
-	domFeaturesSchema,
-	featureFile,
-	featurePaths,
-	featureShape,
-	type DOMFeatures,
-} from '../src/compatibility/features.ts';
-import { withFixture, type DOMDocumentOptions } from '../src/compatibility/fixture.ts';
-import { registry } from '../src/compatibility/registry.ts';
-import { testDOMCompatibility } from '../src/compatibility/test-dom-compatibility.ts';
-import type { DOMDocument } from '../src/compatibility/contracts/nodes.ts';
-import type { DOMEventConstructor } from '../src/compatibility/contracts/events.ts';
-import { MissingInputError, type DOMInputDriver } from '../src/compatibility/input-driver.ts';
 
 function sourceFiles(directory: URL): string[] {
 	return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -34,116 +30,139 @@ function sourceFiles(directory: URL): string[] {
 	});
 }
 
-function flags(enabled: string[] = []): DOMFeatures {
-	const result: DOMFeatures = structuredClone(domFeatures);
-	function visit(value: object, prefix = ''): void {
-		for (const [key, child] of Object.entries(value)) {
-			const path = prefix ? `${prefix}.${key}` : key;
-			if (typeof child === 'boolean') Reflect.set(value, key, enabled.includes(path));
-			else visit(child, path);
-		}
-	}
-	visit(result);
-	return result;
+function only(...sources: string[]): Pick<WPTConfig, 'include' | 'exclude'> {
+	return {
+		exclude: { '**': true },
+		include: Object.fromEntries(sources.map((source) => [source, true])),
+	};
 }
 
 function recordingRunner(): {
 	runner: CompatibilityRunner;
 	suites: string[];
-	tests: { name: string; run(): void | Promise<void> }[];
+	todos: string[];
+	tests: { source: string; name: string; run(): void | Promise<void> }[];
 } {
 	const suites: string[] = [];
-	const tests: { name: string; run(): void | Promise<void> }[] = [];
+	const todos: string[] = [];
+	const tests: { source: string; name: string; run(): void | Promise<void> }[] = [];
 	const path: string[] = [];
 	return {
 		suites,
+		todos,
 		tests,
 		runner: {
 			expect,
-			describe(name, register) {
+			describe(name, registerSuite) {
 				path.push(name);
-				suites.push(path.join('.'));
+				suites.push(name);
 				try {
-					register();
+					registerSuite();
 				} finally {
 					path.pop();
 				}
 			},
-			it(name, run) {
-				tests.push({ name: [...path, name].join('.'), run });
-			},
+			it: Object.assign(
+				(name: string, run: () => void | Promise<void>) => {
+					tests.push({ source: path.join('/'), name, run });
+				},
+				{
+					todo(name: string) {
+						todos.push(name);
+					},
+				},
+			),
 		},
 	};
 }
 
+function register(config?: WPTConfig): ReturnType<typeof recordingRunner> {
+	const recording = recordingRunner();
+	testDOMCompatibility({
+		config,
+		runner: recording.runner,
+
+		create: () => expect.fail('Registration must not create a document'),
+	});
+	return recording;
+}
+
+function catalogue(): { source: string; name: string }[] {
+	const cases: { source: string; name: string }[] = [];
+	const modules: Record<string, CompatibilityModule> = registry;
+	for (const [source, module] of Object.entries(modules)) {
+		let count = 0;
+		module.register({
+			runner: recordingRunner().runner,
+			test(name) {
+				cases.push({ source, name });
+				count++;
+			},
+		});
+		expect(count, source).toBeGreaterThan(0);
+	}
+	return cases;
+}
+
+const onceSource = 'dom/events/AddEventListenerOptions-once.any.js';
+const onceName = 'Once listener should be invoked only once';
+
 describe('compatibility catalogue', () => {
-	it('has one registered entrypoint per leaf and reachable colocated support modules, outside runner discovery', () => {
-		const directory = new URL('../src/compatibility/', import.meta.url);
+	it('infers every registered source from its filename and keeps all source modules reachable', () => {
+		const directory = new URL('../src/', import.meta.url);
 		const allFiles = sourceFiles(directory);
-		const files = allFiles
+		const files = allFiles.filter((file) => file.endsWith('.ts'));
+		const entrypoints = files
 			.filter(
-				(file) => file.endsWith('.ts') && file.includes('/') && !file.startsWith('contracts/'),
+				(file) =>
+					file.startsWith('wpt/') &&
+					/^export function register\(/m.test(readFileSync(new URL(file, directory), 'utf8')),
 			)
 			.toSorted();
-		const paths = featurePaths().toSorted();
-		expect(allFiles.filter((file) => /\.(?:test|spec)\.ts$/.test(file))).toEqual([]);
-		expect(Object.keys(registry).toSorted()).toEqual(paths);
-		const entrypoints = paths.map(featureFile).toSorted();
-		for (const entrypoint of entrypoints) expect(files, entrypoint).toContain(entrypoint);
-		const supportFiles = files.filter((file) => !entrypoints.includes(file));
+		expect(files.filter((file) => /\.(?:test|spec)\.ts$/.test(file))).toEqual([]);
+		expect(entrypoints.map((file) => file.slice('wpt/'.length, -'.ts'.length))).toEqual(
+			Object.keys(registry).toSorted(),
+		);
+		for (const [source, module] of Object.entries(registry)) {
+			expect(module.register, source).toBeTypeOf('function');
+			expect(source, 'Sources must be relative upstream paths').not.toMatch(/^(?:\/|\.\.)/);
+		}
 		const knownFiles = new Set(allFiles);
-		const reachableByEntrypoint = new Map<string, Set<string>>();
-		function reachableFrom(entrypoint: string): Set<string> {
-			const cached = reachableByEntrypoint.get(entrypoint);
-			if (cached) return cached;
-			const reachable = new Set<string>();
-			const pending = [entrypoint];
-			while (pending.length) {
-				const file = pending.pop()!;
-				if (reachable.has(file)) continue;
-				reachable.add(file);
-				const source = readFileSync(new URL(file, directory), 'utf8');
-				for (const match of source.matchAll(
-					/\b(?:from\s*|import\s*\(\s*)['"](\.[^'"]+\.ts)['"]/g,
-				)) {
-					const imported = new URL(match[1]!, new URL(file, directory));
-					if (!imported.href.startsWith(directory.href)) continue;
-					const relative = decodeURIComponent(imported.href.slice(directory.href.length));
-					if (knownFiles.has(relative)) pending.push(relative);
-				}
+		const reachable = new Set<string>();
+		const pending = ['index.ts', ...entrypoints];
+		while (pending.length) {
+			const file = pending.pop()!;
+			if (reachable.has(file)) continue;
+			reachable.add(file);
+			const source = readFileSync(new URL(file, directory), 'utf8');
+			for (const match of source.matchAll(/\b(?:from\s*|import\s*\(\s*)['"](\.[^'"]+\.ts)['"]/g)) {
+				const imported = new URL(match[1]!, new URL(file, directory));
+				if (!imported.href.startsWith(directory.href)) continue;
+				const relative = decodeURIComponent(imported.href.slice(directory.href.length));
+				if (knownFiles.has(relative)) pending.push(relative);
 			}
-			reachableByEntrypoint.set(entrypoint, reachable);
-			return reachable;
 		}
-		for (const file of supportFiles) {
-			const owner = entrypoints.find((entrypoint) =>
-				file.startsWith(`${entrypoint.slice(0, -3)}/`),
-			);
-			expect(owner, `${file} must be below a registered feature entrypoint`).toBeDefined();
-			expect(reachableFrom(owner!), `${file} must be imported by its owning feature`).toContain(
-				file,
-			);
+		for (const file of files) {
+			expect(
+				reachable.has(file),
+				`${file} must be reachable from the package API or a WPT test`,
+			).toBe(true);
 		}
-		for (const file of files)
-			expect(file).toMatch(/^(?:[a-z]+(?:-[a-z]+)*\/)*[a-z]+(?:-[a-z]+)*\.ts$/);
 	});
-	it('registers substantive tests for every leaf and provides specification provenance', () => {
-		for (const [path, leaf] of Object.entries(registry)) {
-			let cases = 0;
-			leaf.register({
-				runner: recordingRunner().runner,
-				test() {
-					cases++;
-				},
-			});
-			expect(cases, path).toBeGreaterThan(0);
-			expect(leaf.spec, path).toMatch(
-				/^https:\/\/(?:dom\.spec\.whatwg\.org|html\.spec\.whatwg\.org|w3c\.github\.io|(?:www\.)?w3\.org|drafts\.csswg\.org)\//,
-			);
-		}
+	it('registers every adapted case by default and groups each source exactly once', () => {
+		const expected = catalogue();
+		const recording = register();
+		const identities = expected.map((test) => `${test.source}\0${test.name}`);
+		expect(new Set(identities).size).toBe(identities.length);
+		expect(recording.tests.map(({ source, name }) => `${source}\0${name}`).toSorted()).toEqual(
+			identities.toSorted(),
+		);
+		expect(recording.suites.toSorted()).toEqual(
+			[...new Set(expected.map((test) => test.source))].toSorted(),
+		);
 	});
 	it('keeps implementation imports and host hooks outside shared tests', () => {
-		const directory = new URL('../src/compatibility/', import.meta.url);
+		const directory = new URL('../src/', import.meta.url);
 		for (const file of sourceFiles(directory).filter((candidate) => candidate.endsWith('.ts'))) {
 			const source = readFileSync(new URL(file, directory), 'utf8');
 			expect(source, file).not.toMatch(/from\s+['"][^'"]*(?:\/src\/|@bomb\.sh\/dom)['"]/);
@@ -157,57 +176,180 @@ describe('compatibility catalogue', () => {
 	});
 });
 
-describe('exhaustive Standard Schema validation', () => {
-	it('accepts every explicit true/false decision and has an accurate inferred type', async () => {
-		expectTypeOf<
-			StandardSchemaV1.InferOutput<typeof domFeaturesSchema>
-		>().toEqualTypeOf<DOMFeatures>();
-		const result = await domFeaturesSchema['~standard'].validate(domFeatures);
-		expect(result.issues).toBeUndefined();
-		if (!result.issues) expect(result.value).toBe(domFeatures);
-		expect(await domFeaturesSchema['~standard'].validate(flags())).toEqual({ value: flags() });
-	});
-	it('rejects missing branches, leaves, unknown keys, and non-booleans without filling defaults', async () => {
-		for (const value of [
-			null,
-			[],
-			{},
-			{ ...domFeatures, node: {} },
-			{ ...domFeatures, extra: true },
-			{ ...domFeatures, node: { ...domFeatures.node, append: 1 } },
-		]) {
-			const result = await domFeaturesSchema['~standard'].validate(value);
-			expect(result.issues?.length).toBeGreaterThan(0);
-		}
-		const incomplete = structuredClone(domFeatures);
-		Reflect.deleteProperty(incomplete.events.dispatch, 'capture');
-		const result = await domFeaturesSchema['~standard'].validate(incomplete);
-		expect(result.issues).toContainEqual(
-			expect.objectContaining({ path: ['events', 'dispatch', 'capture'] }),
-		);
-		expect(Object.hasOwn(incomplete.events.dispatch, 'capture')).toBe(false);
-		const extra = { ...domFeatures, node: { ...domFeatures.node, surprise: true } };
-		const unknown = await domFeaturesSchema['~standard'].validate(extra);
-		expect(unknown.issues).toContainEqual(expect.objectContaining({ path: ['node', 'surprise'] }));
-		expect(extra.node.surprise).toBe(true);
-		const invalid = await domFeaturesSchema['~standard'].validate({
-			...domFeatures,
-			node: { ...domFeatures.node, append: 1 },
+describe('WPT include and exclude selection', () => {
+	it('runs the full catalogue when config is omitted or explicitly undefined', () => {
+		const omitted = recordingRunner();
+		testDOMCompatibility({
+			runner: omitted.runner,
+
+			create: () => expect.fail('Registration must not create a document'),
 		});
-		expect(invalid.issues).toContainEqual(expect.objectContaining({ path: ['node', 'append'] }));
+		const explicit = register(undefined);
+		const identities = (tests: typeof omitted.tests): string[] =>
+			tests.map(({ source, name }) => `${source}\0${name}`).toSorted();
+		expect(omitted.tests).toHaveLength(catalogue().length);
+		expect(identities(explicit.tests)).toEqual(identities(omitted.tests));
+		expect(explicit.suites).toEqual(omitted.suites);
+		expect(omitted.todos).toEqual([]);
+		expect(explicit.todos).toEqual([]);
 	});
-	it('requires the complete structure at compile time', () => {
-		// @ts-expect-error Every branch is required, even when no tests are wanted.
-		const missing: DOMFeatures = {};
-		// @ts-expect-error Capture and the other dispatch leaves cannot be omitted.
-		const incomplete: DOMFeatures['events']['dispatch'] = { target: true };
-		void missing;
-		void incomplete;
-		expect(featurePaths(featureShape).length).toBe(Object.keys(registry).length);
+	it('registers a todo when all cases are excluded without constructing fixtures or empty suites', () => {
+		const recording = register({ exclude: { '**': true } });
+		expect(recording.suites).toEqual([]);
+		expect(recording.tests).toEqual([]);
+		expect(recording.todos).toEqual(['implement DOM features and enable their WPT cases']);
+	});
+	it('keeps unmatched cases enabled when an include list is present', () => {
+		const all = register();
+		const included = register({ include: { [onceSource]: true } });
+		expect(included.tests.map(({ source, name }) => [source, name])).toEqual(
+			all.tests.map(({ source, name }) => [source, name]),
+		);
+	});
+	it('includes a file inside a broadly excluded directory', () => {
+		const recording = register(only(onceSource));
+		expect(recording.suites).toEqual([onceSource]);
+		expect(recording.tests.map((test) => test.name)).toContain(onceName);
+		expect(recording.todos).toEqual([]);
+	});
+	it('lets a broad include override a more specific case exclusion', () => {
+		const recording = register({
+			exclude: { [onceSource]: [onceName] },
+			include: { 'dom/events/**': true },
+		});
+		expect(recording.tests).toContainEqual(
+			expect.objectContaining({ source: onceSource, name: onceName }),
+		);
+	});
+	it('lets exact case includes override whole-file exclusions without enabling neighboring cases', () => {
+		const recording = register({ exclude: { '**': true }, include: { [onceSource]: [onceName] } });
+		expect(recording.tests.map(({ source, name }) => ({ source, name }))).toEqual([
+			{ source: onceSource, name: onceName },
+		]);
+	});
+	it('excludes exact case names and retains the remaining cases from that source', () => {
+		const all = register();
+		const recording = register({ exclude: { [onceSource]: [onceName] } });
+		expect(recording.tests).toHaveLength(all.tests.length - 1);
+		expect(recording.tests).not.toContainEqual(
+			expect.objectContaining({ source: onceSource, name: onceName }),
+		);
+		expect(recording.suites).toContain(onceSource);
+	});
+	it('matches directory globs recursively while single stars stay within a directory', () => {
+		const all = register();
+		const direct = register(only('shadow-dom/*'));
+		expect(direct.tests.map(({ source, name }) => [source, name])).toEqual(
+			all.tests
+				.filter((test) => /^shadow-dom\/[^/]+$/.test(test.source))
+				.map(({ source, name }) => [source, name]),
+		);
+		const recursive = register(only('shadow-dom/**'));
+		expect(recursive.tests.map(({ source, name }) => [source, name])).toEqual(
+			all.tests
+				.filter((test) => test.source.startsWith('shadow-dom/'))
+				.map(({ source, name }) => [source, name]),
+		);
+		expect(recursive.tests.length).toBeGreaterThan(direct.tests.length);
+	});
+	it('allows a recursive glob to match zero directories', () => {
+		const recording = register(only('dom/events/**/AddEventListenerOptions-once.any.js'));
+		expect(recording.suites).toEqual([onceSource]);
+	});
+	it('matches regex case names without consuming caller state across cases or registrations', () => {
+		const pattern = /Once listener/g;
+		pattern.lastIndex = 8;
+		const config: WPTConfig = { exclude: { '**': true }, include: { [onceSource]: [pattern] } };
+		const first = register(config);
+		const second = register(config);
+		const expected = register(only(onceSource)).tests.filter((test) =>
+			test.name.includes('Once listener'),
+		);
+		expect(first.tests.map((test) => test.name)).toEqual(expected.map((test) => test.name));
+		expect(second.tests.map((test) => test.name)).toEqual(expected.map((test) => test.name));
+		expect(pattern.lastIndex).toBe(8);
+	});
+	it('applies regex exclusions to case names', () => {
+		const all = register();
+		const recording = register({ exclude: { [onceSource]: [/^Once listener/] } });
+		expect(recording.tests.map(({ source, name }) => [source, name])).toEqual(
+			all.tests
+				.filter((test) => test.source !== onceSource || !test.name.startsWith('Once listener'))
+				.map(({ source, name }) => [source, name]),
+		);
+	});
+	it.each([
+		{ include: { 'missing/upstream.html': true } },
+		{ exclude: { 'missing/upstream.html': true } },
+		{ include: { [onceSource]: ['no such upstream case'] } },
+		{ exclude: { [onceSource]: [/no such upstream case/] } },
+		{ include: { [onceSource]: [onceName, 'no such upstream case'] } },
+		{ include: { [onceSource]: ['Once listener*'] } },
+		{ include: { '': true } },
+		{ exclude: { [onceSource]: [] } },
+		{ include: { [onceSource]: false } },
+		{ exclude: { [onceSource]: [3] } },
+		{ include: [] },
+		{ exclude: null },
+	])('rejects invalid or stale selectors before registering suites: %j', (config) => {
+		const recording = recordingRunner();
+		expect(() =>
+			testDOMCompatibility({
+				config: config as unknown as WPTConfig,
+				runner: recording.runner,
+
+				create: () => expect.fail('Invalid selection must not create a document'),
+			}),
+		).toThrow(CompatibilityConfigurationError);
+		expect(recording.suites).toEqual([]);
+		expect(recording.tests).toEqual([]);
+		expect(recording.todos).toEqual([]);
+	});
+	it('selects insertion cases independently and leaves missing APIs to fail during execution', async () => {
+		const source = 'dom/nodes/Node-insertBefore.html';
+		const name =
+			'Calling insertBefore with a reference child whose parent is not the context node must throw a NotFoundError.';
+		const recording = recordingRunner();
+		testDOMCompatibility({
+			runner: recording.runner,
+			config: { exclude: { '**': true }, include: { [source]: [name] }, globals: { DOMException } },
+			create: () => ({}),
+		});
+		expect(recording.suites).toEqual([source]);
+		expect(recording.tests).toHaveLength(1);
+		await expect(recording.tests[0]!.run()).rejects.toThrow(TypeError);
+	});
+	it('registers a previously conditional shadow case without enabling other sources', () => {
+		const source = 'inert/inert-in-shadow-dom.html';
+		const recording = register(only(source));
+		expect(recording.suites).toEqual([source]);
+		expect(recording.tests.map((test) => test.name)).toEqual([
+			'inert on Shadow host affects content in shadow',
+		]);
 	});
 });
 
 describe('registration and fixture lifetime', () => {
+	it('uses global bindings supplied in the configuration', async () => {
+		const recording = recordingRunner();
+		testDOMCompatibility({
+			runner: recording.runner,
+			config: { ...only(onceSource), globals: { Event, EventTarget } },
+			create: () => ({}),
+		});
+		expect(recording.tests.length).toBeGreaterThan(0);
+		for (const test of recording.tests) await test.run();
+	});
+	it('reports missing configuration globals only when a selected case reads them', async () => {
+		const recording = recordingRunner();
+		testDOMCompatibility({
+			runner: recording.runner,
+			config: only(onceSource),
+			create: () => ({}),
+		});
+		expect(recording.suites).toEqual([onceSource]);
+		await expect(recording.tests[0]!.run()).rejects.toThrow(new MissingGlobalError('EventTarget'));
+	});
 	it('accepts a partial document and preserves its actual type for setup and disposal', async () => {
 		class EventOnlyDocument {
 			createElement(): EventTarget {
@@ -219,23 +361,32 @@ describe('registration and fixture lifetime', () => {
 		const disposed: EventOnlyDocument[] = [];
 		testDOMCompatibility({
 			runner: recording.runner,
-			features: flags(['events.dispatch.target']),
+			config: {
+				...only(
+					'dom/events/EventTarget-addEventListener.any.js',
+					'dom/events/EventTarget-removeEventListener.any.js',
+					'dom/events/EventTarget-add-remove-listener.any.js',
+					'dom/events/AddEventListenerOptions-once.any.js',
+				),
+				globals(document) {
+					expectTypeOf(document).toEqualTypeOf<EventOnlyDocument>();
+					expect(document).toBe(created.at(-1));
+					return { Event, EventTarget, window: new EventTarget() };
+				},
+			},
 			create() {
 				const document = new EventOnlyDocument();
 				created.push(document);
 				return document;
 			},
-			globals(document) {
-				expectTypeOf(document).toEqualTypeOf<EventOnlyDocument>();
-				expect(document).toBe(created.at(-1));
-				return { Event };
-			},
+
 			dispose(document) {
 				expectTypeOf(document).toEqualTypeOf<EventOnlyDocument>();
 				disposed.push(document);
 			},
 		});
-		expect(recording.tests).toHaveLength(3);
+		expect(created).toHaveLength(0);
+		expect(recording.tests).toHaveLength(7);
 		for (const test of recording.tests) await test.run();
 		expect(disposed).toEqual(created);
 	});
@@ -262,144 +413,96 @@ describe('registration and fixture lifetime', () => {
 			},
 		};
 		await withFixture(
-			{ create: () => original, globals: { Event, customVersion: 'test' } },
-			({ document, globals }) => {
-				expectTypeOf(document).toEqualTypeOf<DOMDocument>();
-				expectTypeOf(globals('Event')).toEqualTypeOf<DOMEventConstructor>();
-				expectTypeOf(globals('customVersion')).toEqualTypeOf<unknown>();
+			{ create: () => original, globals: { Event } },
+			({ document, Event: FixtureEvent }) => {
+				expectTypeOf(document).toEqualTypeOf<Document>();
+				expectTypeOf(FixtureEvent).toEqualTypeOf<typeof globalThis.Event>();
 				expect(document).toBe(original);
-				expect(globals('Event')).toBe(Event);
-				expect(globals('customVersion')).toBe('test');
+				expect(FixtureEvent).toBe(Event);
 				expect(propertyReads).toBe(0);
 			},
 		);
 	});
 	it('requires only the global requested by a case', async () => {
-		await withFixture({ create: () => null, globals: { available: true } }, ({ globals }) => {
-			expect(() => globals('MutationObserver')).toThrow('globals.MutationObserver');
-			expect(globals('available')).toBe(true);
+		await withFixture({ create: () => null, globals: { Event } }, (fixture) => {
+			expect(() => fixture.MutationObserver).toThrow('globals.MutationObserver');
+			expect(fixture.Event).toBe(Event);
 		});
 	});
-	it('registers nothing and constructs nothing when every feature is false', () => {
-		const recording = recordingRunner();
-		let created = 0;
-		testDOMCompatibility({
-			runner: recording.runner,
-			features: flags(),
-			globals: {},
-			create() {
-				created++;
-				return new Document();
+	it('reads supplied global getters lazily and preserves their receiver and identity', async () => {
+		let reads = 0;
+		const bindings = {
+			get Event() {
+				expect(this).toBe(bindings);
+				reads++;
+				return Event;
 			},
+		};
+		await withFixture({ create: () => null, globals: bindings }, (fixture) => {
+			expect(reads).toBe(0);
+			const { Event: FixtureEvent } = fixture;
+			expect(FixtureEvent).toBe(Event);
+			expect(reads).toBe(1);
 		});
-		expect(recording.suites).toEqual([]);
-		expect(recording.tests).toEqual([]);
-		expect(created).toBe(0);
 	});
-	it('registers target and bubbling without capture or empty unrelated suites', async () => {
-		const recording = recordingRunner();
-		testDOMCompatibility({
-			runner: recording.runner,
-			features: flags(['events.dispatch.target', 'events.dispatch.bubbling']),
-			globals: { Event },
-			create: () => new Document(),
-		});
-		expect(recording.suites).toEqual([
-			'events',
-			'events.dispatch',
-			'events.dispatch.target',
-			'events.dispatch.bubbling',
-		]);
-		expect(recording.tests.length).toBeGreaterThan(0);
-		// Registration shape is independent of any DOM implementation.
-	});
-	it('rejects unmet prerequisites before registering any suites', () => {
-		const recording = recordingRunner();
-		expect(() =>
-			testDOMCompatibility({
-				runner: recording.runner,
-				features: flags(['events.dispatch.capture']),
-				globals: { Event },
-				create: () => new Document(),
-			}),
-		).toThrow('events.dispatch.capture requires events.dispatch.target');
-		expect(recording.suites).toEqual([]);
-	});
-	it('rejects interaction prerequisites before registering any earlier feature', () => {
-		for (const path of ['style.computed', 'focus.transitions', 'input.keyboard.navigation']) {
-			const selected = structuredClone(domFeatures);
-			const keys = path.split('.');
-			let branch: object = selected;
-			for (const key of keys.slice(0, -1)) branch = Reflect.get(branch, key) as object;
-			Reflect.set(branch, keys.at(-1)!, false);
-			const recording = recordingRunner();
-			expect(() =>
-				testDOMCompatibility({
-					runner: recording.runner,
-					features: selected,
-					create: () => new Document(),
-					globals: {},
-					input: () => ({ async reset() {} }),
+	it('throws when a destructured global is absent or undefined, without a host fallback', async () => {
+		for (const globals of [{}, { Event: undefined }]) {
+			await expect(
+				withFixture({ create: () => null, globals }, ({ Event: _Event }) => {
+					expect.fail('Destructuring a missing global must fail before the case runs');
 				}),
-			).toThrow('requires');
-			expect(recording.suites).toEqual([]);
-			expect(recording.tests).toEqual([]);
+			).rejects.toThrow(new MissingGlobalError('Event'));
 		}
 	});
-	it('selects focus indication policies independently of trusted events and ordinary input', () => {
-		const selected = {
-			...domFeatures,
-			input: {
-				keyboard: { ...domFeatures.input.keyboard, trustedEvents: false, focusVisible: false },
-				mouse: { ...domFeatures.input.mouse, trustedEvents: false, focusVisible: false },
-			},
-		};
-		const recording = recordingRunner();
-		const register = (): void => {
-			testDOMCompatibility({
-				runner: recording.runner,
-				features: selected,
-				create: () => new Document(),
-				globals: {},
-				input: () => ({ async reset() {} }),
-			});
-		};
-		register();
-		expect(recording.suites).toContain('input.keyboard.focusStyles');
-		expect(recording.suites).toContain('input.mouse.stateStyles');
-		expect(recording.suites).not.toContain('input.keyboard.focusVisible');
-		expect(recording.suites).not.toContain('input.mouse.focusVisible');
-		selected.input.keyboard.focusVisible = true;
-		selected.input.mouse.focusVisible = true;
-		register();
-		expect(recording.suites).toContain('input.keyboard.focusVisible');
-		expect(recording.suites).toContain('input.mouse.focusVisible');
-		expect(recording.suites).not.toContain('input.keyboard.trustedEvents');
-		expect(recording.suites).not.toContain('input.mouse.trustedEvents');
+	it('retains callback failures while preserving the callback receiver and result', async () => {
+		const failure = new Error('callback assertion failed');
+		const receiver = { value: 3 };
+		await expect(
+			withFixture({ create: () => null, globals: {} }, ({ step }) => {
+				const callback = step(function (this: typeof receiver, increment: number) {
+					return this.value + increment;
+				});
+				expect(callback.call(receiver, 2)).toBe(5);
+				const listener = step(() => {
+					throw failure;
+				});
+				expect(() => listener()).not.toThrow();
+			}),
+		).rejects.toBe(failure);
 	});
 	it('resolves globals per fresh document and disposes fixtures after failure', async () => {
 		const recording = recordingRunner();
-		const created: Document[] = [];
-		const resolved: Document[] = [];
-		const disposed: Document[] = [];
+		const created: HarnessDocument[] = [];
+		const resolved: HarnessDocument[] = [];
+		const disposed: HarnessDocument[] = [];
 		testDOMCompatibility({
 			runner: recording.runner,
-			features: flags(['events.dispatch.target']),
+			config: {
+				...only(
+					'dom/events/EventTarget-addEventListener.any.js',
+					'dom/events/EventTarget-removeEventListener.any.js',
+					'dom/events/EventTarget-add-remove-listener.any.js',
+					'dom/events/AddEventListenerOptions-once.any.js',
+				),
+				globals(document) {
+					resolved.push(document);
+					return {};
+				},
+			},
 			create() {
-				const document = new Document();
+				const document = new HarnessDocument();
 				created.push(document);
 				return document;
 			},
-			globals(document) {
-				resolved.push(document);
-				return {};
-			},
+
 			dispose(document) {
 				disposed.push(document);
 			},
 		});
 		expect(created).toHaveLength(0);
-		for (const test of recording.tests) await expect(test.run()).rejects.toThrow('globals.Event');
+		expect(resolved).toHaveLength(0);
+		for (const test of recording.tests)
+			await expect(test.run()).rejects.toThrow(/globals\.(EventTarget|window)/);
 		expect(created.length).toBe(recording.tests.length);
 		expect(resolved).toEqual(created);
 		expect(disposed).toEqual(created);
@@ -414,7 +517,7 @@ describe('fixture cleanup failures', () => {
 		const cleanupFailure = new Error('cleanup');
 		const operation = withFixture(
 			{
-				create: () => new Document(),
+				create: () => new HarnessDocument(),
 				globals: {},
 				dispose() {
 					calls.push('dispose');
@@ -440,7 +543,7 @@ describe('fixture cleanup failures', () => {
 		await expect(
 			withFixture(
 				{
-					create: () => new Document(),
+					create: () => new HarnessDocument(),
 					globals() {
 						throw failure;
 					},
@@ -456,18 +559,22 @@ describe('fixture cleanup failures', () => {
 });
 
 describe('host input fixture', () => {
-	it('rejects enabled input features without a driver before registering any suite', () => {
+	it('registers selected input cases without a driver and fails only when they execute', async () => {
 		const recording = recordingRunner();
-		expect(() =>
-			testDOMCompatibility({
-				runner: recording.runner,
-				features: { ...domFeatures },
-				create: () => new Document(),
-				globals: {},
-			}),
-		).toThrow('requires an input driver');
-		expect(recording.suites).toEqual([]);
-		expect(recording.tests).toEqual([]);
+		let disposed = 0;
+		testDOMCompatibility({
+			runner: recording.runner,
+			config: only('uievents/keyboard/keyboardevent-composed.html'),
+			create: () => ({}),
+
+			dispose() {
+				disposed++;
+			},
+		});
+		expect(recording.suites).toEqual(['uievents/keyboard/keyboardevent-composed.html']);
+		expect(recording.tests.length).toBeGreaterThan(0);
+		await expect(recording.tests[0]!.run()).rejects.toBeInstanceOf(MissingInputError);
+		expect(disposed).toBe(1);
 	});
 
 	it('does not construct an input session for cases that do not use it', async () => {
@@ -641,10 +748,10 @@ describe('requested document creation', () => {
 			content: '<html xmlns="http://www.w3.org/1999/xhtml"><body id="target"/></html>',
 			fragment: 'target',
 		};
-		const created = Promise.withResolvers<Document>();
+		const created = Promise.withResolvers<HarnessDocument>();
 		const disposalStarted = Promise.withResolvers<void>();
 		const disposalFinished = Promise.withResolvers<void>();
-		const subject = new Document();
+		const subject = new HarnessDocument();
 		const calls: string[] = [];
 		const failure = new Error('case failure');
 		let settled = false;
@@ -657,13 +764,13 @@ describe('requested document creation', () => {
 					return created.promise;
 				},
 				globals(document) {
-					expectTypeOf(document).toEqualTypeOf<Document>();
+					expectTypeOf(document).toEqualTypeOf<HarnessDocument>();
 					expect(document).toBe(subject);
 					calls.push('globals');
 					return {};
 				},
 				async dispose(document) {
-					expectTypeOf(document).toEqualTypeOf<Document>();
+					expectTypeOf(document).toEqualTypeOf<HarnessDocument>();
 					expect(document).toBe(subject);
 					calls.push('dispose started');
 					disposalStarted.resolve();
@@ -722,22 +829,29 @@ describe('requested document creation', () => {
 	});
 	it('uses fresh asynchronous documents for registered cases without document requests', async () => {
 		const recording = recordingRunner();
-		const created: Document[] = [],
-			disposed: Document[] = [];
+		const created: HarnessDocument[] = [],
+			disposed: HarnessDocument[] = [];
 		testDOMCompatibility({
 			runner: recording.runner,
-			features: flags(['events.dispatch.target']),
-			async create(request) {
+			config: {
+				...only(
+					'dom/events/EventTarget-addEventListener.any.js',
+					'dom/events/EventTarget-removeEventListener.any.js',
+					'dom/events/EventTarget-add-remove-listener.any.js',
+					'dom/events/AddEventListenerOptions-once.any.js',
+				),
+				globals(document) {
+					expectTypeOf(document).toEqualTypeOf<HarnessDocument>();
+					expect(document).toBe(created.at(-1));
+					return { Event, EventTarget, window: new EventTarget() };
+				},
+			},
+			async create(request: DOMDocumentOptions | undefined) {
 				expect(request).toBeUndefined();
 				await Promise.resolve();
-				const document = new Document();
+				const document = new HarnessDocument();
 				created.push(document);
 				return document;
-			},
-			globals(document) {
-				expectTypeOf(document).toEqualTypeOf<Document>();
-				expect(document).toBe(created.at(-1));
-				return { Event };
 			},
 			async dispose(document) {
 				await Promise.resolve();
@@ -746,8 +860,8 @@ describe('requested document creation', () => {
 		});
 		expect(created).toHaveLength(0);
 		for (const test of recording.tests) await test.run();
-		expect(created).toHaveLength(3);
-		expect(new Set(created).size).toBe(3);
+		expect(created).toHaveLength(recording.tests.length);
+		expect(new Set(created).size).toBe(recording.tests.length);
 		expect(disposed).toEqual(created);
 	});
 });
