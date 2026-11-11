@@ -16,6 +16,8 @@ export default {
 		'dom/nodes/Document-createElement.html': true,
 		'dom/nodes/Document-createComment.html': true,
 		'dom/nodes/CharacterData-data.html': true,
+		'dom/nodes/CharacterData-remove.html': true,
+		'dom/nodes/Element-remove.html': true,
 		'dom/nodes/Node-nodeValue.html': ['Text.nodeValue', 'Comment.nodeValue'],
 		'dom/nodes/Node-textContent.html': [
 			'For an empty Text, textContent should be the empty string',

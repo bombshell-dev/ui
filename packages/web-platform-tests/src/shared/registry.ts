@@ -79,6 +79,7 @@ import { register as register_dom_nodes_CharacterData_appendData_html } from '..
 import { register as register_dom_nodes_CharacterData_data_html } from '../wpt/dom/nodes/CharacterData-data.html.ts';
 import { register as register_dom_nodes_CharacterData_deleteData_html } from '../wpt/dom/nodes/CharacterData-deleteData.html.ts';
 import { register as register_dom_nodes_CharacterData_insertData_html } from '../wpt/dom/nodes/CharacterData-insertData.html.ts';
+import { register as register_dom_nodes_CharacterData_remove_html } from '../wpt/dom/nodes/CharacterData-remove.html.ts';
 import { register as register_dom_nodes_CharacterData_replaceData_html } from '../wpt/dom/nodes/CharacterData-replaceData.html.ts';
 import { register as register_dom_nodes_CharacterData_substringData_html } from '../wpt/dom/nodes/CharacterData-substringData.html.ts';
 import { register as register_dom_nodes_DOMImplementation_createDocument_html } from '../wpt/dom/nodes/DOMImplementation-createDocument.html.ts';
@@ -102,6 +103,7 @@ import { register as register_dom_nodes_Element_matches_disabled_pseudo_class_ht
 import { register as register_dom_nodes_Element_matches_namespaced_elements_html } from '../wpt/dom/nodes/Element-matches-namespaced-elements.html.ts';
 import { register as register_dom_nodes_Element_matches_html } from '../wpt/dom/nodes/Element-matches.html.ts';
 import { register as register_dom_nodes_Element_querySelectorAll_context_element_html } from '../wpt/dom/nodes/Element-querySelectorAll-context-element.html.ts';
+import { register as register_dom_nodes_Element_remove_html } from '../wpt/dom/nodes/Element-remove.html.ts';
 import { register as register_dom_nodes_Element_setAttribute_html } from '../wpt/dom/nodes/Element-setAttribute.html.ts';
 import { register as register_dom_nodes_Element_setAttributeNodeNS_html } from '../wpt/dom/nodes/Element-setAttributeNodeNS.html.ts';
 import { register as register_dom_nodes_MutationObserver_attributes_html } from '../wpt/dom/nodes/MutationObserver-attributes.html.ts';
@@ -510,6 +512,7 @@ export const registry = {
 	'dom/nodes/CharacterData-data.html': { register: register_dom_nodes_CharacterData_data_html },
 	'dom/nodes/CharacterData-deleteData.html': { register: register_dom_nodes_CharacterData_deleteData_html },
 	'dom/nodes/CharacterData-insertData.html': { register: register_dom_nodes_CharacterData_insertData_html },
+	'dom/nodes/CharacterData-remove.html': { register: register_dom_nodes_CharacterData_remove_html },
 	'dom/nodes/CharacterData-replaceData.html': { register: register_dom_nodes_CharacterData_replaceData_html },
 	'dom/nodes/CharacterData-substringData.html': { register: register_dom_nodes_CharacterData_substringData_html },
 	'dom/nodes/DOMImplementation-createDocument.html': { register: register_dom_nodes_DOMImplementation_createDocument_html },
@@ -533,6 +536,7 @@ export const registry = {
 	'dom/nodes/Element-matches-namespaced-elements.html': { register: register_dom_nodes_Element_matches_namespaced_elements_html },
 	'dom/nodes/Element-matches.html': { register: register_dom_nodes_Element_matches_html },
 	'dom/nodes/Element-querySelectorAll-context-element.html': { register: register_dom_nodes_Element_querySelectorAll_context_element_html },
+	'dom/nodes/Element-remove.html': { register: register_dom_nodes_Element_remove_html },
 	'dom/nodes/Element-setAttribute.html': { register: register_dom_nodes_Element_setAttribute_html },
 	'dom/nodes/Element-setAttributeNodeNS.html': { register: register_dom_nodes_Element_setAttributeNodeNS_html },
 	'dom/nodes/MutationObserver-attributes.html': { register: register_dom_nodes_MutationObserver_attributes_html },
