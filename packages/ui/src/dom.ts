@@ -124,8 +124,9 @@ export abstract class CharacterData extends Node {
 	}
 
 	set data(data: string) {
-		if (data !== this.data) {
-			this.#data = data;
+		const normal = data === null ? '' : String(data);
+		if (normal !== this.data) {
+			this.#data = normal;
 			this.notify();
 		}
 	}
@@ -134,8 +135,16 @@ export abstract class CharacterData extends Node {
 		return this.data;
 	}
 
+	override set nodeValue(value: string | null) {
+		this.data = value ?? '';
+	}
+
 	get textContent(): string {
 		return this.data;
+	}
+
+	set textContent(value: string | null) {
+		this.data = value ?? '';
 	}
 
 	get length(): number {
