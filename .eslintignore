@@ -1,0 +1,3 @@
+# Preserve upstream WPT conventions. The shared harness files remain linted.
+packages/web-platform-tests/src/compatibility/*/**/*.ts
+packages/web-platform-tests/src/wpt/**/*.ts

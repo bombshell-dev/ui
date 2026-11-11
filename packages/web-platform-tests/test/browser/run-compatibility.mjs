@@ -24,13 +24,16 @@ function inputSession(page) {
 	const heldKeys = new Set();
 	const heldButtons = new Set();
 	const buttonNames = ['left', 'middle', 'right'];
+	function browserKey(key) {
+		return heldKeys.has('Shift') && /^[a-z]$/.test(key) ? `Key${key.toUpperCase()}` : key;
+	}
 	async function keyDown(key) {
 		// Track before awaiting so reset also attempts release after an input failure.
 		heldKeys.add(key);
-		await page.keyboard.down(key);
+		await page.keyboard.down(browserKey(key));
 	}
 	async function keyUp(key) {
-		await page.keyboard.up(key);
+		await page.keyboard.up(browserKey(key));
 		heldKeys.delete(key);
 	}
 	async function mouseDown(button) {
@@ -93,36 +96,55 @@ try {
 		headless: true,
 		...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}),
 	});
-	context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-	const page = await context.newPage();
-	await page.bringToFront();
-	if (!args.has('--no-input')) {
-		const sendInput = inputSession(page);
-		let queue = Promise.resolve();
-		await page.exposeBinding('__domInput', (_source, command) => {
-			const operation = queue.then(() => sendInput(command));
-			// A rejected operation must not prevent subsequent cleanup commands.
-			queue = operation.catch(() => {});
-			return operation;
-		});
-	}
-	const url = new URL('compatibility.html', server.resolvedUrls.local[0]);
-	if (!args.has('--no-input')) url.searchParams.set('input', 'playwright');
-	if (args.has('--input-only')) url.searchParams.set('input-only', '');
-	await page.goto(url.href);
-	try {
-		await page.waitForFunction(
-			() => document.documentElement.dataset.complete === 'true',
-			undefined,
-			// The WPT matrix loads a fresh HTML/XHTML document for every case.
-			// Individual cases retain their five-second timeout and abort isolation.
-			{ timeout: 600_000 },
-		);
-	} catch (cause) {
-		const report = await page.locator('#results').textContent();
-		throw new BrowserAutomationError(`Browser suite timed out. Last report: ${report}`, { cause });
-	}
-	const summary = JSON.parse(await page.locator('#results').textContent());
+	const summary = { passed: 0, failed: 0, todo: 0, aborted: false, notRun: 0, results: [] };
+	let start = 0;
+	do {
+		// Releasing the page bounds memory retained by the thousands of iframe realms.
+		context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+		const page = await context.newPage();
+		await page.bringToFront();
+		if (!args.has('--no-input')) {
+			const sendInput = inputSession(page);
+			let queue = Promise.resolve();
+			await page.exposeBinding('__domInput', (_source, command) => {
+				const operation = queue.then(() => sendInput(command));
+				queue = operation.catch(() => {});
+				return operation;
+			});
+		}
+		const url = new URL('compatibility.html', server.resolvedUrls.local[0]);
+		if (!args.has('--no-input')) url.searchParams.set('input', 'playwright');
+		if (args.has('--input-only')) url.searchParams.set('input-only', '');
+		url.searchParams.set('start', String(start));
+		url.searchParams.set('limit', '500');
+		await page.goto(url.href);
+		try {
+			await page.waitForFunction(
+				() => document.documentElement.dataset.complete === 'true',
+				undefined,
+				{ timeout: 600_000 },
+			);
+		} catch (cause) {
+			const report = await page
+				.locator('#results')
+				.textContent()
+				.catch(() => 'page unavailable');
+			throw new BrowserAutomationError(`Browser batch failed. Last report: ${report}`, { cause });
+		}
+		const batch = JSON.parse(await page.locator('#results').textContent());
+		summary.userAgent = batch.userAgent;
+		summary.input = batch.input;
+		summary.passed += batch.passed;
+		summary.failed += batch.failed;
+		summary.todo += batch.todo;
+		summary.results.push(...batch.results);
+		summary.aborted = batch.aborted;
+		summary.notRun = Math.max(0, batch.total - summary.results.length);
+		await context.close();
+		context = null;
+		start = batch.next;
+		if (batch.aborted || batch.notRun || !batch.results.length) break;
+	} while (start !== null);
 	process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
 	if (summary.failed || summary.aborted || summary.notRun || !summary.results.length)
 		process.exitCode = 1;

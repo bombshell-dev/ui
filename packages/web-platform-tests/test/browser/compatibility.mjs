@@ -1,9 +1,9 @@
 // Development-only browser runner. Bundle this file, then open compatibility.html.
-// The assertions and feature catalogue are the same modules used by Vitest.
+// The assertions and WPT source selection are the same modules used by Vitest.
 import * as chai from 'chai';
 import { JestChaiExpect, JestAsymmetricMatchers } from '@vitest/expect';
-import { testDOMCompatibility } from '../../src/compatibility/test-dom-compatibility.ts';
-import { browserFeatures } from './features.ts';
+import { testDOMCompatibility } from '../../src/shared/test-dom-compatibility.ts';
+import { browserWPTConfig } from './wpt.config.ts';
 import { createBrowserInputDriver } from './input-driver.mts';
 
 const parameters = new URLSearchParams(location.search);
@@ -40,9 +40,16 @@ const runner = {
 			names.pop();
 		}
 	},
-	it(name, run) {
-		if (!inputOnly || names[0] === 'input') cases.push({ name: [...names, name].join(' > '), run });
-	},
+	it: Object.assign(
+		(name, run) => {
+			cases.push({ name: [...names, name].join(' > '), run });
+		},
+		{
+			todo(name) {
+				cases.push({ name: [...names, name].join(' > '), todo: true });
+			},
+		},
+	),
 };
 
 class BrowserDocumentError extends Error {
@@ -156,7 +163,7 @@ async function createRequestedDocument(request) {
 
 const options = {
 	runner,
-	features: browserFeatures(inputMode === 'playwright'),
+	config: browserWPTConfig(runner, { input: inputMode === 'playwright', inputOnly }),
 	...(inputMode === 'playwright'
 		? { input: (document) => createBrowserInputDriver(document, window.__domInput) }
 		: {}),
@@ -179,40 +186,6 @@ const options = {
 			throw error;
 		}
 	},
-	globals(fixtureDocument) {
-		const view = fixtureDocument.defaultView;
-		return {
-			Document: view.Document,
-			DOMException: view.DOMException,
-			NodeList: view.NodeList,
-			TypeError: view.TypeError,
-			CSSStyleSheet: view.CSSStyleSheet,
-			DOMParser: view.DOMParser,
-			XMLSerializer: view.XMLSerializer,
-			getComputedStyle: view.getComputedStyle.bind(view),
-			Element: view.Element,
-			HTMLElement: view.HTMLElement,
-			HTMLInputElement: view.HTMLInputElement,
-			HTMLTextAreaElement: view.HTMLTextAreaElement,
-			HTMLSelectElement: view.HTMLSelectElement,
-			HTMLTemplateElement: view.HTMLTemplateElement,
-			Event: view.Event,
-			EventTarget: view.EventTarget,
-			CustomEvent: view.CustomEvent,
-			KeyboardEvent: view.KeyboardEvent,
-			MouseEvent: view.MouseEvent,
-			FocusEvent: view.FocusEvent,
-			InputEvent: view.InputEvent,
-			MutationObserver: view.MutationObserver,
-			AbortController: view.AbortController,
-			FormData: view.FormData,
-			customElements: view.customElements,
-			// Callbacks are authored in this module's realm, so the standard
-			// exception-reporting target and ErrorEvent constructor belong here.
-			window,
-			ErrorEvent,
-		};
-	},
 	dispose(fixtureDocument) {
 		releases.get(fixtureDocument)?.();
 		releases.delete(fixtureDocument);
@@ -227,6 +200,9 @@ const options = {
 };
 
 const results = [];
+let selectedCases = [];
+const start = Number(parameters.get('start') ?? 0);
+const limit = Number(parameters.get('limit') ?? Infinity);
 let aborted = false;
 const report = document.getElementById('results');
 try {
@@ -239,7 +215,14 @@ try {
 	if (inputOnly && inputMode !== 'playwright')
 		chai.assert.fail('Input-only mode requires an input adapter');
 	testDOMCompatibility(options);
-	for (const test of cases) {
+	if (!Number.isSafeInteger(start) || start < 0 || !(limit > 0))
+		chai.assert.fail('Invalid browser case batch');
+	selectedCases = cases.slice(start, start + limit);
+	for (const test of selectedCases) {
+		if (test.todo) {
+			results.push({ name: test.name, status: 'todo' });
+			continue;
+		}
 		let timeout;
 		if (report)
 			report.textContent = JSON.stringify({ running: test.name, completed: results.length });
@@ -286,9 +269,12 @@ const summary = {
 	userAgent: navigator.userAgent,
 	input: inputMode ?? 'disabled',
 	aborted,
-	notRun: Math.max(0, cases.length - results.length),
+	total: cases.length,
+	next: start + selectedCases.length < cases.length ? start + selectedCases.length : null,
+	notRun: Math.max(0, selectedCases.length - results.length),
 	passed: results.filter((result) => result.status === 'passed').length,
 	failed: results.filter((result) => result.status === 'failed').length,
+	todo: results.filter((result) => result.status === 'todo').length,
 	results,
 };
 if (report) report.textContent = JSON.stringify(summary, null, 2);
