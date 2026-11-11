@@ -13,14 +13,30 @@ function files(directory, prefix = '') {
 
 const tests = files(root)
 	.toSorted()
-	.map((path) => ({ path, content: readFileSync(new URL(path, root), 'utf8') }))
+	.map((path) => ({
+		path,
+		alias: path.slice(0, -3).replace(/[^A-Za-z0-9_$]/g, '_'),
+		content: readFileSync(new URL(path, root), 'utf8'),
+	}))
 	.filter(({ content }) => /^export function register\(/m.test(content));
+
+const pathsByAlias = new Map();
+for (const { path, alias } of tests) {
+	if (pathsByAlias.has(alias)) {
+		process.stderr.write(
+			`WPT registry alias collision: "${pathsByAlias.get(alias)}" and "${path}" both map to "${alias}".\n`,
+		);
+		process.exit(1);
+	}
+	pathsByAlias.set(alias, path);
+}
+
 const output = [
 	'// Generated from src/wpt filenames by scripts/generate-registry.mjs.',
 	"import type { CompatibilityModule } from './context.ts';",
-	...tests.map(({ path, content }, index) => {
-		const imports = [`register as register${index}`];
-		if (/^export const input\b/m.test(content)) imports.push(`input as input${index}`);
+	...tests.map(({ path, content, alias }) => {
+		const imports = [`register as register_${alias}`];
+		if (/^export const input\b/m.test(content)) imports.push(`input as input_${alias}`);
 		return imports.length === 1
 			? `import { ${imports[0]} } from '../wpt/${path}';`
 			: `import {\n${imports.map((name) => `\t${name},`).join('\n')}\n} from '../wpt/${path}';`;
@@ -28,9 +44,9 @@ const output = [
 	'',
 	'// prettier-ignore',
 	'export const registry = {',
-	...tests.map(({ path, content }, index) => {
-		const members = [`register: register${index}`];
-		if (/^export const input\b/m.test(content)) members.push(`input: input${index}`);
+	...tests.map(({ path, content, alias }) => {
+		const members = [`register: register_${alias}`];
+		if (/^export const input\b/m.test(content)) members.push(`input: input_${alias}`);
 		return `\t'${path.slice(0, -3)}': { ${members.join(', ')} },`;
 	}),
 	'} satisfies Record<string, CompatibilityModule>;',
