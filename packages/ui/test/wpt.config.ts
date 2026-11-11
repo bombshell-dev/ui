@@ -25,6 +25,14 @@ export default {
 			'For a Text, textContent should set the data',
 			'For a Comment, textContent should set the data',
 		],
+		'dom/nodes/Node-parentElement.html': [
+			'parentElement should work correctly in disconnected subtrees (element)',
+			'parentElement should work correctly in disconnected subtrees (text)',
+		],
+		'dom/nodes/Node-insertBefore.html': [
+			'Calling insertBefore with a reference child whose parent is not the context node must throw a NotFoundError.',
+			'Inserting a node before itself should not move the node',
+		],
 	},
 	exclude: {
 		'css/**': true,
