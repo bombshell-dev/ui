@@ -46,7 +46,7 @@ export abstract class Node {
 	static readonly TEXT_NODE = 3;
 	static readonly COMMENT_NODE = 8;
 
-	readonly childNodes: Node[];
+	readonly #childNodes: Node[] = [];
 	readonly ownerDocument: Document;
 
 	abstract readonly nodeType: number;
@@ -54,32 +54,98 @@ export abstract class Node {
 
 	protected readonly notify: () => void;
 
+	#parentNode: Node | null = null;
+
 	constructor(owner: Document, notify: Node['notify']) {
 		this.notify = notify;
-		this.childNodes = [];
 		this.ownerDocument = owner;
 	}
 
 	hasChildNodes(): boolean {
-		return this.childNodes.length > 0;
+		return this.#childNodes.length > 0;
+	}
+
+	get parentNode(): Node | null {
+		return this.#parentNode;
+	}
+
+	get parentElement(): Element | null {
+		return this.#parentNode instanceof Element ? this.#parentNode : null;
+	}
+
+	get childNodes(): ReadonlyArray<Node> {
+		return this.#childNodes;
 	}
 
 	get firstChild(): Node | null {
-		return this.childNodes[0] ?? null;
+		return this.#childNodes[0] ?? null;
 	}
 
 	get lastChild(): Node | null {
-		return this.childNodes[this.childNodes.length - 1] ?? null;
-	}
-
-	appendChild(node: Node): Node {
-		this.childNodes.push(node);
-		this.notify();
-		return node;
+		return this.#childNodes[this.childNodes.length - 1] ?? null;
 	}
 
 	get nodeValue(): string | null {
 		return null;
+	}
+
+	appendChild(node: Node): Node {
+		return this.insertBefore(node, null);
+	}
+
+	removeChild(node: Node): Node {
+		const currentIndex = this.childNodes.indexOf(node);
+		if (currentIndex < 0) {
+			throw new DOMException(
+				`cannot remove ${node.nodeName} from ${this.nodeName}. It is not a child`,
+				'NotFoundError',
+			);
+		}
+
+		this.#childNodes.splice(currentIndex, 1);
+		node.#parentNode = null;
+
+		this.notify();
+		return node;
+	}
+
+	insertBefore(node: Node, anchor: Node | null): Node {
+		// oxlint-disable-next-line typescript/no-this-alias -- This cursor walks the insertion parent's ancestry.
+		for (let current: Node | null = this; current; current = current.parentNode) {
+			if (current === node) {
+				throw new DOMException(
+					'cannot add an ancestor Node to its descendant',
+					'HierarchyRequestError',
+				);
+			}
+		}
+
+		if (anchor && anchor.parentNode !== this) {
+			throw new DOMException('Anchor is not a child of this node', 'NotFoundError');
+		}
+
+		if (node === this) {
+			throw new DOMException('cannot make a Node a child of itself', 'HierarchyRequestError');
+		}
+
+		if (node === anchor) {
+			return node;
+		}
+		if (node.parentNode) {
+			if (node.parentNode === this) {
+				const currentIndex = this.childNodes.indexOf(node);
+				this.#childNodes.splice(currentIndex, 1);
+			} else {
+				node.parentNode.removeChild(node);
+			}
+		}
+		const anchorIndex = anchor ? this.childNodes.indexOf(anchor) : this.childNodes.length;
+		this.#childNodes.splice(anchorIndex, 0, node);
+
+		node.#parentNode = this;
+		this.notify();
+
+		return node;
 	}
 }
 
