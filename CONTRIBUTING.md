@@ -15,15 +15,16 @@ You need the exact Node and pnpm versions listed under `devEngines` in the root 
 
 Any version manager works. If you use [mise](https://mise.jdx.dev), which is what our lint, format, and test checks use, export `MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS=node,pnpm` and run `mise install` so it reads those versions from `package.json`.
 
-Then install the dependencies:
+Then install the dependencies and build the workspace packages, including WPT:
 
 ```sh
 pnpm install
+pnpm build
 ```
 
 ## Commands you'll use
 
-Run these from the repo root. You don't need to build before you run the tests.
+Run these from the repo root. Rebuild after changing shared WPT sources; `pnpm --filter @bomb.sh/web-platform-tests build` rebuilds just that package. Repeated test runs reuse the existing build.
 
 | Command                                    | What it does                              |
 | ------------------------------------------ | ----------------------------------------- |

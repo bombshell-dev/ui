@@ -33,7 +33,7 @@
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
+		"test": "bsh test"
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:"
@@ -51,6 +51,7 @@
 		}
 	},
 	"devDependencies": {
-		"@bomb.sh/web-platform-tests": "workspace:*"
+		"@bomb.sh/web-platform-tests": "workspace:*",
+		"preact": "11.0.1"
 	}
 }
