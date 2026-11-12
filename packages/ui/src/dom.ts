@@ -38,12 +38,17 @@ export class Document {
 	createComment(data: string): Text {
 		return new Comment(this, String(data), this.notify);
 	}
+
+	createProcessingInstruction(target: string, data: string): ProcessingInstruction {
+		return new ProcessingInstruction(this, target, data, this.notify);
+	}
 }
 
 export abstract class Node {
 	static readonly ELEMENT_NODE = 1;
 	static readonly ATTRIBUTE_NODE = 2;
 	static readonly TEXT_NODE = 3;
+	static readonly PROCESSING_INSTRUCTION_NODE = 7;
 	static readonly COMMENT_NODE = 8;
 
 	readonly #childNodes: Node[] = [];
@@ -107,6 +112,10 @@ export abstract class Node {
 
 		this.notify();
 		return node;
+	}
+
+	remove(): void {
+		this.parentNode?.removeChild(this);
 	}
 
 	insertBefore(node: Node, anchor: Node | null): Node {
@@ -235,5 +244,22 @@ export class Comment extends CharacterData {
 
 	get nodeName(): string {
 		return '#comment';
+	}
+}
+
+export class ProcessingInstruction extends CharacterData {
+	readonly target: string;
+
+	constructor(owner: Document, target: string, data: string, notify: Node['notify']) {
+		super(owner, data, notify);
+		this.target = target;
+	}
+
+	get nodeType(): number {
+		return Node.PROCESSING_INSTRUCTION_NODE;
+	}
+
+	get nodeName(): string {
+		return this.target;
 	}
 }
