@@ -1,34 +1,38 @@
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
+import { validateElementName, validateElementNamespace } from './validation.ts';
 
-/**
- * Container type for valid names of createElement()
- */
-export interface Elements {
-	document: Element;
-}
+const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
 export class Document {
 	readonly documentElement: Element;
 	readonly notify: () => void;
+
+	#registry: Map<string, typeof Element> = new Map([['span', HTMLSpanElement]]);
 
 	constructor(notify: () => void) {
 		this.notify = notify;
 		this.documentElement = new Element(this, 'document', notify);
 	}
 
-	createElement(tagName: keyof Elements): Element {
+	createElement(tagName: string): Element {
 		if (arguments.length === 0) {
 			// oxlint-disable-next-line bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments.
 			throw new TypeError('createElement requires a tag name');
 		}
-		if (
-			!/^(?:[A-Za-z][^\0\t\n\f\r\u0020/>]*|[:_\u0080-\u{10FFFF}][A-Za-z0-9_.:\-\u0080-\u{10FFFF}]*)$/u.test(
-				tagName,
-			)
-		) {
-			throw new DOMException('Invalid element name', 'InvalidCharacterError');
+		const localName = `${tagName}`;
+		validateElementName(localName);
+		return this.#createElement(asciiLowercase(localName), { namespaceURI: HTML_NS, prefix: null });
+	}
+
+	createElementNS(namespace: string | null, qualifiedName: string): Element {
+		if (arguments.length < 2) {
+			// oxlint-disable-next-line bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments.
+			throw new TypeError('createElementNS requires a namespace and qualified name');
 		}
-		return new Element(this, asciiLowercase(String(tagName)), this.notify);
+		const namespaceURI = namespace == null ? null : `${namespace}` || null;
+		const name = `${qualifiedName}`;
+		const { prefix, localName } = validateElementNamespace(namespaceURI, name);
+		return this.#createElement(localName, { namespaceURI, prefix });
 	}
 
 	createTextNode(data: string): Text {
@@ -42,6 +46,15 @@ export class Document {
 	createProcessingInstruction(target: string, data: string): ProcessingInstruction {
 		return new ProcessingInstruction(this, target, data, this.notify);
 	}
+
+	#createElement(localName: string, namespace: ElementNamespace): Element {
+		if (namespace.namespaceURI !== HTML_NS) {
+			return new Element(this, localName, this.notify, namespace);
+		} else {
+			const ElementConstructor = this.#registry.get(localName) ?? HTMLUnknownElement;
+			return new ElementConstructor(this, localName, this.notify, namespace);
+		}
+	}
 }
 
 export abstract class Node {
@@ -50,6 +63,12 @@ export abstract class Node {
 	static readonly TEXT_NODE = 3;
 	static readonly PROCESSING_INSTRUCTION_NODE = 7;
 	static readonly COMMENT_NODE = 8;
+
+	readonly ELEMENT_NODE = Node.ELEMENT_NODE;
+	readonly ATTRIBUTE_NODE = Node.ATTRIBUTE_NODE;
+	readonly TEXT_NODE = Node.TEXT_NODE;
+	readonly PROCESSING_INSTRUCTION_NODE = Node.PROCESSING_INSTRUCTION_NODE;
+	readonly COMMENT_NODE = Node.COMMENT_NODE;
 
 	readonly #childNodes: Node[] = [];
 	readonly ownerDocument: Document;
@@ -161,11 +180,21 @@ export abstract class Node {
 export class Element extends Node {
 	readonly localName: string;
 	readonly nodeName: string;
+	readonly namespaceURI: string | null;
+	readonly prefix: string | null;
 
-	constructor(owner: Document, localName: string, notify: Node['notify']) {
+	constructor(
+		owner: Document,
+		localName: string,
+		notify: Node['notify'],
+		{ namespaceURI = HTML_NS, prefix = null }: Partial<ElementNamespace> = {},
+	) {
 		super(owner, notify);
 		this.localName = localName;
-		this.nodeName = asciiUppercase(String(localName));
+		this.namespaceURI = namespaceURI;
+		this.prefix = prefix;
+		const qualifiedName = prefix === null ? localName : `${prefix}:${localName}`;
+		this.nodeName = namespaceURI === HTML_NS ? asciiUppercase(qualifiedName) : qualifiedName;
 	}
 
 	get nodeType(): number {
@@ -179,13 +208,13 @@ export class Element extends Node {
 	get children(): Element[] {
 		return this.childNodes.filter((node) => node instanceof Element);
 	}
-	get prefix(): null {
-		return null;
-	}
-	get namespaceURI(): string {
-		return 'http://www.w3.org/1999/xhtml';
-	}
 }
+
+export class HTMLElement extends Element {}
+
+export class HTMLSpanElement extends HTMLElement {}
+
+export class HTMLUnknownElement extends HTMLElement {}
 
 export abstract class CharacterData extends Node {
 	#data: string;
@@ -262,4 +291,9 @@ export class ProcessingInstruction extends CharacterData {
 	get nodeName(): string {
 		return this.target;
 	}
+}
+
+interface ElementNamespace {
+	namespaceURI: string | null;
+	prefix: string | null;
 }

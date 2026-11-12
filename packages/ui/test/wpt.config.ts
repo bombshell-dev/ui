@@ -1,5 +1,15 @@
 import type { WPTConfig } from '@bomb.sh/web-platform-tests';
-import { CharacterData, Comment, Document, Element, Node, Text } from '../src/dom.ts';
+import {
+	CharacterData,
+	Comment,
+	Document,
+	Element,
+	HTMLElement,
+	HTMLSpanElement,
+	HTMLUnknownElement,
+	Node,
+	Text,
+} from '../src/dom.ts';
 
 export default {
 	globals: {
@@ -8,12 +18,16 @@ export default {
 		Document,
 		DOMException: globalThis.DOMException,
 		Element,
+		HTMLElement,
+		HTMLSpanElement,
+		HTMLUnknownElement,
 		Node,
 		Text,
 	},
 	include: {
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': true,
+		'dom/nodes/Document-createElementNS.html': true,
 		'dom/nodes/Document-createComment.html': true,
 		'dom/nodes/CharacterData-data.html': true,
 		'dom/nodes/CharacterData-remove.html': true,
