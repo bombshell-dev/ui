@@ -1,5 +1,13 @@
+/* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
+
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
-import { validateElementName, validateElementNamespace } from './validation.ts';
+import { NamedNodeMap } from './named-node-map.ts';
+import {
+	validateElementName,
+	validateElementNamespace,
+	validateAttributeName,
+	validateAttributeNamespace,
+} from './validation.ts';
 
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
@@ -16,7 +24,6 @@ export class Document {
 
 	createElement(tagName: string): Element {
 		if (arguments.length === 0) {
-			// oxlint-disable-next-line bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments.
 			throw new TypeError('createElement requires a tag name');
 		}
 		const localName = `${tagName}`;
@@ -26,13 +33,28 @@ export class Document {
 
 	createElementNS(namespace: string | null, qualifiedName: string): Element {
 		if (arguments.length < 2) {
-			// oxlint-disable-next-line bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments.
 			throw new TypeError('createElementNS requires a namespace and qualified name');
 		}
 		const namespaceURI = namespace == null ? null : `${namespace}` || null;
 		const name = `${qualifiedName}`;
 		const { prefix, localName } = validateElementNamespace(namespaceURI, name);
 		return this.#createElement(localName, { namespaceURI, prefix });
+	}
+
+	createAttribute(localName: string): Attr {
+		const name = `${localName}`;
+		validateAttributeName(name);
+		return new Attr(this, asciiLowercase(name), this.notify);
+	}
+
+	createAttributeNS(namespace: string | null, qualifiedName: string): Attr {
+		if (arguments.length < 2) {
+			throw new TypeError('createAttributeNS requires a namespace and qualified name');
+		}
+		const namespaceURI = namespace == null ? null : `${namespace}` || null;
+		const name = `${qualifiedName}`;
+		const { prefix, localName } = validateAttributeNamespace(namespaceURI, name);
+		return new Attr(this, localName, this.notify, { namespaceURI, prefix });
 	}
 
 	createTextNode(data: string): Text {
@@ -183,6 +205,8 @@ export class Element extends Node {
 	readonly namespaceURI: string | null;
 	readonly prefix: string | null;
 
+	readonly #attributes: NamedNodeMap;
+
 	constructor(
 		owner: Document,
 		localName: string,
@@ -195,6 +219,11 @@ export class Element extends Node {
 		this.prefix = prefix;
 		const qualifiedName = prefix === null ? localName : `${prefix}:${localName}`;
 		this.nodeName = namespaceURI === HTML_NS ? asciiUppercase(qualifiedName) : qualifiedName;
+		this.#attributes = new NamedNodeMap({
+			ownerElement: this,
+			createAttribute: (name, namespace) => new Attr(owner, name, notify, namespace),
+			notify,
+		});
 	}
 
 	get nodeType(): number {
@@ -208,6 +237,87 @@ export class Element extends Node {
 	get children(): Element[] {
 		return this.childNodes.filter((node) => node instanceof Element);
 	}
+
+	get attributes(): NamedNodeMap {
+		return this.#attributes;
+	}
+
+	getAttribute(name: string): string | null {
+		return this.#attributes.getNamedItem(name)?.value ?? null;
+	}
+
+	hasAttribute(name: string): boolean {
+		if (arguments.length === 0) {
+			throw new TypeError('hasAttribute requires an attribute name');
+		}
+		return this.#attributes.getNamedItem(name) !== null;
+	}
+
+	setAttribute(name: string, value: string): void {
+		this.#attributes.setAttribute(name, value);
+	}
+
+	getAttributeNS(namespace: string | null, localName: string): string | null {
+		if (arguments.length < 2) {
+			throw new TypeError('getAttributeNS requires a namespace and local name');
+		}
+		return this.#attributes.getNamedItemNS(namespace, localName)?.value ?? null;
+	}
+
+	setAttributeNS(namespace: string | null, qualifiedName: string, value: string): void {
+		if (arguments.length < 3) {
+			throw new TypeError('setAttributeNS requires a namespace, qualified name, and value');
+		}
+		this.#attributes.setAttributeNS(namespace, qualifiedName, value);
+	}
+
+	hasAttributeNS(namespace: string | null, localName: string): boolean {
+		return this.#attributes.getNamedItemNS(namespace, localName) !== null;
+	}
+
+	getAttributeNode(name: string): Attr | null {
+		return this.#attributes.getNamedItem(name);
+	}
+
+	getAttributeNodeNS(namespace: string | null, localName: string): Attr | null {
+		return this.#attributes.getNamedItemNS(namespace, localName);
+	}
+
+	setAttributeNode(attribute: Attr): Attr | null {
+		return this.#attributes.setNamedItem(attribute);
+	}
+
+	setAttributeNodeNS(attribute: Attr): Attr | null {
+		return this.#attributes.setNamedItemNS(attribute);
+	}
+
+	removeAttribute(name: string): void {
+		this.#attributes.removeAttribute(name);
+	}
+
+	removeAttributeNS(namespace: string | null, localName: string): void {
+		this.#attributes.removeAttributeNS(namespace, localName);
+	}
+
+	removeAttributeNode(attribute: Attr): Attr {
+		return this.#attributes.removeAttributeNode(attribute);
+	}
+
+	getAttributeNames(): string[] {
+		return this.#attributes.getAttributeNames();
+	}
+
+	toggleAttribute(name: string, force?: boolean): boolean {
+		return this.#attributes.toggleAttribute(name, force);
+	}
+
+	get id(): string {
+		return this.#attributes.getNamedItemNS(null, 'id')?.value ?? '';
+	}
+
+	set id(value: string) {
+		this.#attributes.setAttributeNS(null, 'id', value);
+	}
 }
 
 export class HTMLElement extends Element {}
@@ -215,6 +325,67 @@ export class HTMLElement extends Element {}
 export class HTMLSpanElement extends HTMLElement {}
 
 export class HTMLUnknownElement extends HTMLElement {}
+
+export class Attr extends Node {
+	readonly localName: string;
+	readonly namespaceURI: string | null;
+	readonly prefix: string | null;
+	ownerElement: Element | null;
+	readonly specified = true;
+
+	#value: string;
+
+	constructor(
+		owner: Document,
+		localName: string,
+		notify: Node['notify'],
+		{
+			namespaceURI = null,
+			prefix = null,
+			ownerElement = null,
+			value = '',
+		}: Partial<ElementNamespace> & { ownerElement?: Element | null; value?: string } = {},
+	) {
+		super(owner, notify);
+		this.localName = localName;
+		this.namespaceURI = namespaceURI;
+		this.prefix = prefix;
+		this.ownerElement = ownerElement;
+		this.#value = value;
+	}
+
+	get nodeType(): number {
+		return Node.ATTRIBUTE_NODE;
+	}
+
+	get nodeName(): string {
+		return this.name;
+	}
+
+	get name(): string {
+		return this.prefix === null ? this.localName : `${this.prefix}:${this.localName}`;
+	}
+
+	get value(): string {
+		return this.#value;
+	}
+
+	set value(value: string) {
+		const normal = `${value}`;
+		if (this.#value !== normal) {
+			this.#value = normal;
+			this.ownerDocument?.notify();
+		}
+	}
+
+	override get nodeValue(): string {
+		return this.value;
+	}
+
+	get textContent(): string {
+		return this.value;
+	}
+}
 
 export abstract class CharacterData extends Node {
 	#data: string;

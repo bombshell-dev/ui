@@ -15,6 +15,32 @@ export function validateElementNamespace(
 	namespaceURI: string | null,
 	qualifiedName: string,
 ): { prefix: string | null; localName: string } {
+	return validateNamespace(namespaceURI, { qualifiedName, validateLocalName: validateElementName });
+}
+
+export function validateAttributeName(localName: string): void {
+	if (!/^[^\0\t\n\f\r\u0020/=>]+$/u.test(localName)) {
+		throw new DOMException('Invalid attribute name', 'InvalidCharacterError');
+	}
+}
+
+export function validateAttributeNamespace(
+	namespaceURI: string | null,
+	qualifiedName: string,
+): { prefix: string | null; localName: string } {
+	return validateNamespace(namespaceURI, {
+		qualifiedName,
+		validateLocalName: validateAttributeName,
+	});
+}
+
+function validateNamespace(
+	namespaceURI: string | null,
+	{
+		qualifiedName,
+		validateLocalName,
+	}: { qualifiedName: string; validateLocalName: (localName: string) => void },
+): { prefix: string | null; localName: string } {
 	const colonIndex = qualifiedName.indexOf(':');
 	const prefix = colonIndex < 0 ? null : qualifiedName.slice(0, colonIndex);
 	const localName = colonIndex < 0 ? qualifiedName : qualifiedName.slice(colonIndex + 1);
@@ -22,7 +48,7 @@ export function validateElementNamespace(
 	if (prefix !== null && !/^[^\0\t\n\f\r\u0020/>]+$/u.test(prefix)) {
 		throw new DOMException('Invalid namespace prefix', 'InvalidCharacterError');
 	}
-	validateElementName(localName);
+	validateLocalName(localName);
 	if (
 		(prefix !== null && namespaceURI === null) ||
 		(prefix === 'xml' && namespaceURI !== XML_NS) ||
