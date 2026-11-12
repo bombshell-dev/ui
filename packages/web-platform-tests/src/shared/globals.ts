@@ -96,6 +96,7 @@ export const globalNames = [
 	'KeyboardEvent',
 	'MouseEvent',
 	'MutationObserver',
+	'NamedNodeMap',
 	'Node',
 	'NodeFilter',
 	'NodeList',

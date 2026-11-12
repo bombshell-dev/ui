@@ -45,6 +45,7 @@ function browserGlobals(fixtureDocument: Document): DOMGlobalBindings {
 		HTMLDivElement: view.HTMLDivElement,
 		ProcessingInstruction: view.ProcessingInstruction,
 		Attr: view.Attr,
+		NamedNodeMap: view.NamedNodeMap,
 		DocumentType: view.DocumentType,
 		HTMLUnknownElement: view.HTMLUnknownElement,
 		HTMLAnchorElement: view.HTMLAnchorElement,

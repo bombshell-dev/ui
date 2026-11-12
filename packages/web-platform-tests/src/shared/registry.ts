@@ -85,6 +85,7 @@ import { register as register_dom_nodes_CharacterData_substringData_html } from 
 import { register as register_dom_nodes_DOMImplementation_createDocument_html } from '../wpt/dom/nodes/DOMImplementation-createDocument.html.ts';
 import { register as register_dom_nodes_DOMImplementation_createHTMLDocument_html } from '../wpt/dom/nodes/DOMImplementation-createHTMLDocument.html.ts';
 import { register as register_dom_nodes_Document_adoptNode_html } from '../wpt/dom/nodes/Document-adoptNode.html.ts';
+import { register as register_dom_nodes_Document_createAttribute_html } from '../wpt/dom/nodes/Document-createAttribute.html.ts';
 import { register as register_dom_nodes_Document_createComment_html } from '../wpt/dom/nodes/Document-createComment.html.ts';
 import { register as register_dom_nodes_Document_createElement_html } from '../wpt/dom/nodes/Document-createElement.html.ts';
 import { register as register_dom_nodes_Document_createElementNS_html } from '../wpt/dom/nodes/Document-createElementNS.html.ts';
@@ -96,6 +97,7 @@ import { register as register_dom_nodes_DocumentFragment_querySelectorAll_after_
 import { register as register_dom_nodes_Element_classlist_html } from '../wpt/dom/nodes/Element-classlist.html.ts';
 import { register as register_dom_nodes_Element_closest_null_selectors_html } from '../wpt/dom/nodes/Element-closest-null-selectors.html.ts';
 import { register as register_dom_nodes_Element_closest_html } from '../wpt/dom/nodes/Element-closest.html.ts';
+import { register as register_dom_nodes_Element_hasAttribute_html } from '../wpt/dom/nodes/Element-hasAttribute.html.ts';
 import { register as register_dom_nodes_Element_hasAttributes_html } from '../wpt/dom/nodes/Element-hasAttributes.html.ts';
 import { register as register_dom_nodes_Element_matches_active_pseudo_class_html } from '../wpt/dom/nodes/Element-matches-active-pseudo-class.html.ts';
 import { register as register_dom_nodes_Element_matches_complex_nth_last_of_type_html } from '../wpt/dom/nodes/Element-matches-complex-nth-last-of-type.html.ts';
@@ -104,6 +106,9 @@ import { register as register_dom_nodes_Element_matches_namespaced_elements_html
 import { register as register_dom_nodes_Element_matches_html } from '../wpt/dom/nodes/Element-matches.html.ts';
 import { register as register_dom_nodes_Element_querySelectorAll_context_element_html } from '../wpt/dom/nodes/Element-querySelectorAll-context-element.html.ts';
 import { register as register_dom_nodes_Element_remove_html } from '../wpt/dom/nodes/Element-remove.html.ts';
+import { register as register_dom_nodes_Element_removeAttribute_html } from '../wpt/dom/nodes/Element-removeAttribute.html.ts';
+import { register as register_dom_nodes_Element_removeAttributeNS_html } from '../wpt/dom/nodes/Element-removeAttributeNS.html.ts';
+import { register as register_dom_nodes_Element_setAttribute_crbug_1138487_html } from '../wpt/dom/nodes/Element-setAttribute-crbug-1138487.html.ts';
 import { register as register_dom_nodes_Element_setAttribute_html } from '../wpt/dom/nodes/Element-setAttribute.html.ts';
 import { register as register_dom_nodes_Element_setAttributeNodeNS_html } from '../wpt/dom/nodes/Element-setAttributeNodeNS.html.ts';
 import { register as register_dom_nodes_MutationObserver_attributes_html } from '../wpt/dom/nodes/MutationObserver-attributes.html.ts';
@@ -185,6 +190,7 @@ import { register as register_dom_nodes_ParentNode_querySelectors_namespaces_htm
 import { register as register_dom_nodes_ParentNode_querySelectors_space_and_dash_attribute_value_html } from '../wpt/dom/nodes/ParentNode-querySelectors-space-and-dash-attribute-value.html.ts';
 import { register as register_dom_nodes_Text_splitText_html } from '../wpt/dom/nodes/Text-splitText.html.ts';
 import { register as register_dom_nodes_append_on_Document_html } from '../wpt/dom/nodes/append-on-Document.html.ts';
+import { register as register_dom_nodes_attributes_namednodemap_html } from '../wpt/dom/nodes/attributes-namednodemap.html.ts';
 import { register as register_dom_nodes_attributes_html } from '../wpt/dom/nodes/attributes.html.ts';
 import { register as register_dom_nodes_querySelector_empty_id_html } from '../wpt/dom/nodes/querySelector-empty-id.html.ts';
 import { register as register_dom_nodes_querySelector_id_nth_child_html } from '../wpt/dom/nodes/querySelector-id-nth-child.html.ts';
@@ -518,6 +524,7 @@ export const registry = {
 	'dom/nodes/DOMImplementation-createDocument.html': { register: register_dom_nodes_DOMImplementation_createDocument_html },
 	'dom/nodes/DOMImplementation-createHTMLDocument.html': { register: register_dom_nodes_DOMImplementation_createHTMLDocument_html },
 	'dom/nodes/Document-adoptNode.html': { register: register_dom_nodes_Document_adoptNode_html },
+	'dom/nodes/Document-createAttribute.html': { register: register_dom_nodes_Document_createAttribute_html },
 	'dom/nodes/Document-createComment.html': { register: register_dom_nodes_Document_createComment_html },
 	'dom/nodes/Document-createElement.html': { register: register_dom_nodes_Document_createElement_html },
 	'dom/nodes/Document-createElementNS.html': { register: register_dom_nodes_Document_createElementNS_html },
@@ -529,6 +536,7 @@ export const registry = {
 	'dom/nodes/Element-classlist.html': { register: register_dom_nodes_Element_classlist_html },
 	'dom/nodes/Element-closest-null-selectors.html': { register: register_dom_nodes_Element_closest_null_selectors_html },
 	'dom/nodes/Element-closest.html': { register: register_dom_nodes_Element_closest_html },
+	'dom/nodes/Element-hasAttribute.html': { register: register_dom_nodes_Element_hasAttribute_html },
 	'dom/nodes/Element-hasAttributes.html': { register: register_dom_nodes_Element_hasAttributes_html },
 	'dom/nodes/Element-matches-active-pseudo-class.html': { register: register_dom_nodes_Element_matches_active_pseudo_class_html },
 	'dom/nodes/Element-matches-complex-nth-last-of-type.html': { register: register_dom_nodes_Element_matches_complex_nth_last_of_type_html },
@@ -537,6 +545,9 @@ export const registry = {
 	'dom/nodes/Element-matches.html': { register: register_dom_nodes_Element_matches_html },
 	'dom/nodes/Element-querySelectorAll-context-element.html': { register: register_dom_nodes_Element_querySelectorAll_context_element_html },
 	'dom/nodes/Element-remove.html': { register: register_dom_nodes_Element_remove_html },
+	'dom/nodes/Element-removeAttribute.html': { register: register_dom_nodes_Element_removeAttribute_html },
+	'dom/nodes/Element-removeAttributeNS.html': { register: register_dom_nodes_Element_removeAttributeNS_html },
+	'dom/nodes/Element-setAttribute-crbug-1138487.html': { register: register_dom_nodes_Element_setAttribute_crbug_1138487_html },
 	'dom/nodes/Element-setAttribute.html': { register: register_dom_nodes_Element_setAttribute_html },
 	'dom/nodes/Element-setAttributeNodeNS.html': { register: register_dom_nodes_Element_setAttributeNodeNS_html },
 	'dom/nodes/MutationObserver-attributes.html': { register: register_dom_nodes_MutationObserver_attributes_html },
@@ -618,6 +629,7 @@ export const registry = {
 	'dom/nodes/ParentNode-querySelectors-space-and-dash-attribute-value.html': { register: register_dom_nodes_ParentNode_querySelectors_space_and_dash_attribute_value_html },
 	'dom/nodes/Text-splitText.html': { register: register_dom_nodes_Text_splitText_html },
 	'dom/nodes/append-on-Document.html': { register: register_dom_nodes_append_on_Document_html },
+	'dom/nodes/attributes-namednodemap.html': { register: register_dom_nodes_attributes_namednodemap_html },
 	'dom/nodes/attributes.html': { register: register_dom_nodes_attributes_html },
 	'dom/nodes/querySelector-empty-id.html': { register: register_dom_nodes_querySelector_empty_id_html },
 	'dom/nodes/querySelector-id-nth-child.html': { register: register_dom_nodes_querySelector_id_nth_child_html },
