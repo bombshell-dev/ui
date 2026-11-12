@@ -1,6 +1,10 @@
-export { createUI } from './ui.ts';
+export { createUI, type UI, type UIOptions } from './ui.ts';
 export {
 	createHTMLDocument,
+	Document,
+	Element,
+	Node,
+	Text,
 	HTMLDocument,
 	HTMLElement,
 	HTMLHtmlElement,

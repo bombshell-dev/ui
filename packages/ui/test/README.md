@@ -11,6 +11,8 @@ The script builds the private WPT harness, runs local Vitest tests, and runs the
 upstream cases selected by [`wpt.config.ts`](../wpt.config.ts). Use `pnpm test`
 from the workspace root to run all workspace tests.
 
+[`preact.test.tsx`](preact.test.tsx) checks direct Preact rendering, updates, events, cleanup, and terminal repainting.
+
 ## Terminal fixtures
 
 [`createTestUI`](ui.ts) starts the real UI with an in-process

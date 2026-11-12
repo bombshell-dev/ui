@@ -52,6 +52,7 @@
 		}
 	},
 	"devDependencies": {
-		"@bomb.sh/web-platform-tests": "workspace:*"
+		"@bomb.sh/web-platform-tests": "workspace:*",
+		"preact": "11.0.1"
 	}
 }

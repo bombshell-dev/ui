@@ -15,12 +15,6 @@ UI provides web-based bindings, which allows us to support any JavaScript framew
 npm install @clack/ui
 ```
 
-## Bindings
-
-| binding                                 | version                                                                                                                    | changelog                                                        |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [`@clack/ui-preact`](./packages/preact) | [![npm](https://img.shields.io/npm/v/@clack/ui-preact?style=for-the-badge)](https://www.npmx.dev/package/@clack/ui-preact) | [./packages/preact/CHANGELOG.md](./packages/preact/CHANGELOG.md) |
-
 ## Documentation
 
 Coming soon 🙈
