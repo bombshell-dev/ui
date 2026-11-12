@@ -33,7 +33,7 @@
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
+		"test": "vitest run --config ../../vitest.config.mts --experimental.viteModuleRunner"
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:"

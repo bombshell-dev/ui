@@ -1,12 +1,12 @@
 # UI tests
 
-Tests live alongside the implementation in `src/`; this directory contains their shared fixtures and WPT configuration. Run the UI tests from the workspace root:
+Tests live in `src/` and this directory, alongside shared fixtures and WPT configuration. Run the UI tests from the workspace root:
 
 ```sh
 pnpm --filter @clack/ui test
 ```
 
-The test script builds the private `@bomb.sh/web-platform-tests` package before running Vitest. Use `pnpm test` from the workspace root to run the workspace tests.
+Run `pnpm build` once before testing, and rebuild the private `@bomb.sh/web-platform-tests` package after changing its sources. Test commands reuse that build. Use `pnpm test` from the workspace root to run the workspace tests.
 
 ## Terminal fixtures
 
@@ -26,13 +26,16 @@ Rendering, scheduling, notifications, and lifecycle behavior belong in the UI te
 
 The configuration explicitly excludes unsupported directories. Add includes or narrow exclusions as cases pass. Selecting a source runs all of our adapted cases from that file; it does not imply complete coverage of the upstream file or interface.
 
-Include the source or case in the configuration while implementing it. Vitest's `-t` can narrow the configured selection by source path and case name:
+Include the source or case in the configuration while implementing it. Run matching cases by supplying plain text from a source path or case name:
 
 ```sh
-pnpm --filter @clack/ui test src/dom.compatibility.test.ts -t 'Document-createElement.html.*createElement\(foo\)'
+pnpm wpt createElement
+pnpm wpt 'createElement(foo) in HTML document'
 ```
 
-If the shared package is already built, avoid rebuilding by using `pnpm --filter @clack/ui exec bsh test src/dom.compatibility.test.ts` with the same name filter.
+The script invokes the package-owned `wpt` CLI, which uses `@bomb.sh/router` to parse arguments and launches Vitest with the UI test entrypoint. It reuses the existing WPT build. The search is a literal substring, so punctuation needs no regex escaping. Omit the search text (`pnpm wpt`) to run all configured cases. Matching happens before Vitest registers tests, so unrelated cases do not appear as skipped.
+
+The root Vitest configuration imports `wptNameFilter()` from `@bomb.sh/web-platform-tests/vitest`; the UI entrypoint uses the worker adapter from `@bomb.sh/web-platform-tests/vitest/runner`. Direct Vitest runs still support `-t` regular expressions. Watch mode retains the full configured catalogue so changing its interactive name filter can discover other cases.
 
 When implementing behavior, read the source-named file under [`src/wpt`](../../web-platform-tests/src/wpt), implement its operations, and update the configuration once its cases pass. Extend the fixture when cases need document parsing, host input, or cleanup. Implementation-specific rendering, notification, and lifecycle checks remain in the UI tests.
 

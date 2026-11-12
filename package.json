@@ -33,10 +33,12 @@
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
+		"test": "vitest run --config vitest.config.mts --experimental.viteModuleRunner",
+		"wpt": "wpt --file packages/ui/src/dom.compatibility.test.ts"
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
+		"@bomb.sh/web-platform-tests": "workspace:*",
 		"@codspeed/vitest-plugin": "^6.1.0",
 		"@termless/core": "^0.10.2",
 		"@termless/test": "^0.10.2",

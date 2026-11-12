@@ -15,15 +15,18 @@ You need the exact Node and pnpm versions listed under `devEngines` in the root 
 
 Any version manager works. If you use [mise](https://mise.jdx.dev), which is what our lint, format, and test checks use, export `MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS=node,pnpm` and run `mise install` so it reads those versions from `package.json`.
 
-Then install the dependencies:
+Then install the dependencies and build the packages:
 
 ```sh
 pnpm install
+pnpm build
 ```
 
 ## Commands you'll use
 
-Run these from the repo root. You don't need to build before you run the tests.
+Run these from the repo root. Tests and benchmarks reuse the built WPT package.
+Rebuild it after changing its sources with `pnpm --filter @bomb.sh/web-platform-tests build`;
+you can run tests repeatedly without rebuilding otherwise.
 
 | Command                                    | What it does                              |
 | ------------------------------------------ | ----------------------------------------- |
@@ -63,12 +66,13 @@ Use `expect.poll` here, because the screen doesn't update the moment you change 
 Before you push, make sure these pass:
 
 ```sh
+pnpm build
 pnpm lint
 pnpm format:check
 pnpm test
 ```
 
-CI runs the same three on every pull request, along with the benchmarks and a workflow that publishes a preview build. In your PR, tell us why the change is needed and link the issue if there is one.
+CI runs these checks on every pull request, building the WPT package once before tests or benchmarks. A separate workflow publishes a preview build. In your PR, tell us why the change is needed and link the issue if there is one.
 
 ## Be kind
 

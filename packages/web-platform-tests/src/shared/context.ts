@@ -26,6 +26,8 @@ export interface CompatibilityExpect {
 }
 
 export interface CompatibilityRunner {
+	/** Narrow configured cases before registering suites or tests with the runner. */
+	filter?(source: string, name: string): boolean;
 	describe(name: string, register: () => void): unknown;
 	it: {
 		(name: string, run: () => void | Promise<void>): unknown;

@@ -16,20 +16,50 @@ The WPT suite must contain only faithful adaptations of existing upstream cases.
 
 The shared suite is the long-term home of upstream WPT coverage for the UI. Implementation-specific rendering, notification, and lifecycle checks belong in the corresponding UI integration tests.
 
+### Vitest integration
+
+Register `wptNameFilter()` in the consumer's Vitest configuration:
+
 ```ts
-import { testDOMCompatibility } from '@bomb.sh/web-platform-tests';
-import { describe, it, expect } from 'vitest';
+import { defineConfig } from 'vitest/config';
+import { wptNameFilter } from '@bomb.sh/web-platform-tests/vitest';
+
+export default defineConfig({ plugins: [wptNameFilter()] });
+```
+
+The test entrypoint supplies the DOM implementation and case selection:
+
+```ts
+import { testDOMCompatibility } from '@bomb.sh/web-platform-tests/vitest/runner';
 import { createDocument, dispose } from './implementation-fixture.ts';
 import config from './wpt.config.ts';
 
 testDOMCompatibility({
-  runner: { describe, it, expect },
   config,
   create: createDocument,
   dispose,
   // input: document => createHostInputSession(document),
 });
 ```
+
+The configuration plugin is safe to import outside a test worker. The separate worker adapter supplies Vitest's assertions and filters cases before registration. Direct Vitest `-t` filters work too; watch mode retains the full configured catalogue so interactive filter changes can discover other cases.
+
+The main `@bomb.sh/web-platform-tests` entrypoint remains independent of Vitest. Other runners can use its `testDOMCompatibility()` with their own `runner: { describe, it, expect, filter? }`.
+
+### CLI
+
+The package provides a `wpt` executable using `@bomb.sh/router`. Install Vitest in the consuming workspace and build the WPT package before running it:
+
+```sh
+pnpm --filter @bomb.sh/web-platform-tests build
+pnpm exec wpt --file path/to/dom.compatibility.test.ts createElement
+pnpm exec wpt --file path/to/dom.compatibility.test.ts 'createElement(foo) in HTML document'
+pnpm exec wpt --help
+```
+
+`--file` selects the consumer's test entrypoint. `--config` optionally selects its Vitest configuration; otherwise Vitest discovers the configuration from the current working directory. Paths are relative to the caller, so the CLI does not depend on this repository's layout or package manager. The configuration must include `wptNameFilter()` and the entrypoint must use the worker adapter shown above.
+
+Search text is an optional literal substring of a source path or case name. Multiple words are joined with spaces; use `--` before search text beginning with a dash. Omit the search to run all configured cases. The CLI forwards Vitest's exit status and never runs a build. Rebuild after changing WPT package sources, then reuse the output across focused runs.
 
 ### Selecting tests
 
@@ -50,7 +80,7 @@ export default {
 
 Source paths support `*` within a path segment and `**` across directories; `**/` also matches zero directories. Other characters are literal. Case-name strings match exactly. Empty, invalid, or unmatched selectors fail configuration before any cases register, so stale exclusions remain visible.
 
-Cases have no test-to-test prerequisite gates. A selected case exercises its supporting DOM operations and reports failures normally. Globals and host input are resolved lazily when the case uses them. The runner can narrow selected cases further with its usual name filter.
+Cases have no test-to-test prerequisite gates. A selected case exercises its supporting DOM operations and reports failures normally. Globals and host input are resolved lazily when the case uses them. An optional `runner.filter(source, name)` narrows configured cases before registering suites or tests with the runner. Configuration is still validated against the full catalogue. If this filter matches nothing, the harness registers nothing.
 
 Run `pnpm generate` after adding, moving, or removing source files. The build also regenerates the registry from filenames. Only files exporting `register` are test entrypoints; upstream support files are imported by those tests. `node scripts/generate-registry.mjs --check` verifies that the checked-in registry is current.
 

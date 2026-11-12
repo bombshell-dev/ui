@@ -30,15 +30,17 @@ export function testDOMCompatibility<D>(options: DOMCompatibilityOptions<D>): vo
 			},
 		});
 	}
+	const selected = selectTests(cases, options.config);
+	if (selected.length === 0) {
+		options.runner.it.todo('implement DOM features and enable their WPT cases');
+		return;
+	}
 	const groups = new Map<string, RegisteredCase[]>();
-	for (const test of selectTests(cases, options.config)) {
+	for (const test of selected) {
+		if (options.runner.filter && !options.runner.filter(test.source, test.name)) continue;
 		const group = groups.get(test.source) ?? [];
 		group.push(test);
 		groups.set(test.source, group);
-	}
-	if (groups.size === 0) {
-		options.runner.it.todo('implement DOM features and enable their WPT cases');
-		return;
 	}
 	for (const [source, tests] of groups) {
 		options.runner.describe(source, () => {
