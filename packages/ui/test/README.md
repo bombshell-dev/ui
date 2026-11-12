@@ -1,12 +1,20 @@
 # UI tests
 
-Tests live alongside the implementation in `src/`; this directory contains their shared fixtures and WPT configuration. Run the UI tests from the workspace root:
+Tests live alongside the implementation in `src/`; this directory contains their shared fixtures and WPT configuration. Before the first test run, or after changing the shared WPT sources, build the test package from the workspace root:
+
+```sh
+pnpm --filter @bomb.sh/web-platform-tests build
+```
+
+Then run the UI tests:
 
 ```sh
 pnpm --filter @clack/ui test
 ```
 
-The test script builds the private `@bomb.sh/web-platform-tests` package before running Vitest. Use `pnpm test` from the workspace root to run the workspace tests.
+Test runs reuse that build. Use `pnpm test` from the workspace root to run the workspace tests.
+
+[`preact.test.tsx`](preact.test.tsx) checks Preact's `render()` directly against the UI DOM, including updates, keyed reorders, events, portals, effect cleanup, and terminal repainting. Preact is a development dependency; the test selects its JSX runtime with a file-level pragma.
 
 ## Terminal fixtures
 
@@ -31,8 +39,6 @@ Include the source or case in the configuration while implementing it. Vitest's 
 ```sh
 pnpm --filter @clack/ui test src/dom.compatibility.test.ts -t 'Document-createElement.html.*createElement\(foo\)'
 ```
-
-If the shared package is already built, avoid rebuilding by using `pnpm --filter @clack/ui exec bsh test src/dom.compatibility.test.ts` with the same name filter.
 
 When implementing behavior, read the source-named file under [`src/wpt`](../../web-platform-tests/src/wpt), implement its operations, and update the configuration once its cases pass. Extend the fixture when cases need document parsing, host input, or cleanup. Implementation-specific rendering, notification, and lifecycle checks remain in the UI tests.
 
