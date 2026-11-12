@@ -13,22 +13,40 @@ import {
 } from '../src/dom.ts';
 import { NamedNodeMap } from '../src/named-node-map.ts';
 
-export default {
+const config: WPTConfig = {
 	globals: {
+		AbortController: globalThis.AbortController,
 		Attr,
 		CharacterData,
 		Comment,
+		CustomEvent: globalThis.CustomEvent,
 		Document,
 		DOMException: globalThis.DOMException,
 		Element,
+		Event: globalThis.Event,
+		EventTarget: globalThis.EventTarget,
 		HTMLElement,
 		HTMLSpanElement,
 		HTMLUnknownElement,
 		NamedNodeMap,
 		Node,
 		Text,
+		TypeError: globalThis.TypeError,
 	},
 	include: {
+		'dom/events/Event-constructors.any.js': true,
+		'dom/events/EventTarget-addEventListener.any.js': true,
+		'dom/events/EventTarget-add-remove-listener.any.js': true,
+		'dom/events/AddEventListenerOptions-once.any.js': true,
+		'dom/events/AddEventListenerOptions-signal.any.js': true,
+		'dom/events/AddEventListenerOptions-passive.any.js': true,
+		'dom/events/remove-all-listeners.html': true,
+		'dom/events/EventListener-handleEvent.html': [
+			'calls `handleEvent` method of `EventListener`',
+			"doesn't call `handleEvent` method on callable `EventListener`",
+			// Native EventTarget reads handleEvent at registration; the getter-timing
+			// case remains excluded until that behavior is implemented.
+		],
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': true,
 		'dom/nodes/Document-createElementNS.html': true,
@@ -142,4 +160,6 @@ export default {
 		'uievents/**': true,
 		'xhr/**': true,
 	},
-} satisfies WPTConfig;
+};
+
+export default config;

@@ -67,6 +67,7 @@ import { register as register_dom_events_Event_dispatch_reenter_html } from '../
 import { register as register_dom_events_Event_dispatch_target_moved_html } from '../wpt/dom/events/Event-dispatch-target-moved.html.ts';
 import { register as register_dom_events_Event_dispatch_throwing_html } from '../wpt/dom/events/Event-dispatch-throwing.html.ts';
 import { register as register_dom_events_Event_stopImmediatePropagation_html } from '../wpt/dom/events/Event-stopImmediatePropagation.html.ts';
+import { register as register_dom_events_EventListener_handleEvent_html } from '../wpt/dom/events/EventListener-handleEvent.html.ts';
 import { register as register_dom_events_EventListenerOptions_capture_html } from '../wpt/dom/events/EventListenerOptions-capture.html.ts';
 import { register as register_dom_events_EventTarget_add_remove_listener_any_js } from '../wpt/dom/events/EventTarget-add-remove-listener.any.js.ts';
 import { register as register_dom_events_EventTarget_addEventListener_any_js } from '../wpt/dom/events/EventTarget-addEventListener.any.js.ts';
@@ -74,6 +75,7 @@ import { register as register_dom_events_EventTarget_dispatchEvent_returnvalue_h
 import { register as register_dom_events_EventTarget_dispatchEvent_html } from '../wpt/dom/events/EventTarget-dispatchEvent.html.ts';
 import { register as register_dom_events_EventTarget_removeEventListener_any_js } from '../wpt/dom/events/EventTarget-removeEventListener.any.js.ts';
 import { register as register_dom_events_EventTarget_this_of_listener_html } from '../wpt/dom/events/EventTarget-this-of-listener.html.ts';
+import { register as register_dom_events_remove_all_listeners_html } from '../wpt/dom/events/remove-all-listeners.html.ts';
 import { register as register_dom_lists_DOMTokenList_coverage_for_attributes_html } from '../wpt/dom/lists/DOMTokenList-coverage-for-attributes.html.ts';
 import { register as register_dom_nodes_CharacterData_appendData_html } from '../wpt/dom/nodes/CharacterData-appendData.html.ts';
 import { register as register_dom_nodes_CharacterData_data_html } from '../wpt/dom/nodes/CharacterData-data.html.ts';
@@ -506,6 +508,7 @@ export const registry = {
 	'dom/events/Event-dispatch-target-moved.html': { register: register_dom_events_Event_dispatch_target_moved_html },
 	'dom/events/Event-dispatch-throwing.html': { register: register_dom_events_Event_dispatch_throwing_html },
 	'dom/events/Event-stopImmediatePropagation.html': { register: register_dom_events_Event_stopImmediatePropagation_html },
+	'dom/events/EventListener-handleEvent.html': { register: register_dom_events_EventListener_handleEvent_html },
 	'dom/events/EventListenerOptions-capture.html': { register: register_dom_events_EventListenerOptions_capture_html },
 	'dom/events/EventTarget-add-remove-listener.any.js': { register: register_dom_events_EventTarget_add_remove_listener_any_js },
 	'dom/events/EventTarget-addEventListener.any.js': { register: register_dom_events_EventTarget_addEventListener_any_js },
@@ -513,6 +516,7 @@ export const registry = {
 	'dom/events/EventTarget-dispatchEvent.html': { register: register_dom_events_EventTarget_dispatchEvent_html },
 	'dom/events/EventTarget-removeEventListener.any.js': { register: register_dom_events_EventTarget_removeEventListener_any_js },
 	'dom/events/EventTarget-this-of-listener.html': { register: register_dom_events_EventTarget_this_of_listener_html },
+	'dom/events/remove-all-listeners.html': { register: register_dom_events_remove_all_listeners_html },
 	'dom/lists/DOMTokenList-coverage-for-attributes.html': { register: register_dom_lists_DOMTokenList_coverage_for_attributes_html },
 	'dom/nodes/CharacterData-appendData.html': { register: register_dom_nodes_CharacterData_appendData_html },
 	'dom/nodes/CharacterData-data.html': { register: register_dom_nodes_CharacterData_data_html },

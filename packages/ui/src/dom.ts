@@ -79,7 +79,11 @@ export class Document {
 	}
 }
 
-export abstract class Node {
+export interface EventListener<Target extends EventTarget = EventTarget> {
+	(this: Target, event: Event): void;
+}
+
+export abstract class Node extends EventTarget {
 	static readonly ELEMENT_NODE = 1;
 	static readonly ATTRIBUTE_NODE = 2;
 	static readonly TEXT_NODE = 3;
@@ -103,8 +107,58 @@ export abstract class Node {
 	#parentNode: Node | null = null;
 
 	constructor(owner: Document, notify: Node['notify']) {
+		super();
 		this.notify = notify;
 		this.ownerDocument = owner;
+	}
+
+	// Adds bubbling to the host EventTarget. Capture traversal and resetting the
+	// host's propagation flags after dispatch are not implemented here.
+	override dispatchEvent(event: Event): boolean {
+		if (event.eventPhase !== Event.NONE) {
+			throw new DOMException('Cannot redispatch an active event', 'InvalidStateError');
+		}
+
+		const path: Node[] = [this];
+		for (let current = this.parentNode; current; current = current.parentNode) {
+			path.push(current);
+		}
+
+		// Native dispatch retargets on each node. Keep the tree's original target
+		// and expose its current node and phase while each native dispatch runs.
+		Object.defineProperty(event, 'target', { configurable: true, value: this });
+		const originals = Object.getOwnPropertyDescriptors(event);
+
+		try {
+			Object.defineProperty(event, 'composedPath', {
+				value: () => [...path],
+				configurable: true,
+			});
+			const end = event.bubbles ? path.length : 1;
+			for (let i = 0; i < end; i++) {
+				Object.defineProperties(event, {
+					currentTarget: { value: path[i], configurable: true },
+					eventPhase: {
+						value: i === 0 ? Event.AT_TARGET : Event.BUBBLING_PHASE,
+						configurable: true,
+					},
+				});
+				super.dispatchEvent.call(path[i], event);
+				if (event.cancelBubble) {
+					break;
+				}
+			}
+			return !event.defaultPrevented;
+		} finally {
+			for (const name of ['currentTarget', 'eventPhase', 'composedPath']) {
+				const original = originals[name];
+				if (original) {
+					Object.defineProperty(event, name, original);
+				} else {
+					Reflect.deleteProperty(event, name);
+				}
+			}
+		}
 	}
 
 	hasChildNodes(): boolean {
@@ -468,3 +522,17 @@ interface ElementNamespace {
 	namespaceURI: string | null;
 	prefix: string | null;
 }
+
+export interface EventOptions {
+	bubbles?: boolean;
+	cancelable?: boolean;
+	composed?: boolean;
+}
+
+// Node exposes these constants at runtime, but its type declarations omit them.
+const Event = globalThis.Event as typeof globalThis.Event & {
+	readonly NONE: 0;
+	readonly CAPTURING_PHASE: 1;
+	readonly AT_TARGET: 2;
+	readonly BUBBLING_PHASE: 3;
+};
