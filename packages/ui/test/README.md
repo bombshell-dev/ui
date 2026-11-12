@@ -20,6 +20,8 @@ Rendering, scheduling, notifications, and lifecycle behavior belong in the UI te
 
 [`dom.compatibility.test.ts`](../src/dom.compatibility.test.ts) registers the shared compatibility suite with Vitest. Its synchronous factory creates a fresh instance of the real [`Document`](../src/dom.ts) for each case, with a no-op render notification callback. This fixture owns no external resources, so it needs no disposal callback.
 
+[`dom.test.ts`](dom.test.ts) explicitly holds local DOM coverage missing from the enabled WPT cases. This is usually because getting the WPT test prequisites set up is too onerous a task. For example, testing node properties like nextSibling and previousSibling require things like `document.implementation.createDocumentType()`
+
 [`wpt.config.ts`](wpt.config.ts) supplies the implementation's `globals` and selects the upstream files and cases enforced by this integration. Add new global bindings there. Omitting `config` runs all adapted cases; `exclude` removes matches and explicit `include` rules take precedence. Source keys support `*` and `**`; values are `true` for a whole source or arrays of exact case names and regular expressions. Unmatched rules are configuration errors. No other test groups must be enabled to run a case.
 
 The configuration explicitly excludes unsupported directories. Add includes or narrow exclusions as cases pass. Selecting a source runs all of our adapted cases from that file; it does not imply complete coverage of the upstream file or interface.

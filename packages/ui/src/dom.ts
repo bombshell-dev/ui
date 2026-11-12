@@ -185,6 +185,22 @@ export abstract class Node extends EventTarget {
 		return this.#childNodes[this.childNodes.length - 1] ?? null;
 	}
 
+	get previousSibling(): Node | null {
+		if (!this.#parentNode) {
+			return null;
+		}
+		const siblings = this.#parentNode.#childNodes;
+		return siblings[siblings.indexOf(this) - 1] ?? null;
+	}
+
+	get nextSibling(): Node | null {
+		if (!this.#parentNode) {
+			return null;
+		}
+		const siblings = this.#parentNode.#childNodes;
+		return siblings[siblings.indexOf(this) + 1] ?? null;
+	}
+
 	get nodeValue(): string | null {
 		return null;
 	}
