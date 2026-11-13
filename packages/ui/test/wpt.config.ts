@@ -15,6 +15,7 @@ import {
 } from '../src/dom.ts';
 import { NamedNodeMap } from '../src/named-node-map.ts';
 import { HTMLCollection } from '../src/html-collection.ts';
+import { StyleDeclaration } from '../src/style.ts';
 
 const config: WPTConfig = {
 	globals: {
@@ -22,6 +23,7 @@ const config: WPTConfig = {
 		Attr,
 		CharacterData,
 		Comment,
+		CSSStyleDeclaration: StyleDeclaration,
 		CustomEvent: globalThis.CustomEvent,
 		Document,
 		DOMException: globalThis.DOMException,
@@ -40,6 +42,56 @@ const config: WPTConfig = {
 		TypeError: globalThis.TypeError,
 	},
 	include: {
+		'css/css-align/parsing/gap-invalid.html': true,
+		'css/css-backgrounds/parsing/border-color-invalid.html': true,
+		'css/css-backgrounds/parsing/border-style-invalid.html': true,
+		'css/css-backgrounds/parsing/border-style-valid.html': [
+			'e.style[\'border-style\'] = "none" should set the property value',
+			// Per-side styles and multi-value shorthands are not supported yet.
+		],
+		'css/css-backgrounds/parsing/border-width-valid.html': [
+			'e.style[\'border-top-width\'] = "0px" should set the property value',
+			// Other cases require border-width shorthand or keyword widths.
+		],
+		'css/css-box/parsing/padding-invalid.html': [
+			'e.style[\'padding-top\'] = "auto" should not set the property value',
+			'e.style[\'padding-bottom\'] = "10px 20px calc(2em + 3ex) auto" should not set the property value',
+			'e.style[\'padding-top\'] = "-10px" should not set the property value',
+			'e.style[\'padding-right\'] = "-20%" should not set the property value',
+			// Remaining cases target padding shorthand or an unknown property.
+		],
+		'css/css-box/parsing/padding-valid.html': [
+			'e.style[\'padding-top\'] = "10px" should set the property value',
+			'e.style[\'padding-right\'] = "20px" should set the property value',
+			'e.style[\'padding-bottom\'] = "30px" should set the property value',
+			'e.style[\'padding-left\'] = "40px" should set the property value',
+			// Shorthands, percentages, and calc() remain unsupported.
+		],
+		'css/css-color/parsing/color-invalid-hex-color.html': true,
+		'css/css-color/parsing/color-invalid-hwb.html': true,
+		'css/css-color/parsing/color-invalid-lab.html': true,
+		'css/css-color/parsing/color-valid.html': [
+			'e.style[\'color\'] = "transparent" should set the property value',
+			'e.style[\'color\'] = "red" should set the property value',
+			'e.style[\'color\'] = "magenta" should set the property value',
+			'e.style[\'color\'] = "rgb(2, 3, 4)" should set the property value',
+			'e.style[\'color\'] = "rgba(2, 3, 4, 0.5)" should set the property value',
+			// Other cases need canonical serialization, currentcolor, or light-dark().
+		],
+		'css/css-display/parsing/display-invalid.html': true,
+		'css/css-display/parsing/display-valid.html': [
+			'e.style[\'display\'] = "inline" should set the property value',
+			'e.style[\'display\'] = "flex" should set the property value',
+			// Other cases need additional display modes or multi-keyword parsing.
+		],
+		'css/css-flexbox/parsing/flex-direction-valid.html': [
+			'e.style[\'flex-direction\'] = "row" should set the property value',
+			'e.style[\'flex-direction\'] = "column" should set the property value',
+			// Reverse directions require terminal layout support.
+		],
+		'css/css-flexbox/parsing/flex-direction-invalid.html': true,
+		'css/cssom/cssstyledeclaration-properties.html': true,
+		'css/cssom/cssstyledeclaration-setter-attr.html': true,
 		'dom/events/Event-constructors.any.js': true,
 		'dom/events/EventTarget-addEventListener.any.js': true,
 		'dom/events/EventTarget-add-remove-listener.any.js': true,
