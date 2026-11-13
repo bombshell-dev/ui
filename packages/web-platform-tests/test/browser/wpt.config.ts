@@ -23,7 +23,9 @@ export function browserWPTConfig(
 	if (input && inputOnly) {
 		config.exclude = { '**': true };
 		config.include = inputCases;
-	} else config.exclude = inputCases;
+	} else {
+		config.exclude = inputCases;
+	}
 	return config;
 }
 
@@ -118,6 +120,7 @@ function browserGlobals(fixtureDocument: Document): DOMGlobalBindings {
 		NodeList: view.NodeList,
 		TypeError: view.TypeError,
 		CSSStyleSheet: view.CSSStyleSheet,
+		CSSStyleDeclaration: view.CSSStyleDeclaration,
 		CSSMediaRule: view.CSSMediaRule,
 		ShadowRoot: view.ShadowRoot,
 		DOMParser: view.DOMParser,

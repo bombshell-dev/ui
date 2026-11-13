@@ -44,6 +44,12 @@ importers:
       '@bomb.sh/tty':
         specifier: 'catalog:'
         version: 0.10.0
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+      hueful:
+        specifier: ^0.8.1
+        version: 0.8.1
     devDependencies:
       '@bomb.sh/web-platform-tests':
         specifier: workspace:*
@@ -1448,6 +1454,9 @@ packages:
   https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
     engines: {node: '>= 6'}
+
+  hueful@0.8.1:
+    resolution: {integrity: sha512-5JmU/74TAKM9BCRcwY046VImUb6dhvrsB2kvj5eEJ1eaCKu6EPPxtONF/kueY9PdzYgUz3g5zrrj+YENz2xy3A==}
 
   human-id@4.2.2:
     resolution: {integrity: sha512-Z+8unD6em/MJwyrkWQ2M3wygRGI1+MztbutiNwk1DCuEPXOZRWGjtcMPZYP1exY9iNZMhd7ZOSMQSo9WYtiQRw==}
@@ -3006,6 +3015,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  hueful@0.8.1: {}
 
   human-id@4.2.2: {}
 

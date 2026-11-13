@@ -1,10 +1,27 @@
 // Generated from src/wpt filenames by scripts/generate-registry.mjs.
 import type { CompatibilityModule } from './context.ts';
+import { register as register_css_css_align_parsing_gap_invalid_html } from '../wpt/css/css-align/parsing/gap-invalid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_color_invalid_html } from '../wpt/css/css-backgrounds/parsing/border-color-invalid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_color_valid_html } from '../wpt/css/css-backgrounds/parsing/border-color-valid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_style_invalid_html } from '../wpt/css/css-backgrounds/parsing/border-style-invalid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_style_valid_html } from '../wpt/css/css-backgrounds/parsing/border-style-valid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_width_invalid_html } from '../wpt/css/css-backgrounds/parsing/border-width-invalid.html.ts';
+import { register as register_css_css_backgrounds_parsing_border_width_valid_html } from '../wpt/css/css-backgrounds/parsing/border-width-valid.html.ts';
+import { register as register_css_css_box_parsing_padding_invalid_html } from '../wpt/css/css-box/parsing/padding-invalid.html.ts';
+import { register as register_css_css_box_parsing_padding_valid_html } from '../wpt/css/css-box/parsing/padding-valid.html.ts';
 import { register as register_css_css_cascade_inherit_initial_html } from '../wpt/css/css-cascade/inherit-initial.html.ts';
 import { register as register_css_css_cascade_layer_basic_html } from '../wpt/css/css-cascade/layer-basic.html.ts';
 import { register as register_css_css_cascade_layer_important_html } from '../wpt/css/css-cascade/layer-important.html.ts';
 import { register as register_css_css_cascade_layer_vs_inline_style_html } from '../wpt/css/css-cascade/layer-vs-inline-style.html.ts';
 import { register as register_css_css_cascade_unset_value_storage_html } from '../wpt/css/css-cascade/unset-value-storage.html.ts';
+import { register as register_css_css_color_parsing_color_invalid_hex_color_html } from '../wpt/css/css-color/parsing/color-invalid-hex-color.html.ts';
+import { register as register_css_css_color_parsing_color_invalid_hwb_html } from '../wpt/css/css-color/parsing/color-invalid-hwb.html.ts';
+import { register as register_css_css_color_parsing_color_invalid_lab_html } from '../wpt/css/css-color/parsing/color-invalid-lab.html.ts';
+import { register as register_css_css_color_parsing_color_valid_html } from '../wpt/css/css-color/parsing/color-valid.html.ts';
+import { register as register_css_css_display_parsing_display_invalid_html } from '../wpt/css/css-display/parsing/display-invalid.html.ts';
+import { register as register_css_css_display_parsing_display_valid_html } from '../wpt/css/css-display/parsing/display-valid.html.ts';
+import { register as register_css_css_flexbox_parsing_flex_direction_invalid_html } from '../wpt/css/css-flexbox/parsing/flex-direction-invalid.html.ts';
+import { register as register_css_css_flexbox_parsing_flex_direction_valid_html } from '../wpt/css/css-flexbox/parsing/flex-direction-valid.html.ts';
 import { register as register_css_css_variables_variable_cycles_html } from '../wpt/css/css-variables/variable-cycles.html.ts';
 import { register as register_css_css_variables_variable_reference_cssom_html } from '../wpt/css/css-variables/variable-reference-cssom.html.ts';
 import { register as register_css_css_variables_variable_reference_shorthands_cssom_html } from '../wpt/css/css-variables/variable-reference-shorthands-cssom.html.ts';
@@ -19,6 +36,8 @@ import { register as register_css_cssom_computed_style_set_property_html } from 
 import { register as register_css_cssom_css_style_attr_decl_block_html } from '../wpt/css/cssom/css-style-attr-decl-block.html.ts';
 import { register as register_css_cssom_css_style_attribute_modifications_html } from '../wpt/css/cssom/css-style-attribute-modifications.html.ts';
 import { register as register_css_cssom_cssom_setProperty_shorthand_html } from '../wpt/css/cssom/cssom-setProperty-shorthand.html.ts';
+import { register as register_css_cssom_cssstyledeclaration_properties_html } from '../wpt/css/cssom/cssstyledeclaration-properties.html.ts';
+import { register as register_css_cssom_cssstyledeclaration_setter_attr_html } from '../wpt/css/cssom/cssstyledeclaration-setter-attr.html.ts';
 import {
 	register as register_css_selectors_focus_visible_001_html,
 	input as input_css_selectors_focus_visible_001_html,
@@ -458,11 +477,28 @@ import { register as register_xhr_formdata_constructor_submitter_html } from '..
 
 // prettier-ignore
 export const registry = {
+	'css/css-align/parsing/gap-invalid.html': { register: register_css_css_align_parsing_gap_invalid_html },
+	'css/css-backgrounds/parsing/border-color-invalid.html': { register: register_css_css_backgrounds_parsing_border_color_invalid_html },
+	'css/css-backgrounds/parsing/border-color-valid.html': { register: register_css_css_backgrounds_parsing_border_color_valid_html },
+	'css/css-backgrounds/parsing/border-style-invalid.html': { register: register_css_css_backgrounds_parsing_border_style_invalid_html },
+	'css/css-backgrounds/parsing/border-style-valid.html': { register: register_css_css_backgrounds_parsing_border_style_valid_html },
+	'css/css-backgrounds/parsing/border-width-invalid.html': { register: register_css_css_backgrounds_parsing_border_width_invalid_html },
+	'css/css-backgrounds/parsing/border-width-valid.html': { register: register_css_css_backgrounds_parsing_border_width_valid_html },
+	'css/css-box/parsing/padding-invalid.html': { register: register_css_css_box_parsing_padding_invalid_html },
+	'css/css-box/parsing/padding-valid.html': { register: register_css_css_box_parsing_padding_valid_html },
 	'css/css-cascade/inherit-initial.html': { register: register_css_css_cascade_inherit_initial_html },
 	'css/css-cascade/layer-basic.html': { register: register_css_css_cascade_layer_basic_html },
 	'css/css-cascade/layer-important.html': { register: register_css_css_cascade_layer_important_html },
 	'css/css-cascade/layer-vs-inline-style.html': { register: register_css_css_cascade_layer_vs_inline_style_html },
 	'css/css-cascade/unset-value-storage.html': { register: register_css_css_cascade_unset_value_storage_html },
+	'css/css-color/parsing/color-invalid-hex-color.html': { register: register_css_css_color_parsing_color_invalid_hex_color_html },
+	'css/css-color/parsing/color-invalid-hwb.html': { register: register_css_css_color_parsing_color_invalid_hwb_html },
+	'css/css-color/parsing/color-invalid-lab.html': { register: register_css_css_color_parsing_color_invalid_lab_html },
+	'css/css-color/parsing/color-valid.html': { register: register_css_css_color_parsing_color_valid_html },
+	'css/css-display/parsing/display-invalid.html': { register: register_css_css_display_parsing_display_invalid_html },
+	'css/css-display/parsing/display-valid.html': { register: register_css_css_display_parsing_display_valid_html },
+	'css/css-flexbox/parsing/flex-direction-invalid.html': { register: register_css_css_flexbox_parsing_flex_direction_invalid_html },
+	'css/css-flexbox/parsing/flex-direction-valid.html': { register: register_css_css_flexbox_parsing_flex_direction_valid_html },
 	'css/css-variables/variable-cycles.html': { register: register_css_css_variables_variable_cycles_html },
 	'css/css-variables/variable-reference-cssom.html': { register: register_css_css_variables_variable_reference_cssom_html },
 	'css/css-variables/variable-reference-shorthands-cssom.html': { register: register_css_css_variables_variable_reference_shorthands_cssom_html },
@@ -477,6 +513,8 @@ export const registry = {
 	'css/cssom/css-style-attr-decl-block.html': { register: register_css_cssom_css_style_attr_decl_block_html },
 	'css/cssom/css-style-attribute-modifications.html': { register: register_css_cssom_css_style_attribute_modifications_html },
 	'css/cssom/cssom-setProperty-shorthand.html': { register: register_css_cssom_cssom_setProperty_shorthand_html },
+	'css/cssom/cssstyledeclaration-properties.html': { register: register_css_cssom_cssstyledeclaration_properties_html },
+	'css/cssom/cssstyledeclaration-setter-attr.html': { register: register_css_cssom_cssstyledeclaration_setter_attr_html },
 	'css/selectors/focus-visible-001.html': { register: register_css_selectors_focus_visible_001_html, input: input_css_selectors_focus_visible_001_html },
 	'css/selectors/focus-visible-002.html': { register: register_css_selectors_focus_visible_002_html, input: input_css_selectors_focus_visible_002_html },
 	'css/selectors/focus-visible-003.html': { register: register_css_selectors_focus_visible_003_html, input: input_css_selectors_focus_visible_003_html },

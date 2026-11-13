@@ -7,6 +7,7 @@ export const globalNames = [
 	'Array',
 	'Attr',
 	'CSSMediaRule',
+	'CSSStyleDeclaration',
 	'CSSStyleSheet',
 	'CharacterData',
 	'Comment',

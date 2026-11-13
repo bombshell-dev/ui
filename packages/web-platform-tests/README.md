@@ -88,6 +88,15 @@ The suite asserts resulting DOM behavior, never browser pixel values. Browser ta
 Browser validation keeps upstream expectations intact. Failures remain enabled
 and produce a nonzero exit code.
 
+Chromium 156 fails `css/cssom/cssstyledeclaration-properties.html` because it
+exposes `color` as an own property. The pinned upstream test fails the same
+assertion. This case remains enabled in both the browser and UI configurations.
+
+The imported `css/css-display/parsing/display-valid.html` matrix also exposes
+Chromium's unsupported `run-in` and `ruby-base` values. These cases fail
+identically upstream and remain enabled in browser validation; the UI selects
+its supported `inline` and `flex` cases.
+
 ### Coverage boundaries
 
 The [adapted sources](src/wpt) and generated [registry](src/shared/registry.ts) describe the executable coverage. Harness tests check source identity, case selection, and reachability of every source module. The [UI configuration](../ui/test/wpt.config.ts) records the cases enforced by that integration; the [UI test README](../ui/test/README.md) explains how to select additional cases while implementing them. Passing selected cases does not imply complete standards conformance.
