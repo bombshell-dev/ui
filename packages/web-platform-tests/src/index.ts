@@ -7,6 +7,14 @@ export type {
 	WPTConfig,
 	WPTSelectors,
 } from './shared/test-dom-compatibility.ts';
+export { features, type DOMFeature } from './frameworks/features.ts';
+export {
+	frameworks,
+	featureSelectors,
+	frameworkSelectors,
+	uncoveredFeatures,
+	type Framework,
+} from './frameworks/frameworks.ts';
 export type {
 	CompatibilityRunner,
 	CompatibilityExpect,
