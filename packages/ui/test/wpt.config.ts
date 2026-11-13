@@ -179,6 +179,7 @@ const config: WPTConfig = {
 			'Attribute with prefix in local name',
 			'getAttributeNames tests',
 		],
+		'dom/nodes/Node-isConnected.html': true,
 		'dom/nodes/Node-nodeValue.html': ['Text.nodeValue', 'Comment.nodeValue'],
 		'dom/nodes/Node-textContent.html': [
 			'For an empty Text, textContent should be the empty string',
