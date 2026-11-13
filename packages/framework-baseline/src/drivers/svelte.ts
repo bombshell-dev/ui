@@ -16,9 +16,10 @@ const { proxy } = createRequire(import.meta.url)('svelte/internal/client') as {
 /** Runes-mode component matching the markup documented on `Driver`/`App` in scenario.ts. */
 const source = `
 <script>
-	let { items, show, className, color, html, radius } = $props();
+	let { items, show, className, color, html, radius, listen } = $props();
 
 	let count = $state(0);
+	let pings = $state(0);
 	let text = $state('');
 	let area = $state('');
 	let checked = $state(false);
@@ -27,6 +28,7 @@ const source = `
 
 <div id="app" class={className} style="color: {color}">
 	<button id="inc" onclick={() => count++}>{count}</button>
+	<button id="ping" onclick={listen ? () => pings++ : undefined}>{pings}</button>
 	<ul>{#each items as item (item)}<li>{item}</li>{/each}</ul>
 	{#if show}<p id="cond">shown</p>{/if}
 	<div id="html">{@html html}</div>

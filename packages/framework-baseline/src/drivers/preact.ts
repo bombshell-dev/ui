@@ -4,6 +4,7 @@ import type { Driver, Props } from '../scenario.ts';
 
 function App(props: Props): JSX.Element {
 	const [count, setCount] = useState(0);
+	const [pings, setPings] = useState(0);
 	const [text, setText] = useState('');
 	const [area, setArea] = useState('');
 	const [checked, setChecked] = useState(false);
@@ -12,6 +13,11 @@ function App(props: Props): JSX.Element {
 		'div',
 		{ id: 'app', class: props.className, style: { color: props.color } },
 		h('button', { id: 'inc', onClick: () => setCount((value) => value + 1) }, count),
+		h(
+			'button',
+			{ id: 'ping', onClick: props.listen ? () => setPings((value) => value + 1) : undefined },
+			pings,
+		),
 		h(
 			'ul',
 			null,

@@ -13,10 +13,22 @@ import type { Driver, Props } from '../scenario.ts';
 
 function App(
 	props: Props,
-	state: { count: number; text: string; area: string; checked: boolean; choice: string },
+	state: {
+		count: number;
+		pings: number;
+		text: string;
+		area: string;
+		checked: boolean;
+		choice: string;
+	},
 ): VNode {
 	return h('div', { id: 'app', class: props.className, style: { color: props.color } }, [
 		h('button', { id: 'inc', onClick: () => state.count++ }, String(state.count)),
+		h(
+			'button',
+			{ id: 'ping', onClick: props.listen ? () => state.pings++ : undefined },
+			String(state.pings),
+		),
 		h(
 			'ul',
 			null,
@@ -60,7 +72,14 @@ function App(
 export const driver: Driver = {
 	async mount(container, props) {
 		const external = shallowReactive<Props>({ ...props });
-		const state = shallowReactive({ count: 0, text: '', area: '', checked: false, choice: 'a' });
+		const state = shallowReactive({
+			count: 0,
+			pings: 0,
+			text: '',
+			area: '',
+			checked: false,
+			choice: 'a',
+		});
 
 		const app = createApp({
 			setup() {

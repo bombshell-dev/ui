@@ -8,6 +8,8 @@ export interface Props {
 	color: string;
 	html: string;
 	radius: number;
+	/** Whether `#ping` has a click handler. */
+	listen: boolean;
 }
 
 /**
@@ -16,6 +18,7 @@ export interface Props {
  * ```html
  * <div id="app" class={className} style="color: {color}">
  *   <button id="inc" onclick={count++}>{count}</button>        <!-- count starts at 0 -->
+ *   <button id="ping" onclick={listen ? pings++ : none}>{pings}</button> <!-- handler added and removed -->
  *   <ul>{items.map(item => <li key={item}>{item}</li>)}</ul>
  *   {show && <p id="cond">shown</p>}
  *   <div id="html" innerHTML={html}></div>
@@ -52,6 +55,7 @@ const initial: Props = {
 	color: 'red',
 	html: '<b>bold</b>',
 	radius: 1,
+	listen: true,
 };
 
 function $(container: HTMLElement, selector: string): HTMLElement {
@@ -91,6 +95,18 @@ export async function runScenario(driver: Driver, document: Document): Promise<v
 	$(container, '#inc').click();
 	await app.flush();
 	assert.equal(text(container, '#inc'), '2');
+
+	$(container, '#ping').click();
+	await app.flush();
+	assert.equal(text(container, '#ping'), '1');
+	await update({ listen: false });
+	$(container, '#ping').click();
+	await app.flush();
+	assert.equal(text(container, '#ping'), '1', 'removed handler does not run');
+	await update({ listen: true });
+	$(container, '#ping').click();
+	await app.flush();
+	assert.equal(text(container, '#ping'), '2', 'restored handler runs');
 
 	const [a, b, c] = [...container.querySelectorAll('li')];
 	await update({ items: ['c', 'b', 'a'] });

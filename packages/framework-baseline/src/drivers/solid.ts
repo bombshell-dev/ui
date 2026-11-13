@@ -7,6 +7,10 @@ export const driver: Driver = {
 	async mount(container, initial) {
 		const [props, setProps] = createSignal<Props>(initial);
 		const [count, setCount] = createSignal(0);
+		const [pings, setPings] = createSignal(0);
+		// Solid event bindings are static; a reactive spread is how handlers come and go.
+		const ping = (): { onClick?: () => void } =>
+			props().listen ? { onClick: () => setPings((value) => value + 1) } : {};
 		const [text, setText] = createSignal('');
 		const [area, setArea] = createSignal('');
 		const [checked, setChecked] = createSignal(false);
@@ -16,6 +20,7 @@ export const driver: Driver = {
 			return html`
 				<div id="app" class=${() => props().className} style=${() => ({ color: props().color })}>
 					<button id="inc" onClick=${() => setCount((value) => value + 1)}>${count}</button>
+					<button id="ping" ...${ping}>${pings}</button>
 					<ul>
 						<${For} each=${() => props().items}>${(item: string) => html`<li>${item}</li>`}<//>
 					</ul>
