@@ -1,0 +1,16 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"@clack/ui": ["../../packages/ui/src/index.ts"]
+		},
+		"composite": false,
+		"declaration": false,
+		"declarationMap": false,
+		"noEmit": true,
+		"types": [
+			"node"
+		]
+	},
+	"include": ["src"]
+}
