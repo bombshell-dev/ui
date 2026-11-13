@@ -1,0 +1,12 @@
+{
+	"name": "@examples/basic",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node --experimental-strip-types src/index.ts",
+		"lint": "bsh lint"
+	},
+	"dependencies": {
+		"@clack/ui": "workspace:*"
+	}
+}

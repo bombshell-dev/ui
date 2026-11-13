@@ -1,4 +1,5 @@
 export { createUI } from './ui.ts';
+export { Document, Element, Text } from './dom.ts';
 export type {
 	ColorValue,
 	BorderWidthValue,
