@@ -183,23 +183,20 @@ export function featureSelectors(names: Iterable<DOMFeature>): WPTSelectors {
 }
 
 /** WPT cases a framework requires, plus any named optional modules. */
-export function frameworkSelectors(
-	framework: Framework,
-	modules: readonly string[] = [],
-): WPTSelectors {
-	const { required, optional } = frameworks[framework] as FrameworkProfile;
-	const extra = modules.flatMap((name) => {
-		const module = optional[name];
-		if (!module)
-			throw new CompatibilityConfigurationError(`${framework} has no optional module ${name}`);
-		return module;
+export function framework(name: Framework, modules: readonly string[] = []): WPTSelectors {
+	const { required, optional } = frameworks[name] as FrameworkProfile;
+	const extra = modules.flatMap((module) => {
+		const listed = optional[module];
+		if (!listed)
+			throw new CompatibilityConfigurationError(`${name} has no optional module ${module}`);
+		return listed;
 	});
 	return featureSelectors([...required, ...extra]);
 }
 
 /** Required features with no adapted WPT coverage yet. */
-export function uncoveredFeatures(framework: Framework): DOMFeature[] {
-	return [...new Set(frameworks[framework].required)].filter(
-		(name) => Object.keys(features[name]).length === 0,
+export function uncoveredByWPT(name: Framework): DOMFeature[] {
+	return [...new Set(frameworks[name].required)].filter(
+		(feature) => Object.keys(features[feature]).length === 0,
 	);
 }

@@ -1,10 +1,13 @@
+// Framework profiles select WPT cases by source path and case name, but nothing resolves those
+// selectors until a consumer calls `framework()`. Resolving every profile here keeps renamed or
+// removed upstream cases from leaving stale selectors behind.
 import { describe, expect, it } from 'vitest';
 import { features, type DOMFeature } from '../src/frameworks/features.ts';
 import {
 	frameworks,
-	frameworkSelectors,
+	framework,
 	featureSelectors,
-	uncoveredFeatures,
+	uncoveredByWPT,
 	type Framework,
 } from '../src/frameworks/frameworks.ts';
 import { registry } from '../src/shared/registry.ts';
@@ -37,22 +40,20 @@ describe('feature selectors', () => {
 });
 
 describe('framework profiles', () => {
-	for (const [framework, profile] of Object.entries(frameworks)) {
-		it(`${framework} resolves against the registry`, () => {
-			expect(selected(frameworkSelectors(framework as Framework)).length).toBeGreaterThan(0);
+	for (const [name, profile] of Object.entries(frameworks)) {
+		it(`${name} resolves against the registry`, () => {
+			expect(selected(framework(name as Framework)).length).toBeGreaterThan(0);
 			for (const module of Object.keys(profile.optional))
-				selected(frameworkSelectors(framework as Framework, [module]));
+				selected(framework(name as Framework, [module]));
 		});
 	}
 
 	it('rejects unknown optional modules', () => {
-		expect(() => frameworkSelectors('preact', ['hydration'])).toThrow(
-			CompatibilityConfigurationError,
-		);
+		expect(() => framework('preact', ['hydration'])).toThrow(CompatibilityConfigurationError);
 	});
 
 	it('reports required features without WPT coverage', () => {
-		expect(uncoveredFeatures('preact')).toEqual([
+		expect(uncoveredByWPT('preact')).toEqual([
 			'Node#nodeType',
 			'Node#firstChild',
 			'Node#nextSibling',

@@ -11,8 +11,8 @@ export { features, type DOMFeature } from './frameworks/features.ts';
 export {
 	frameworks,
 	featureSelectors,
-	frameworkSelectors,
-	uncoveredFeatures,
+	framework,
+	uncoveredByWPT,
 	type Framework,
 } from './frameworks/frameworks.ts';
 export type {
