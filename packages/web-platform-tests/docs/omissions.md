@@ -13,6 +13,7 @@ the upstream WPT root. Consumer exclusions in `wpt.config.ts` are separate.
 | `dom/nodes/attributes.html` | `setAttributeNode, if it fires mutation events, should fire one with the new node when resetting an existing attribute`, and its ` (outer shell)` companion. | Legacy `DOMAttrModified` coverage is outside the current event scope; both the listener assertions and their outer-shell setup remain omitted. |
 | `dom/events/EventListener-handleEvent.html` | `` rethrows errors when getting `handleEvent` ``, ``throws if `handleEvent` is falsy and not callable``, and ``throws if `handleEvent` is thruthy and not callable``. | Require asynchronous window error reporting and the upstream `EventWatcher` harness. |
 | `domparsing/createContextualFragment.html` | `<script>s should be run when appended to the document (but not before)`. | Requires a script realm installed before parsing. |
+| `html/dom/documents/dom-tree-accessors/Document.body.html` | All cases except `existing document's body`. | Remaining getter and setter cases require document factories, document-tree mutation, or body replacement semantics. |
 
 ## Forms
 

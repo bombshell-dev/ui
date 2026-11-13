@@ -6,12 +6,15 @@ import {
 	Document,
 	Element,
 	HTMLElement,
+	HTMLDivElement,
+	HTMLBodyElement,
 	HTMLSpanElement,
 	HTMLUnknownElement,
 	Node,
 	Text,
 } from '../src/dom.ts';
 import { NamedNodeMap } from '../src/named-node-map.ts';
+import { HTMLCollection } from '../src/html-collection.ts';
 
 const config: WPTConfig = {
 	globals: {
@@ -26,6 +29,9 @@ const config: WPTConfig = {
 		Event: globalThis.Event,
 		EventTarget: globalThis.EventTarget,
 		HTMLElement,
+		HTMLDivElement,
+		HTMLBodyElement,
+		HTMLCollection,
 		HTMLSpanElement,
 		HTMLUnknownElement,
 		NamedNodeMap,
@@ -47,10 +53,55 @@ const config: WPTConfig = {
 			// Native EventTarget reads handleEvent at registration; the getter-timing
 			// case remains excluded until that behavior is implemented.
 		],
+		'dom/collections/HTMLCollection-iterator.html': true,
+		'dom/collections/HTMLCollection-supported-property-indices.html': true,
+		'dom/collections/HTMLCollection-supported-property-names.html': [
+			'Object.getOwnPropertyNames on HTMLCollection with non-HTML namespace',
+			'Object.getOwnPropertyNames on HTMLCollection with expando object',
+			'Trying to set an expando that shadows a named property that gets added later',
+			'Trying to set a non-configurable expando that shadows a named property that gets added later',
+			// The other cases require named own properties and their descriptors.
+		],
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': true,
 		'dom/nodes/Document-createElementNS.html': true,
 		'dom/nodes/Document-createComment.html': true,
+		'dom/nodes/Document-getElementById.html': [
+			'Calling document.getElementById with an empty string argument.',
+			'Calling document.getElementById with a null argument.',
+			'Calling document.getElementById with an undefined argument.',
+			'on static page',
+			'Document.getElementById with a script-inserted element',
+			'update `id` attribute via setAttribute/removeAttribute',
+			'Ensure that the id attribute only affects elements present in a document',
+			"in tree order, within the context object's tree",
+			'Modern browsers optimize this method with using internal id cache. This test checks that their optimization should effect only append to `Document`, not append to `Node`.',
+			"changing attribute's value via `Attr` gotten from `Element.attribute`.",
+			'update `id` attribute via element.id',
+			"where insertion order and tree order don't match",
+			'Inserting an id by inserting its parent node',
+			'Document.getElementById must not return nodes not present in document',
+			// Four other cases require innerHTML or outerHTML mutation.
+		],
+		'html/dom/documents/dom-tree-accessors/Document.body.html': true,
+		'dom/nodes/Document-getElementsByTagName.html': [
+			'Caching is allowed',
+			"Shouldn't be able to set unsigned properties on a HTMLCollection (non-strict mode)",
+			"Shouldn't be able to set unsigned properties on a HTMLCollection (strict mode)",
+			'Should be able to set expando shadowing a proto prop (item)',
+			'Should be able to set expando shadowing a proto prop (namedItem)',
+			'HTML element with uppercase tagName never matches in HTML Documents',
+			'Element in non-HTML namespace, no prefix, lowercase name',
+			'Element in non-HTML namespace, no prefix, uppercase name',
+			'Element in non-HTML namespace, prefix, lowercase name',
+			'Element in non-HTML namespace, prefix, uppercase name',
+			'Element in HTML namespace, no prefix, non-ascii characters in name',
+			'Element in non-HTML namespace, non-ascii characters in name',
+			'Element in HTML namespace, prefix, non-ascii characters in name',
+			'Element in non-HTML namespace, prefix, non-ascii characters in name',
+			'getElementsByTagName() should be a live collection',
+			// Remaining cases need NodeList, Document.childNodes, or named own properties.
+		],
 		// XML factory cases require DOMImplementation.createDocument.
 		'dom/nodes/Document-createAttribute.html': [/^HTML document\.createAttribute\(/],
 		'dom/nodes/CharacterData-data.html': true,
@@ -61,13 +112,9 @@ const config: WPTConfig = {
 		'dom/nodes/Element-removeAttribute.html': true,
 		'dom/nodes/Element-removeAttributeNS.html': true,
 		'dom/nodes/Element-setAttribute-crbug-1138487.html': true,
-		'dom/nodes/Element-hasAttribute.html': [
-			// The other case requires a parsed HTML fixture.
-			'hasAttribute should check for attribute presence, irrespective of namespace',
-		],
+		'dom/nodes/Element-hasAttribute.html': true,
 		'dom/nodes/attributes-namednodemap.html': true,
-		// Excludes cases requiring XML documents, CSS style reflection, document
-		// fragments, parsed fixtures, or attachment to document.body.
+		// Excludes cases requiring XML documents, CSS style reflection, or document fragments.
 		'dom/nodes/attributes.html': [
 			'Attribute loses its owner when removed',
 			'Basic functionality of getAttributeNode/getAttributeNodeNS',
@@ -119,11 +166,14 @@ const config: WPTConfig = {
 			'Setting the same attribute with another prefix should not change the prefix',
 			'setAttribute should not throw even if a load is not allowed',
 			'Attribute values should not be parsed.',
+			'Specified attributes should be accessible.',
+			'Entities in attributes should have been expanded while parsing.',
 			'Unset attributes return null',
 			'First set attribute is returned by getAttribute',
 			'Style attributes are not normalized',
 			'Only lowercase attributes are returned on HTML elements (upper case attribute)',
 			'Only lowercase attributes are returned on HTML elements (mixed case attribute)',
+			'First set attribute is returned with mapped attribute set first',
 			'First set attribute is returned with mapped attribute set later',
 			'Non-HTML element with upper-case attribute',
 			'Attribute with prefix in local name',
