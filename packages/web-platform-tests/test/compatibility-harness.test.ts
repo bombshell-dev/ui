@@ -76,11 +76,14 @@ function recordingRunner(): {
 	};
 }
 
-function register(config?: WPTConfig): ReturnType<typeof recordingRunner> {
+function register(
+	config?: WPTConfig,
+	filter?: CompatibilityRunner['filter'],
+): ReturnType<typeof recordingRunner> {
 	const recording = recordingRunner();
 	testDOMCompatibility({
 		config,
-		runner: recording.runner,
+		runner: { ...recording.runner, filter },
 
 		create: () => expect.fail('Registration must not create a document'),
 	});
@@ -129,7 +132,7 @@ describe('compatibility catalogue', () => {
 		}
 		const knownFiles = new Set(allFiles);
 		const reachable = new Set<string>();
-		const pending = ['index.ts', ...entrypoints];
+		const pending = ['index.ts', 'vitest.ts', 'vitest/runner.ts', 'cli.ts', ...entrypoints];
 		while (pending.length) {
 			const file = pending.pop()!;
 			if (reachable.has(file)) continue;
@@ -326,6 +329,64 @@ describe('WPT include and exclude selection', () => {
 		expect(recording.tests.map((test) => test.name)).toEqual([
 			'inert on Shadow host affects content in shadow',
 		]);
+	});
+});
+
+describe('runner filtering', () => {
+	it('registers only matching cases and their suites without creating fixtures', () => {
+		const recording = register(
+			undefined,
+			(source, name) => source === onceSource && name === onceName,
+		);
+		expect(recording.suites).toEqual([onceSource]);
+		expect(recording.tests.map(({ source, name }) => ({ source, name }))).toEqual([
+			{ source: onceSource, name: onceName },
+		]);
+		expect(recording.todos).toEqual([]);
+	});
+	it('cannot enable configured exclusions and receives only configured cases', () => {
+		const filtered: { source: string; name: string }[] = [];
+		const recording = register({ exclude: { [onceSource]: [onceName] } }, (source, name) => {
+			filtered.push({ source, name });
+			return source === onceSource;
+		});
+		const expected = register(only(onceSource))
+			.tests.filter((test) => test.name !== onceName)
+			.map(({ source, name }) => ({ source, name }));
+		expect(filtered).not.toContainEqual({ source: onceSource, name: onceName });
+		expect(recording.tests.map(({ source, name }) => ({ source, name }))).toEqual(expected);
+		expect(recording.suites).toEqual([onceSource]);
+		expect(recording.todos).toEqual([]);
+	});
+	it('registers no suites, tests, or todos when the runner filter matches nothing', () => {
+		const recording = register(only(onceSource), () => false);
+		expect(recording.suites).toEqual([]);
+		expect(recording.tests).toEqual([]);
+		expect(recording.todos).toEqual([]);
+	});
+	it.each([
+		{ include: { 'missing/upstream.html': true as const } },
+		{ exclude: { [onceSource]: ['no such upstream case'] } },
+	])('validates configuration before applying a filter that rejects all cases: %j', (config) => {
+		const recording = recordingRunner();
+		let filterCalls = 0;
+		expect(() =>
+			testDOMCompatibility({
+				config,
+				runner: {
+					...recording.runner,
+					filter() {
+						filterCalls++;
+						return false;
+					},
+				},
+				create: () => expect.fail('Invalid selection must not create a document'),
+			}),
+		).toThrow(CompatibilityConfigurationError);
+		expect(filterCalls).toBe(0);
+		expect(recording.suites).toEqual([]);
+		expect(recording.tests).toEqual([]);
+		expect(recording.todos).toEqual([]);
 	});
 });
 

@@ -10,11 +10,19 @@
 			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./vitest": {
+			"types": "./dist/vitest.d.mts",
+			"import": "./dist/vitest.mjs"
+		},
+		"./vitest/runner": {
+			"types": "./dist/vitest/runner.d.mts",
+			"import": "./dist/vitest/runner.mjs"
+		}
 	},
 	"scripts": {
 		"generate": "node scripts/generate-registry.mjs",
-		"build": "pnpm generate && bsh build src/index.ts --dts",
+		"build": "pnpm generate && bsh build src/index.ts src/vitest.ts src/vitest/runner.ts src/cli.ts --dts",
 		"test": "bsh test",
 		"typecheck": "tsc -p tsconfig.json && tsc -p test/browser/tsconfig.json",
 		"test:browser:build": "pnpm generate && vite build --config test/browser/vite.config.mjs",
@@ -30,6 +38,22 @@
 		"chai": "^6.2.2",
 		"playwright": "^1.64.1",
 		"typescript": "^6.0.2",
-		"vite": "^8.1.0"
+		"vite": "^8.1.0",
+		"vitest": "5.0.5"
+	},
+	"bin": {
+		"wpt": "./bin/wpt.mjs"
+	},
+	"dependencies": {
+		"@bomb.sh/router": "^0.8.0",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"vitest": "^5.0.5"
+	},
+	"peerDependenciesMeta": {
+		"vitest": {
+			"optional": true
+		}
 	}
 }

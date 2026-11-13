@@ -17,6 +17,9 @@ importers:
       '@bomb.sh/tools':
         specifier: ^0.8.0
         version: 0.8.0(@types/node@22.20.0)(oxc-resolver@11.20.0)(unrun@0.2.39)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))
+      '@bomb.sh/web-platform-tests':
+        specifier: workspace:*
+        version: link:packages/web-platform-tests
       '@codspeed/vitest-plugin':
         specifier: ^6.1.0
         version: 6.1.0(tinybench@6.2.2)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.0.5(@types/node@22.20.0)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1)))
@@ -47,6 +50,13 @@ importers:
         version: link:../web-platform-tests
 
   packages/web-platform-tests:
+    dependencies:
+      '@bomb.sh/router':
+        specifier: ^0.8.0
+        version: 0.8.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@vitest/expect':
         specifier: 5.0.5
@@ -63,11 +73,18 @@ importers:
       vite:
         specifier: ^8.1.0
         version: 8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@22.20.0)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))
 
 packages:
 
   '@bomb.sh/args@0.3.1':
     resolution: {integrity: sha512-CwxKrfgcorUPP6KfYD59aRdBYWBTsfsxT+GmoLVnKo5Tmyoqbpo0UNcjngRMyU+6tiPbd18RuIYxhgAn44wU/Q==}
+
+  '@bomb.sh/router@0.8.0':
+    resolution: {integrity: sha512-9Y0fA76+dlFL8aRf8PVfgXrI0qHr4GQrLLv09E75tGRqCtCI5+E/ZzLnyTGJMo/j4CzYt44c4jdXDLv+m9/g9g==}
+    engines: {node: '>= 20'}
 
   '@bomb.sh/tools@0.8.0':
     resolution: {integrity: sha512-iaWws8S5kMuS6zImKXPSguUoQYA5M8XlK4ObVJI5jvubNeSlCI6feGPwex9GHyO+eIsi6izv/swO1ceO2MWEvw==}
@@ -1825,6 +1842,10 @@ packages:
 snapshots:
 
   '@bomb.sh/args@0.3.1': {}
+
+  '@bomb.sh/router@0.8.0':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
 
   '@bomb.sh/tools@0.8.0(@types/node@22.20.0)(oxc-resolver@11.20.0)(unrun@0.2.39)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:

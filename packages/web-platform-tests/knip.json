@@ -2,6 +2,10 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/index.ts",
+    "src/cli.ts",
+    "src/vitest.ts",
+    "src/vitest/runner.ts",
+    "bin/*.mjs",
     "test/*.test.ts",
     "test/browser/compatibility.mjs",
     "test/browser/run-compatibility.mjs",
@@ -10,6 +14,7 @@
   ],
   "project": [
     "src/**/*.ts",
+    "bin/*.mjs",
     "test/**/*.{ts,mts,mjs}",
     "scripts/*.mjs"
   ]
