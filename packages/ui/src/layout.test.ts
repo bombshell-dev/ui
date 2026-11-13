@@ -6,7 +6,7 @@ import { Layout } from './layout.ts';
 describe('Layout', () => {
 	it('groups adjacent text around nested and empty elements and keeps IDs stable', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.body;
 		const child = document.createElement('document');
 		const empty = document.createElement('document');
 		root.appendChild(document.createTextNode('before'));
@@ -17,7 +17,7 @@ describe('Layout', () => {
 		root.appendChild(empty);
 		const layout = new Layout(root);
 		const expected = [
-			open('DOCUMENT: 0'),
+			open('BODY: 0'),
 			text('before child'),
 			open('DOCUMENT: 1'),
 			text('inside'),
@@ -35,7 +35,7 @@ describe('Layout', () => {
 
 	it('lays out a deeply nested tree without recursive generator delegation', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.body;
 		const depth = 20_000;
 		let current = root;
 		for (let i = 1; i < depth; i++) {
@@ -46,7 +46,7 @@ describe('Layout', () => {
 		current.appendChild(document.createTextNode('leaf'));
 		const iterator = new Layout(root).layout();
 		for (let i = 0; i < depth; i++) {
-			expect(iterator.next().value).toEqual(open(`DOCUMENT: ${i}`));
+			expect(iterator.next().value).toEqual(open(`${i === 0 ? 'BODY' : 'DOCUMENT'}: ${i}`));
 		}
 		expect(iterator.next().value).toEqual(text('leaf'));
 		for (let i = 0; i < depth; i++) {
@@ -57,7 +57,7 @@ describe('Layout', () => {
 
 	it('closes active elements when iteration is returned early', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.body;
 		const child = document.createElement('document');
 		root.appendChild(child);
 		child.appendChild(document.createTextNode('inside'));

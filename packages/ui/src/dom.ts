@@ -2,6 +2,7 @@
 
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
+import { HTMLCollection } from './html-collection.ts';
 import {
 	validateElementName,
 	validateElementNamespace,
@@ -13,13 +14,72 @@ const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
 export class Document {
 	readonly documentElement: Element;
+	readonly body: HTMLBodyElement;
 	readonly notify: () => void;
 
-	#registry: Map<string, typeof Element> = new Map([['span', HTMLSpanElement]]);
+	#registry: Map<string, typeof Element> = new Map([
+		['html', HTMLHtmlElement],
+		['body', HTMLBodyElement],
+		['span', HTMLSpanElement],
+		['div', HTMLDivElement],
+	]);
 
 	constructor(notify: () => void) {
 		this.notify = notify;
-		this.documentElement = new Element(this, 'document', notify);
+		this.documentElement = this.createElement('html');
+		this.body = this.createElement('body');
+		this.documentElement.appendChild(this.body);
+	}
+
+	getElementsByTagName(qualifiedName: string): HTMLCollection {
+		if (arguments.length === 0) {
+			throw new TypeError('getElementsByTagName requires a qualified name');
+		}
+		const name = `${qualifiedName}`;
+		const lowerName = asciiLowercase(name);
+		return new HTMLCollection(() => {
+			const matches: Element[] = [];
+			const stack = [this.documentElement];
+			while (stack.length > 0) {
+				const element = stack.pop()!;
+				const elementName =
+					element.prefix === null ? element.localName : `${element.prefix}:${element.localName}`;
+				if (name === '*' || elementName === (element.namespaceURI === HTML_NS ? lowerName : name)) {
+					matches.push(element);
+				}
+				for (let i = element.childNodes.length - 1; i >= 0; i--) {
+					const child = element.childNodes[i];
+					if (child instanceof Element) {
+						stack.push(child);
+					}
+				}
+			}
+			return matches;
+		});
+	}
+
+	getElementById(id: string): Element | null {
+		if (arguments.length === 0) {
+			throw new TypeError('getElementById requires an ID');
+		}
+		const name = `${id}`;
+		if (name === '') {
+			return null;
+		}
+		const stack = [this.documentElement];
+		while (stack.length > 0) {
+			const element = stack.pop()!;
+			if (element.id === name) {
+				return element;
+			}
+			for (let i = element.childNodes.length - 1; i >= 0; i--) {
+				const child = element.childNodes[i];
+				if (child instanceof Element) {
+					stack.push(child);
+				}
+			}
+		}
+		return null;
 	}
 
 	createElement(tagName: string): Element {
@@ -392,7 +452,13 @@ export class Element extends Node {
 
 export class HTMLElement extends Element {}
 
+export class HTMLHtmlElement extends HTMLElement {}
+
 export class HTMLSpanElement extends HTMLElement {}
+
+export class HTMLDivElement extends HTMLElement {}
+
+export class HTMLBodyElement extends HTMLElement {}
 
 export class HTMLUnknownElement extends HTMLElement {}
 

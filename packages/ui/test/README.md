@@ -18,7 +18,7 @@ Rendering, scheduling, notifications, and lifecycle behavior belong in the UI te
 
 ## DOM compatibility
 
-[`dom.compatibility.test.ts`](../src/dom.compatibility.test.ts) registers the shared compatibility suite with Vitest. Its synchronous factory creates a fresh instance of the real [`Document`](../src/dom.ts) for each case, with a no-op render notification callback. This fixture owns no external resources, so it needs no disposal callback.
+[`dom.compatibility.test.ts`](../src/dom.compatibility.test.ts) registers the shared compatibility suite with Vitest. Its [`document factory`](document.ts) creates a fresh instance of the real [`Document`](../src/dom.ts) for each case, with a no-op render notification callback. When a case supplies HTML, parse5 builds the parsed tree and the factory copies its document-element subtree into UI nodes. It reuses the document's HTML root and body, preserving attributes, namespaces, text, comments, and child order. Parsing stays in the test harness; assertions exercise the UI DOM. This fixture owns no external resources, so it needs no disposal callback.
 
 [`dom.test.ts`](dom.test.ts) explicitly holds local DOM coverage missing from the enabled WPT cases. This is usually because getting the WPT test prequisites set up is too onerous a task. For example, testing node properties like nextSibling and previousSibling require things like `document.implementation.createDocumentType()`
 

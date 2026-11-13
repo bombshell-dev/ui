@@ -52,6 +52,9 @@ import { register as register_custom_elements_custom_element_reaction_queue_html
 import { register as register_custom_elements_disconnected_callbacks_html } from '../wpt/custom-elements/disconnected-callbacks.html.ts';
 import { register as register_custom_elements_form_associated_ElementInternals_form_html } from '../wpt/custom-elements/form-associated/ElementInternals-form.html.ts';
 import { register as register_custom_elements_upgrading_html } from '../wpt/custom-elements/upgrading.html.ts';
+import { register as register_dom_collections_HTMLCollection_iterator_html } from '../wpt/dom/collections/HTMLCollection-iterator.html.ts';
+import { register as register_dom_collections_HTMLCollection_supported_property_indices_html } from '../wpt/dom/collections/HTMLCollection-supported-property-indices.html.ts';
+import { register as register_dom_collections_HTMLCollection_supported_property_names_html } from '../wpt/dom/collections/HTMLCollection-supported-property-names.html.ts';
 import { register as register_dom_events_AddEventListenerOptions_once_any_js } from '../wpt/dom/events/AddEventListenerOptions-once.any.js.ts';
 import { register as register_dom_events_AddEventListenerOptions_passive_any_js } from '../wpt/dom/events/AddEventListenerOptions-passive.any.js.ts';
 import { register as register_dom_events_AddEventListenerOptions_signal_any_js } from '../wpt/dom/events/AddEventListenerOptions-signal.any.js.ts';
@@ -93,6 +96,7 @@ import { register as register_dom_nodes_Document_createElement_html } from '../w
 import { register as register_dom_nodes_Document_createElementNS_html } from '../wpt/dom/nodes/Document-createElementNS.html.ts';
 import { register as register_dom_nodes_Document_createTextNode_html } from '../wpt/dom/nodes/Document-createTextNode.html.ts';
 import { register as register_dom_nodes_Document_getElementById_html } from '../wpt/dom/nodes/Document-getElementById.html.ts';
+import { register as register_dom_nodes_Document_getElementsByTagName_html } from '../wpt/dom/nodes/Document-getElementsByTagName.html.ts';
 import { register as register_dom_nodes_Document_importNode_html } from '../wpt/dom/nodes/Document-importNode.html.ts';
 import { register as register_dom_nodes_DocumentFragment_constructor_html } from '../wpt/dom/nodes/DocumentFragment-constructor.html.ts';
 import { register as register_dom_nodes_DocumentFragment_querySelectorAll_after_modification_html } from '../wpt/dom/nodes/DocumentFragment-querySelectorAll-after-modification.html.ts';
@@ -233,6 +237,7 @@ import { register as register_domparsing_insert_adjacent_parent_errors_html } fr
 import { register as register_domparsing_insert_adjacent_html } from '../wpt/domparsing/insert-adjacent.html.ts';
 import { register as register_domparsing_outerhtml_01_html } from '../wpt/domparsing/outerhtml-01.html.ts';
 import { register as register_domparsing_svg_template_html } from '../wpt/domparsing/svg-template.html.ts';
+import { register as register_html_dom_documents_dom_tree_accessors_Document_body_html } from '../wpt/html/dom/documents/dom-tree-accessors/Document.body.html.ts';
 import { register as register_html_dom_elements_global_attributes_dataset_delete_html } from '../wpt/html/dom/elements/global-attributes/dataset-delete.html.ts';
 import { register as register_html_dom_elements_global_attributes_dataset_get_html } from '../wpt/html/dom/elements/global-attributes/dataset-get.html.ts';
 import { register as register_html_dom_elements_global_attributes_dataset_set_html } from '../wpt/html/dom/elements/global-attributes/dataset-set.html.ts';
@@ -493,6 +498,9 @@ export const registry = {
 	'custom-elements/disconnected-callbacks.html': { register: register_custom_elements_disconnected_callbacks_html },
 	'custom-elements/form-associated/ElementInternals-form.html': { register: register_custom_elements_form_associated_ElementInternals_form_html },
 	'custom-elements/upgrading.html': { register: register_custom_elements_upgrading_html },
+	'dom/collections/HTMLCollection-iterator.html': { register: register_dom_collections_HTMLCollection_iterator_html },
+	'dom/collections/HTMLCollection-supported-property-indices.html': { register: register_dom_collections_HTMLCollection_supported_property_indices_html },
+	'dom/collections/HTMLCollection-supported-property-names.html': { register: register_dom_collections_HTMLCollection_supported_property_names_html },
 	'dom/events/AddEventListenerOptions-once.any.js': { register: register_dom_events_AddEventListenerOptions_once_any_js },
 	'dom/events/AddEventListenerOptions-passive.any.js': { register: register_dom_events_AddEventListenerOptions_passive_any_js },
 	'dom/events/AddEventListenerOptions-signal.any.js': { register: register_dom_events_AddEventListenerOptions_signal_any_js },
@@ -534,6 +542,7 @@ export const registry = {
 	'dom/nodes/Document-createElementNS.html': { register: register_dom_nodes_Document_createElementNS_html },
 	'dom/nodes/Document-createTextNode.html': { register: register_dom_nodes_Document_createTextNode_html },
 	'dom/nodes/Document-getElementById.html': { register: register_dom_nodes_Document_getElementById_html },
+	'dom/nodes/Document-getElementsByTagName.html': { register: register_dom_nodes_Document_getElementsByTagName_html },
 	'dom/nodes/Document-importNode.html': { register: register_dom_nodes_Document_importNode_html },
 	'dom/nodes/DocumentFragment-constructor.html': { register: register_dom_nodes_DocumentFragment_constructor_html },
 	'dom/nodes/DocumentFragment-querySelectorAll-after-modification.html': { register: register_dom_nodes_DocumentFragment_querySelectorAll_after_modification_html },
@@ -674,6 +683,7 @@ export const registry = {
 	'domparsing/insert-adjacent.html': { register: register_domparsing_insert_adjacent_html },
 	'domparsing/outerhtml-01.html': { register: register_domparsing_outerhtml_01_html },
 	'domparsing/svg-template.html': { register: register_domparsing_svg_template_html },
+	'html/dom/documents/dom-tree-accessors/Document.body.html': { register: register_html_dom_documents_dom_tree_accessors_Document_body_html },
 	'html/dom/elements/global-attributes/dataset-delete.html': { register: register_html_dom_elements_global_attributes_dataset_delete_html },
 	'html/dom/elements/global-attributes/dataset-get.html': { register: register_html_dom_elements_global_attributes_dataset_get_html },
 	'html/dom/elements/global-attributes/dataset-set.html': { register: register_html_dom_elements_global_attributes_dataset_set_html },
