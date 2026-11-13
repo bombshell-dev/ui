@@ -21,12 +21,13 @@ const core = [
 	'Node#nodeType',
 	'HTMLInputElement#value',
 	'HTMLInputElement#checked',
+	'HTMLInputElement#type',
 	'HTMLTextAreaElement#value',
 ] as const satisfies readonly DOMFeature[];
 
 /**
  * Measured DOM baseline per framework, from the non-hydrated happy-dom recorder study.
- * Preact is re-checked against the 11.0.1 source.
+ * Recorded against React 19.3.1, Preact 11.2.0, Vue 3.5.45, Solid 1.9.19, and Svelte 5.57.3.
  */
 export const frameworks = {
 	react: {
@@ -47,15 +48,28 @@ export const frameworks = {
 			'HTMLSelectElement#value',
 			'Document#activeElement',
 			'Document#defaultView',
-			'Document#head',
+			'Document#documentElement',
 			'Node#lastChild',
 			'Node#getRootNode',
 			'Node#contains',
 			'HTMLElement#contentEditable',
 			'Event#composedPath',
 			'Event#isTrusted',
+			'Element#namespaceURI',
+			'Element#tagName',
+			'Element#nodeName',
+			'GlobalEventHandlers#onclick',
+			'HTMLInputElement#name',
+			'HTMLInputElement#defaultValue',
+			'HTMLInputElement#defaultChecked',
+			'HTMLInputElement#selectionStart',
+			'HTMLInputElement#selectionEnd',
+			'HTMLTextAreaElement#defaultValue',
+			'HTMLOptionElement#disabled',
 		],
 		optional: {
+			// Resource hoisting inserts <link>, <style>, and <meta> into the head.
+			resources: ['Document#head'],
 			selection: [
 				'Document#createRange',
 				'HTMLInputElement#setSelectionRange',
@@ -73,14 +87,17 @@ export const frameworks = {
 			'Node#parentNode',
 			'ChildNode#remove',
 			'Node#ownerDocument',
-			'Node#childNodes',
 			'Element#namespaceURI',
-			'Element#localName',
+			'Element#id',
+			'HTMLOptionElement#value',
 			'CharacterData#data',
 			'EventTarget#removeEventListener',
 		],
-		// Feature-detected; falls back to insertBefore.
-		optional: { moveBefore: ['ParentNode#moveBefore'] },
+		optional: {
+			hydration: ['Node#childNodes', 'Element#localName'],
+			// Feature-detected; falls back to insertBefore.
+			moveBefore: ['ParentNode#moveBefore'],
+		},
 	},
 	vue: {
 		required: [
@@ -93,6 +110,8 @@ export const frameworks = {
 			'Node#parentNode',
 			'Node#textContent',
 			'Element#className',
+			'Element#id',
+			'Element#tagName',
 			'Element#removeAttribute',
 			'Element#getAttribute',
 			'Node#nodeValue',
@@ -125,6 +144,10 @@ export const frameworks = {
 			'Node#cloneNode',
 			'Node#replaceChild',
 			'HTMLTemplateElement#content',
+			'CharacterData#data',
+			'HTMLButtonElement#disabled',
+			'HTMLInputElement#disabled',
+			'HTMLTextAreaElement#disabled',
 			'Event#composedPath',
 		],
 		optional: {
@@ -159,6 +182,12 @@ export const frameworks = {
 			'Element#querySelector',
 			'ParentNode#children',
 			'MutationObserver#childList',
+			'MutationObserver#observe',
+			'MutationObserver#disconnect',
+			'Element#namespaceURI',
+			'Element#nodeName',
+			'Document#contentType',
+			'HTMLButtonElement#disabled',
 			'Event#composedPath',
 		],
 		optional: {

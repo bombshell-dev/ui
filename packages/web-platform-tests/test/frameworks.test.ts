@@ -49,7 +49,7 @@ describe('framework profiles', () => {
 	}
 
 	it('rejects unknown optional modules', () => {
-		expect(() => framework('preact', ['hydration'])).toThrow(CompatibilityConfigurationError);
+		expect(() => framework('preact', ['transitions'])).toThrow(CompatibilityConfigurationError);
 	});
 
 	it('reports required features without WPT coverage', () => {
@@ -58,6 +58,7 @@ describe('framework profiles', () => {
 			'Node#firstChild',
 			'Node#nextSibling',
 			'Node#ownerDocument',
+			'Element#id',
 		]);
 	});
 

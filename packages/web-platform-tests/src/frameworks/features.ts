@@ -15,6 +15,8 @@ export const features = {
 	'Document#activeElement': { 'html/editing/focus/focus-management/focus-blur.html': true },
 	'Document#defaultView': {},
 	'Document#head': {},
+	'Document#documentElement': {},
+	'Document#contentType': {},
 	'Document#importNode': {
 		'dom/nodes/Document-importNode.html': [/'deep' argument\.$/],
 	},
@@ -87,6 +89,9 @@ export const features = {
 		'dom/nodes/Document-createElement.html': true,
 		'dom/nodes/Document-createElementNS.html': true,
 	},
+	'Element#id': {},
+	'Element#tagName': {},
+	'Element#nodeName': {},
 	'Element#removeAttribute': { 'dom/nodes/Element-removeAttribute.html': true },
 	'Element#className': { 'html/dom/reflection-misc.html': [/^html\.className /] },
 	'Element#classList': { 'dom/nodes/Element-classlist.html': true },
@@ -128,6 +133,35 @@ export const features = {
 		'html/semantics/forms/the-input-element/input-value-dirty-flag.html': true,
 		'html/semantics/forms/the-input-element/text.html': [/^(Value returns|Setting value changes)/],
 	},
+	'HTMLInputElement#type': {
+		'html/semantics/forms/the-input-element/input-value-dirty-flag.html': [
+			"Input type defaults to 'text' on the property despite no attribute",
+			'Setting input type property sets the attribute',
+		],
+	},
+	'HTMLInputElement#name': {},
+	'HTMLInputElement#defaultValue': {
+		'html/semantics/forms/the-input-element/input-value-dirty-flag.html': [
+			'Input value/defaultValue dirty value flag semantics',
+		],
+	},
+	'HTMLInputElement#defaultChecked': {
+		'html/semantics/forms/the-input-element/input-value-dirty-flag.html': [
+			'Input checked/defaultChecked dirty checkedness semantics',
+		],
+	},
+	'HTMLInputElement#selectionStart': {
+		'html/semantics/forms/textfieldselection/defaultSelection.html': true,
+	},
+	'HTMLInputElement#selectionEnd': {
+		'html/semantics/forms/textfieldselection/defaultSelection.html': true,
+	},
+	'HTMLInputElement#disabled': { 'html/semantics/selectors/pseudo-classes/disabled.html': true },
+	'HTMLButtonElement#disabled': { 'html/semantics/selectors/pseudo-classes/disabled.html': true },
+	'HTMLTextAreaElement#disabled': {
+		'html/semantics/selectors/pseudo-classes/disabled.html': true,
+	},
+	'HTMLOptionElement#disabled': { 'html/semantics/selectors/pseudo-classes/disabled.html': true },
 	'HTMLInputElement#checked': {
 		'html/semantics/forms/the-input-element/input-value-dirty-flag.html': [
 			'Input checked/defaultChecked dirty checkedness semantics',
@@ -138,6 +172,9 @@ export const features = {
 		'html/semantics/forms/textfieldselection/selection.html': true,
 	},
 	'HTMLTextAreaElement#value': {
+		'html/semantics/forms/the-textarea-element/value-defaultValue-textContent.html': true,
+	},
+	'HTMLTextAreaElement#defaultValue': {
 		'html/semantics/forms/the-textarea-element/value-defaultValue-textContent.html': true,
 	},
 	'HTMLOptionElement#value': { 'html/semantics/forms/the-option-element/option-value.html': true },
@@ -184,7 +221,11 @@ export const features = {
 	'Event#composedPath': {
 		'shadow-dom/event-composed-path.html': ['Event Path without ShadowRoots.'],
 	},
+	// React feature-detects event support through handler IDL attributes.
+	'GlobalEventHandlers#onclick': {},
 	'Event#isTrusted': {},
+	'MutationObserver#observe': { 'dom/nodes/MutationObserver-sanity.html': true },
+	'MutationObserver#disconnect': { 'dom/nodes/MutationObserver-takeRecords.html': true },
 	'MutationObserver#childList': {
 		'dom/nodes/MutationObserver-childList.html': [/^childList (?!Range\.|Node\.normalize)/],
 	},
