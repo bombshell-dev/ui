@@ -11,6 +11,7 @@ export interface TestUI extends AsyncDisposable {
 export async function createTestUI(options: SyncTestTerminalOptions = {}): Promise<TestUI> {
 	const { cols = 80, rows = 24 } = options;
 	const terminal = createTestTerminal({ ...options, cols, rows });
+	const controller = new AbortController();
 
 	try {
 		const ui = await createUI({
@@ -18,21 +19,26 @@ export async function createTestUI(options: SyncTestTerminalOptions = {}): Promi
 			output: terminal.output,
 			width: cols,
 			height: rows,
+			signal: controller.signal,
 		});
-		void ui.main();
+		const running = ui.main();
+		// Disposal awaits the original task and propagates any rendering failure.
+		void running.catch(() => {});
 
 		return {
 			terminal,
 			document: ui.document,
 			async [Symbol.asyncDispose]() {
+				controller.abort();
 				try {
-					await ui[Symbol.asyncDispose]();
+					await running;
 				} finally {
 					await terminal[Symbol.asyncDispose]();
 				}
 			},
 		};
 	} catch (error) {
+		controller.abort();
 		await terminal[Symbol.asyncDispose]();
 		throw error;
 	}

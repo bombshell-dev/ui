@@ -1,6 +1,7 @@
+import { once } from 'node:events';
 import { PassThrough, Writable } from 'node:stream';
 import { alternateBuffer, cursor, settings } from '@bomb.sh/tty';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createUI } from './ui.ts';
 
 const terminalSettings = settings(cursor(false), alternateBuffer());
@@ -8,34 +9,57 @@ const apply = Buffer.from(terminalSettings.apply).toString('utf8');
 const restore = Buffer.from(terminalSettings.revert).toString('utf8');
 
 describe('UI lifecycle', () => {
-	test('restores terminal settings when main was never called', async () => {
+	test('does not change terminal settings when main was never called', async () => {
 		using io = setup();
-		const { writes } = io;
-		{
-			await using _ui = await createUI(io);
-			expect(writes).toEqual([apply]);
-		}
+		const controller = new AbortController();
+		await createUI({ ...io, signal: controller.signal });
+		expect(io.writes).toEqual([]);
 
-		expect(writes).toEqual([apply, restore]);
+		controller.abort();
+		await nextTurn();
+		expect(io.writes).toEqual([]);
+	});
+
+	test('does not start when the signal is already aborted', async () => {
+		using io = setup();
+		const controller = new AbortController();
+		controller.abort();
+		const ui = await createUI({ ...io, signal: controller.signal });
+		ui.document.documentElement.appendChild(ui.document.createTextNode('unused'));
+
+		await ui.main();
+		await ui.main();
+		expect(io.writes).toEqual([]);
 	});
 
 	test('repeated main calls return the same running task', async () => {
 		using io = setup();
 		const { writes } = io;
-		{
-			await using resource = await createUI(io);
-			expect(resource.main()).toBe(resource.main());
+		const controller = new AbortController();
+		const ui = await createUI({ ...io, signal: controller.signal });
+		const running = ui.main();
+		try {
+			expect(ui.main()).toBe(running);
+			controller.abort();
+			expect(ui.main()).toBe(running);
+		} finally {
+			controller.abort();
+			await running;
 		}
 
+		expect(ui.main()).toBe(running);
 		expect(writes).toEqual([apply, restore]);
 	});
 
-	test('disposal waits for a second output write before restoring the terminal', async () => {
+	test('main waits for pending output and terminal restoration after abort', async () => {
 		const output = Promise.withResolvers<void>();
+		const restoration = Promise.withResolvers<void>();
 		let frames = 0;
 		using io = setup((chunk, complete) => {
-			if (chunk === apply || chunk === restore) {
+			if (chunk === apply) {
 				complete();
+			} else if (chunk === restore) {
+				void restoration.promise.then(() => complete());
 			} else if (++frames === 2) {
 				void output.promise.then(() => complete());
 			} else {
@@ -43,11 +67,20 @@ describe('UI lifecycle', () => {
 			}
 		});
 		const { writes } = io;
-		const ui = await createUI(io);
-		let disposing: Promise<void> | undefined;
+		const controller = new AbortController();
+		const ui = await createUI({ ...io, signal: controller.signal });
+		const running = ui.main();
+		let settled = false;
+		void running.then(
+			() => {
+				settled = true;
+			},
+			() => {
+				settled = true;
+			},
+		);
 
 		try {
-			void ui.main();
 			const { document } = ui;
 			document.documentElement.appendChild(document.createTextNode('first'));
 			await nextTurn();
@@ -57,34 +90,34 @@ describe('UI lifecycle', () => {
 			await nextTurn();
 			expect(frames).toBe(2);
 
-			disposing = Promise.resolve(ui[Symbol.asyncDispose]());
-			let settled = false;
-			void disposing.then(
-				() => {
-					settled = true;
-				},
-				() => {
-					settled = true;
-				},
-			);
+			controller.abort();
+			expect(ui.main()).toBe(running);
 			await nextTurn();
 			expect(settled).toBe(false);
 			expect(writes).not.toContain(restore);
 
 			output.resolve();
-			await disposing;
+			await nextTurn();
 			expect(writes.at(-1)).toBe(restore);
+			expect(settled).toBe(false);
+
+			restoration.resolve();
+			await running;
+			expect(ui.main()).toBe(running);
 			expect(frames).toBe(2);
 		} finally {
+			controller.abort();
 			output.resolve();
-			await (disposing ?? ui[Symbol.asyncDispose]());
+			restoration.resolve();
+			await running;
 		}
 	});
 
-	test('disposal propagates a render failure after restoring terminal settings', async () => {
+	test('main propagates a render failure after restoring terminal settings', async () => {
 		using io = setup();
 		const { writes } = io;
-		const ui = await createUI(io);
+		const controller = new AbortController();
+		const ui = await createUI({ ...io, signal: controller.signal });
 		const failure = new TestRenderError();
 		const text = ui.document.createTextNode('unreadable');
 		Object.defineProperty(text, 'data', {
@@ -92,21 +125,41 @@ describe('UI lifecycle', () => {
 				throw failure;
 			},
 		});
-		let disposing: Promise<void> | undefined;
+		const running = ui.main();
 
 		try {
-			const failed = expect(ui.main()).rejects.toBe(failure);
+			const failed = expect(running).rejects.toBe(failure);
 			ui.document.documentElement.appendChild(text);
 			await failed;
 
-			disposing = Promise.resolve(ui[Symbol.asyncDispose]());
-			await expect(disposing).rejects.toBe(failure);
+			controller.abort();
+			expect(ui.main()).toBe(running);
+			await expect(ui.main()).rejects.toBe(failure);
 			expect(writes).toEqual([apply, restore]);
 		} finally {
-			// Manually own the expected failure; never dispose the resource twice.
-			if (!disposing) {
-				await Promise.resolve(ui[Symbol.asyncDispose]()).catch(() => {});
-			}
+			controller.abort();
+			await running.catch(() => {});
+		}
+	});
+
+	test('rejects setup failure without attempting terminal restoration', async () => {
+		const failure = new Error('setup failed');
+		using io = setup((_chunk, complete) => complete(failure));
+		const controller = new AbortController();
+		const ui = await createUI({ ...io, signal: controller.signal });
+		const write = vi.spyOn(io.output, 'write');
+		const outputError = once(io.output, 'error');
+		const running = ui.main();
+
+		try {
+			await expect(running).rejects.toBe(failure);
+			await expect(outputError).resolves.toEqual([failure]);
+			expect(write).toHaveBeenCalledTimes(1);
+			expect(io.writes).toEqual([apply]);
+		} finally {
+			controller.abort();
+			write.mockRestore();
+			await running.catch(() => {});
 		}
 	});
 });
