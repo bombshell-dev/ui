@@ -84,6 +84,9 @@ const config: WPTConfig = {
 			// Four other cases require innerHTML or outerHTML mutation.
 		],
 		'html/dom/documents/dom-tree-accessors/Document.body.html': true,
+		'html/editing/focus/focus-management/focusing-disconnected-noop.html': true,
+		'html/editing/focus/focus-management/focusing-focused-noop.html': true,
+		'html/interaction/focus/focus-management/focus-events.html': true,
 		'dom/nodes/Document-getElementsByTagName.html': [
 			'Caching is allowed',
 			"Shouldn't be able to set unsigned properties on a HTMLCollection (non-strict mode)",
