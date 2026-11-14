@@ -24,11 +24,59 @@ export class Document {
 		['div', HTMLDivElement],
 	]);
 
+	#activeElement: Element | null = null;
+
 	constructor(notify: () => void) {
 		this.notify = notify;
 		this.documentElement = this.createElement('html');
-		this.body = this.createElement('body');
+		this.body = this.createElement('body') as HTMLBodyElement;
 		this.documentElement.appendChild(this.body);
+	}
+
+	get activeElement(): Element {
+		return this.#activeElement ?? this.body;
+	}
+
+	_setActiveElement(element: Element | null): void {
+		if (element === this.#activeElement) {
+			return;
+		}
+
+		const current = this.#activeElement;
+		this.#activeElement = null;
+
+		if (current !== null) {
+			dispatchEvent(current, {
+				event: new FocusEvent('blur', {
+					relatedTarget: element,
+				}),
+				isTrusted: true,
+			});
+
+			dispatchEvent(current, {
+				event: new FocusEvent('focusout', {
+					relatedTarget: element,
+				}),
+				isTrusted: true,
+			});
+		}
+
+		this.#activeElement = element;
+
+		if (element !== null) {
+			dispatchEvent(element, {
+				event: new FocusEvent('focus', {
+					relatedTarget: current,
+				}),
+				isTrusted: true,
+			});
+			dispatchEvent(element, {
+				event: new FocusEvent('focusin', {
+					relatedTarget: current,
+				}),
+				isTrusted: true,
+			});
+		}
 	}
 
 	getElementsByTagName(qualifiedName: string): HTMLCollection {
@@ -172,53 +220,8 @@ export abstract class Node extends EventTarget {
 		this.ownerDocument = owner;
 	}
 
-	// Adds bubbling to the host EventTarget. Capture traversal and resetting the
-	// host's propagation flags after dispatch are not implemented here.
 	override dispatchEvent(event: Event): boolean {
-		if (event.eventPhase !== Event.NONE) {
-			throw new DOMException('Cannot redispatch an active event', 'InvalidStateError');
-		}
-
-		const path: Node[] = [this];
-		for (let current = this.parentNode; current; current = current.parentNode) {
-			path.push(current);
-		}
-
-		// Native dispatch retargets on each node. Keep the tree's original target
-		// and expose its current node and phase while each native dispatch runs.
-		Object.defineProperty(event, 'target', { configurable: true, value: this });
-		const originals = Object.getOwnPropertyDescriptors(event);
-
-		try {
-			Object.defineProperty(event, 'composedPath', {
-				value: () => [...path],
-				configurable: true,
-			});
-			const end = event.bubbles ? path.length : 1;
-			for (let i = 0; i < end; i++) {
-				Object.defineProperties(event, {
-					currentTarget: { value: path[i], configurable: true },
-					eventPhase: {
-						value: i === 0 ? Event.AT_TARGET : Event.BUBBLING_PHASE,
-						configurable: true,
-					},
-				});
-				super.dispatchEvent.call(path[i], event);
-				if (event.cancelBubble) {
-					break;
-				}
-			}
-			return !event.defaultPrevented;
-		} finally {
-			for (const name of ['currentTarget', 'eventPhase', 'composedPath']) {
-				const original = originals[name];
-				if (original) {
-					Object.defineProperty(event, name, original);
-				} else {
-					Reflect.deleteProperty(event, name);
-				}
-			}
-		}
+		return dispatchEvent(this, { event, isTrusted: false });
 	}
 
 	hasChildNodes(): boolean {
@@ -461,7 +464,49 @@ export class Element extends Node {
 	}
 }
 
-export class HTMLElement extends Element {}
+export class HTMLElement extends Element {
+	#onfocus: EventListener | undefined = undefined;
+	#onblur: EventListener | undefined = undefined;
+
+	focus(): void {
+		if (!this.isConnected) {
+			return;
+		}
+		this.ownerDocument._setActiveElement(this);
+	}
+
+	blur(): void {
+		if (!this.isConnected) {
+			return;
+		} else if (this === this.ownerDocument.activeElement) {
+			this.ownerDocument._setActiveElement(null);
+		}
+	}
+
+	get onfocus(): EventListener | undefined {
+		return this.#onfocus;
+	}
+
+	set onfocus(listener: EventListener) {
+		if (this.#onfocus) {
+			this.removeEventListener('focus', this.#onfocus);
+		}
+		this.#onfocus = listener;
+		this.addEventListener('focus', listener);
+	}
+
+	get onblur(): EventListener | undefined {
+		return this.#onblur;
+	}
+
+	set onblur(listener: EventListener) {
+		if (this.#onblur) {
+			this.removeEventListener('blur', this.#onblur);
+		}
+		this.#onblur = listener;
+		this.addEventListener('blur', listener);
+	}
+}
 
 export class HTMLHtmlElement extends HTMLElement {}
 
@@ -629,3 +674,74 @@ const Event = globalThis.Event as typeof globalThis.Event & {
 	readonly AT_TARGET: 2;
 	readonly BUBBLING_PHASE: 3;
 };
+
+export class FocusEvent extends Event {
+	override readonly type: 'focus' | 'focusin' | 'focusout' | 'blur';
+	readonly relatedTarget: Element | null;
+
+	constructor(
+		type: 'focus' | 'focusin' | 'focusout' | 'blur',
+		options: { relatedTarget: Element | null },
+	) {
+		super(type, {
+			bubbles: type === 'focusin' || type === 'focusout',
+			cancelable: false,
+		});
+		this.type = type;
+		this.relatedTarget = options.relatedTarget;
+	}
+}
+
+function dispatchEvent(
+	node: Node,
+	{ event, isTrusted }: { event: Event; isTrusted: boolean },
+): boolean {
+	if (event.eventPhase !== Event.NONE) {
+		throw new DOMException('Cannot redispatch an active event', 'InvalidStateError');
+	}
+
+	const path: Node[] = [node];
+	for (let current = node.parentNode; current; current = current.parentNode) {
+		path.push(current);
+	}
+
+	// Native dispatch retargets on each node. Keep the tree's original target
+	// and expose its current node and phase while each native dispatch runs.
+	Object.defineProperty(event, 'target', { configurable: true, value: node });
+	const originals = Object.getOwnPropertyDescriptors(event);
+
+	try {
+		Object.defineProperty(event, 'composedPath', {
+			value: () => [...path],
+			configurable: true,
+		});
+		const end = event.bubbles ? path.length : 1;
+		for (let i = 0; i < end; i++) {
+			Object.defineProperties(event, {
+				currentTarget: { value: path[i], configurable: true },
+				eventPhase: {
+					value: i === 0 ? Event.AT_TARGET : Event.BUBBLING_PHASE,
+					configurable: true,
+				},
+				isTrusted: {
+					value: isTrusted,
+					configurable: true,
+				},
+			});
+			EventTarget.prototype.dispatchEvent.call(path[i]!, event);
+			if (event.cancelBubble) {
+				break;
+			}
+		}
+		return !event.defaultPrevented;
+	} finally {
+		for (const name of ['currentTarget', 'eventPhase', 'composedPath']) {
+			const original = originals[name];
+			if (original) {
+				Object.defineProperty(event, name, original);
+			} else {
+				Reflect.deleteProperty(event, name);
+			}
+		}
+	}
+}
