@@ -1,0 +1,57 @@
+name: framework-baseline
+
+on:
+  pull_request:
+    paths:
+      - packages/framework-baseline/**
+      - packages/web-platform-tests/src/frameworks/**
+      - pnpm-lock.yaml
+      - .github/workflows/framework-baseline.yml
+  push:
+    branches: [main]
+  schedule:
+    # Mondays: catch framework releases that touch DOM members missing from the profiles.
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS: node,pnpm
+
+jobs:
+  pinned:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bomb.sh/web-platform-tests build
+      - run: pnpm --filter @bomb.sh/framework-baseline run check
+
+  latest:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm --filter @bomb.sh/framework-baseline update --latest
+          preact react react-dom solid-js svelte vue @happy-dom/global-registrator
+      - run: pnpm --filter @bomb.sh/web-platform-tests build
+      - name: Audit latest framework releases
+        shell: bash
+        run: |
+          set -o pipefail
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          pnpm --filter @bomb.sh/framework-baseline --silent run check | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit $status

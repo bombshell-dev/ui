@@ -1,0 +1,25 @@
+{
+	"name": "@bomb.sh/framework-baseline",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Records the DOM members frameworks use and checks them against the WPT framework profiles",
+	"type": "module",
+	"license": "MIT",
+	"scripts": {
+		"check": "node src/audit.ts",
+		"typecheck": "tsc -p tsconfig.json"
+	},
+	"devDependencies": {
+		"@bomb.sh/web-platform-tests": "workspace:*",
+		"@happy-dom/global-registrator": "21.0.4",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"preact": "11.2.0",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"solid-js": "1.9.19",
+		"svelte": "5.57.3",
+		"typescript": "^6.0.2",
+		"vue": "3.5.45"
+	}
+}
