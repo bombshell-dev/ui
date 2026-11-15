@@ -1,5 +1,5 @@
 import type { SyncTestTerminalOptions } from '@termless/test';
-import { createUI, type UI } from '../src/ui.ts';
+import { createUI, type UI } from '../src/index.ts';
 import { createTestTerminal, type TestTerminal } from './terminal.ts';
 
 export interface TestUI extends AsyncDisposable {
