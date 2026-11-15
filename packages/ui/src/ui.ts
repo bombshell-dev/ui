@@ -1,6 +1,7 @@
 import { alternateBuffer, createTerm, cursor, settings } from '@bomb.sh/tty';
 import type { Readable, Writable } from 'node:stream';
 import { Document } from './dom.ts';
+import type { Platform } from './platform.ts';
 import { RenderApi } from './render.ts';
 import { Layout } from './layout.ts';
 
@@ -9,21 +10,25 @@ export interface UI {
 	main(): Promise<void>;
 }
 
+/** Defaults come from the platform for the current runtime. */
 export interface UIOptions {
 	height?: number;
 	width?: number;
-	input: Readable;
-	output: Writable;
-	signal: AbortSignal;
+	input?: Readable;
+	output?: Writable;
+	/** Stops the UI. Without one, the platform decides, such as SIGINT on Node. */
+	signal?: AbortSignal;
 }
 
-export async function createUI(options: UIOptions): Promise<UI> {
-	const { output, width = 80, height = 24, signal } = options;
+/** Run a UI on `platform` until `signal` aborts or the platform interrupts it. */
+export async function startUI(platform: Platform, signal?: AbortSignal): Promise<UI> {
+	const stop = new AbortController();
+	const lifetime = signal ? AbortSignal.any([signal, stop.signal]) : stop.signal;
 
 	const setup = settings(cursor(false), alternateBuffer());
 
-	const term = await createTerm({ width, height });
-	const render = new RenderApi(signal);
+	const term = await createTerm(platform.size());
+	const render = new RenderApi(lifetime);
 
 	const document = new Document(() => render.request());
 
@@ -32,35 +37,37 @@ export async function createUI(options: UIOptions): Promise<UI> {
 	let running: Promise<void> | undefined = undefined;
 
 	const run = async () => {
-		await write(output, setup.apply);
+		await platform.write(setup.apply);
 
 		try {
+			platform.listen(
+				{
+					resize({ width, height }) {
+						platform.write(term.update([{ type: 'resize', width, height }])).then(
+							() => render.request(),
+							() => stop.abort(),
+						);
+					},
+					interrupt: () => stop.abort(),
+				},
+				lifetime,
+			);
+
 			for await (const _ of render) {
 				const ops = [...layout.layout()];
 				const result = term.render(ops);
-				await write(output, result.output);
+				await platform.write(result.output);
 			}
 		} finally {
-			await write(output, setup.revert);
+			stop.abort();
+			await platform.write(setup.revert);
 		}
 	};
 
 	return {
 		document,
 		main() {
-			return running ? running : signal.aborted ? Promise.resolve() : (running = run());
+			return running ? running : lifetime.aborted ? Promise.resolve() : (running = run());
 		},
 	};
-}
-
-function write(stream: Writable, bytes: Uint8Array): Promise<void> {
-	const result = Promise.withResolvers<void>();
-	stream.write(bytes, (err) => {
-		if (err) {
-			result.reject(err);
-		} else {
-			result.resolve();
-		}
-	});
-	return result.promise;
 }

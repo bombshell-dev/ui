@@ -1,7 +1,7 @@
 /* oxlint-disable bombshell-dev/exported-function-async */
 import { PassThrough, Writable } from 'node:stream';
 import type { Document, Element, Text } from '../src/dom.ts';
-import { createUI, type UI } from '../src/ui.ts';
+import { createUI, type UI } from '../src/index.ts';
 
 /** Wait until an asynchronous render callback has completed. */
 export async function waitFor(predicate: () => boolean): Promise<void> {
@@ -95,7 +95,9 @@ export async function setupUI(
 			});
 		},
 	});
-	const ui = await createUI({ input, output, width: 80, height: 24 });
+	const controller = new AbortController();
+	const ui = await createUI({ input, output, width: 80, height: 24, signal: controller.signal });
+	let running: Promise<void> | undefined;
 	const { texts } = createTree({ document: ui.document, nodeCount, shape });
 	const initialWrites = writes;
 	let started = false;
@@ -110,11 +112,12 @@ export async function setupUI(
 		async start() {
 			if (started) return;
 			started = true;
-			void ui.main();
+			running = ui.main();
 			await waitFor(() => writes > initialWrites);
 		},
 		async close() {
-			await ui[Symbol.asyncDispose]();
+			controller.abort();
+			await running;
 			input.destroy();
 			output.destroy();
 		},

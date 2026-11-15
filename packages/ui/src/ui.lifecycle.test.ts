@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import { PassThrough, Writable } from 'node:stream';
 import { alternateBuffer, cursor, settings } from '@bomb.sh/tty';
 import { describe, expect, test, vi } from 'vitest';
-import { createUI } from './ui.ts';
+import { createUI } from './index.ts';
 
 const terminalSettings = settings(cursor(false), alternateBuffer());
 const apply = Buffer.from(terminalSettings.apply).toString('utf8');
