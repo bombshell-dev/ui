@@ -11,93 +11,23 @@ import {
 
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
-export class Document {
-	readonly documentElement: Element;
-	readonly notify: () => void;
-
-	#registry: Map<string, typeof Element> = new Map([['span', HTMLSpanElement]]);
-
-	constructor(notify: () => void) {
-		this.notify = notify;
-		this.documentElement = new Element(this, 'document', notify);
-	}
-
-	createElement(tagName: string): Element {
-		if (arguments.length === 0) {
-			throw new TypeError('createElement requires a tag name');
-		}
-		const localName = `${tagName}`;
-		validateElementName(localName);
-		return this.#createElement(asciiLowercase(localName), { namespaceURI: HTML_NS, prefix: null });
-	}
-
-	createElementNS(namespace: string | null, qualifiedName: string): Element {
-		if (arguments.length < 2) {
-			throw new TypeError('createElementNS requires a namespace and qualified name');
-		}
-		const namespaceURI = namespace == null ? null : `${namespace}` || null;
-		const name = `${qualifiedName}`;
-		const { prefix, localName } = validateElementNamespace(namespaceURI, name);
-		return this.#createElement(localName, { namespaceURI, prefix });
-	}
-
-	createAttribute(localName: string): Attr {
-		const name = `${localName}`;
-		validateAttributeName(name);
-		return new Attr(this, asciiLowercase(name), this.notify);
-	}
-
-	createAttributeNS(namespace: string | null, qualifiedName: string): Attr {
-		if (arguments.length < 2) {
-			throw new TypeError('createAttributeNS requires a namespace and qualified name');
-		}
-		const namespaceURI = namespace == null ? null : `${namespace}` || null;
-		const name = `${qualifiedName}`;
-		const { prefix, localName } = validateAttributeNamespace(namespaceURI, name);
-		return new Attr(this, localName, this.notify, { namespaceURI, prefix });
-	}
-
-	createTextNode(data: string): Text {
-		return new Text(this, String(data), this.notify);
-	}
-
-	createComment(data: string): Text {
-		return new Comment(this, String(data), this.notify);
-	}
-
-	createProcessingInstruction(target: string, data: string): ProcessingInstruction {
-		return new ProcessingInstruction(this, target, data, this.notify);
-	}
-
-	#createElement(localName: string, namespace: ElementNamespace): Element {
-		if (namespace.namespaceURI !== HTML_NS) {
-			return new Element(this, localName, this.notify, namespace);
-		} else {
-			const ElementConstructor = this.#registry.get(localName) ?? HTMLUnknownElement;
-			return new ElementConstructor(this, localName, this.notify, namespace);
-		}
-	}
-}
-
-export interface EventListener<Target extends EventTarget = EventTarget> {
-	(this: Target, event: Event): void;
-}
-
 export abstract class Node extends EventTarget {
 	static readonly ELEMENT_NODE = 1;
 	static readonly ATTRIBUTE_NODE = 2;
 	static readonly TEXT_NODE = 3;
 	static readonly PROCESSING_INSTRUCTION_NODE = 7;
 	static readonly COMMENT_NODE = 8;
+	static readonly DOCUMENT_NODE = 9;
 
 	readonly ELEMENT_NODE = Node.ELEMENT_NODE;
 	readonly ATTRIBUTE_NODE = Node.ATTRIBUTE_NODE;
 	readonly TEXT_NODE = Node.TEXT_NODE;
 	readonly PROCESSING_INSTRUCTION_NODE = Node.PROCESSING_INSTRUCTION_NODE;
 	readonly COMMENT_NODE = Node.COMMENT_NODE;
+	readonly DOCUMENT_NODE = Node.DOCUMENT_NODE;
 
 	readonly #childNodes: Node[] = [];
-	readonly ownerDocument: Document;
+	readonly ownerDocument: Document | null;
 
 	abstract readonly nodeType: number;
 	abstract readonly nodeName: string;
@@ -106,7 +36,7 @@ export abstract class Node extends EventTarget {
 
 	#parentNode: Node | null = null;
 
-	constructor(owner: Document, notify: Node['notify']) {
+	constructor(owner: Document | null, notify: Node['notify']) {
 		super();
 		this.notify = notify;
 		this.ownerDocument = owner;
@@ -269,7 +199,94 @@ export abstract class Node extends EventTarget {
 	}
 }
 
+export class Document extends Node {
+	declare readonly ownerDocument: null;
+
+	readonly documentElement: Element;
+	readonly body: Element;
+
+	#registry: Map<string, typeof Element> = new Map([['span', HTMLSpanElement]]);
+
+	constructor(notify: () => void) {
+		super(null, notify);
+		this.documentElement = new Element(this, 'html', notify);
+		this.body = new Element(this, 'body', notify);
+		this.documentElement.appendChild(this.body);
+		this.appendChild(this.documentElement);
+	}
+
+	get nodeType(): number {
+		return Node.DOCUMENT_NODE;
+	}
+
+	get nodeName(): string {
+		return '#document';
+	}
+
+	createElement(tagName: string): Element {
+		if (arguments.length === 0) {
+			throw new TypeError('createElement requires a tag name');
+		}
+		const localName = `${tagName}`;
+		validateElementName(localName);
+		return this.#createElement(asciiLowercase(localName), { namespaceURI: HTML_NS, prefix: null });
+	}
+
+	createElementNS(namespace: string | null, qualifiedName: string): Element {
+		if (arguments.length < 2) {
+			throw new TypeError('createElementNS requires a namespace and qualified name');
+		}
+		const namespaceURI = namespace == null ? null : `${namespace}` || null;
+		const name = `${qualifiedName}`;
+		const { prefix, localName } = validateElementNamespace(namespaceURI, name);
+		return this.#createElement(localName, { namespaceURI, prefix });
+	}
+
+	createAttribute(localName: string): Attr {
+		const name = `${localName}`;
+		validateAttributeName(name);
+		return new Attr(this, asciiLowercase(name), this.notify);
+	}
+
+	createAttributeNS(namespace: string | null, qualifiedName: string): Attr {
+		if (arguments.length < 2) {
+			throw new TypeError('createAttributeNS requires a namespace and qualified name');
+		}
+		const namespaceURI = namespace == null ? null : `${namespace}` || null;
+		const name = `${qualifiedName}`;
+		const { prefix, localName } = validateAttributeNamespace(namespaceURI, name);
+		return new Attr(this, localName, this.notify, { namespaceURI, prefix });
+	}
+
+	createTextNode(data: string): Text {
+		return new Text(this, String(data), this.notify);
+	}
+
+	createComment(data: string): Text {
+		return new Comment(this, String(data), this.notify);
+	}
+
+	createProcessingInstruction(target: string, data: string): ProcessingInstruction {
+		return new ProcessingInstruction(this, target, data, this.notify);
+	}
+
+	#createElement(localName: string, namespace: ElementNamespace): Element {
+		if (namespace.namespaceURI !== HTML_NS) {
+			return new Element(this, localName, this.notify, namespace);
+		} else {
+			const ElementConstructor = this.#registry.get(localName) ?? HTMLUnknownElement;
+			return new ElementConstructor(this, localName, this.notify, namespace);
+		}
+	}
+}
+
+export interface EventListener {
+	(this: EventTarget, event: Event): void;
+}
+
 export class Element extends Node {
+	declare readonly ownerDocument: Document;
+
 	readonly localName: string;
 	readonly nodeName: string;
 	readonly namespaceURI: string | null;
@@ -397,6 +414,8 @@ export class HTMLSpanElement extends HTMLElement {}
 export class HTMLUnknownElement extends HTMLElement {}
 
 export class Attr extends Node {
+	declare readonly ownerDocument: Document;
+
 	readonly localName: string;
 	readonly namespaceURI: string | null;
 	readonly prefix: string | null;
@@ -444,7 +463,7 @@ export class Attr extends Node {
 		const normal = `${value}`;
 		if (this.#value !== normal) {
 			this.#value = normal;
-			this.ownerDocument?.notify();
+			this.notify();
 		}
 	}
 
@@ -458,6 +477,8 @@ export class Attr extends Node {
 }
 
 export abstract class CharacterData extends Node {
+	declare readonly ownerDocument: Document;
+
 	#data: string;
 	constructor(owner: Document, data: string, notify: Node['notify']) {
 		super(owner, notify);

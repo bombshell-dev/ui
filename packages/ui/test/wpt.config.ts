@@ -138,7 +138,11 @@ const config: WPTConfig = {
 			'For a Text, textContent should set the data',
 			'For a Comment, textContent should set the data',
 		],
+		'dom/nodes/Node-parentNode.html': ['Document', 'Root element'],
 		'dom/nodes/Node-parentElement.html': [
+			'When the parent is null, parentElement should be null',
+			'When the parent is a document, parentElement should be null (element)',
+			'When the parent is a document, parentElement should be null (comment)',
 			'parentElement should work correctly in disconnected subtrees (element)',
 			'parentElement should work correctly in disconnected subtrees (text)',
 		],

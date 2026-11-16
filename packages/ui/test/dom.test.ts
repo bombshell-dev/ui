@@ -12,7 +12,7 @@ describe('Node sibling properties outside WPT coverage', () => {
 		'%s has no siblings when detached or an only child',
 		(create) => {
 			const document = new Document(() => {});
-			const parent = document.documentElement;
+			const parent = document.body;
 			const node = document[create]('document');
 
 			expect(node.previousSibling).toBeNull();
@@ -30,7 +30,7 @@ describe('Node sibling properties outside WPT coverage', () => {
 
 	it('traverses immediate siblings including text and comments', () => {
 		const document = new Document(() => {});
-		const parent = document.documentElement;
+		const parent = document.body;
 		const first = parent.appendChild(document.createElement('document'));
 		const text = parent.appendChild(document.createTextNode('text'));
 		const comment = parent.appendChild(document.createComment('comment'));
@@ -51,7 +51,7 @@ describe('Node sibling properties outside WPT coverage', () => {
 
 	it('updates both directions when existing children are reordered', () => {
 		const document = new Document(() => {});
-		const parent = document.documentElement;
+		const parent = document.body;
 		const first = parent.appendChild(document.createElement('document'));
 		const middle = parent.appendChild(document.createTextNode('middle'));
 		const last = parent.appendChild(document.createComment('last'));
@@ -95,7 +95,7 @@ describe('Node sibling properties outside WPT coverage', () => {
 
 	it('closes the sibling gap on removal and clears detached relationships', () => {
 		const document = new Document(() => {});
-		const parent = document.documentElement;
+		const parent = document.body;
 		const first = parent.appendChild(document.createTextNode('first'));
 		const middle = parent.appendChild(document.createComment('middle'));
 		const last = parent.appendChild(document.createElement('document'));

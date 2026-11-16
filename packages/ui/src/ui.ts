@@ -31,7 +31,7 @@ export async function createUI(options: UIOptions): Promise<UI> {
 
 	let running: Promise<void> | undefined = undefined;
 
-	const run = async () => {
+	const run = async (): Promise<void> => {
 		await write(output, setup.apply);
 
 		try {
