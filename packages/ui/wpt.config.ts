@@ -119,6 +119,9 @@ const config: WPTConfig = {
 			'getElementsByTagName() should be a live collection',
 			// Preserve the existing selection; interface and named own-property coverage remains deferred.
 		],
+		'html/editing/focus/focus-management/focusing-disconnected-noop.html': true,
+		'html/editing/focus/focus-management/focusing-focused-noop.html': true,
+		'html/interaction/focus/focus-management/focus-events.html': true,
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': [/^createElement\(.*\) in HTML document$/],
 		'dom/nodes/Document-createElementNS.html': [
