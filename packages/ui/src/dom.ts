@@ -52,50 +52,7 @@ export abstract class Node extends EventTarget {
 	// Adds bubbling to the host EventTarget. Capture traversal and resetting the
 	// host's propagation flags after dispatch are not implemented here.
 	override dispatchEvent(event: Event): boolean {
-		if (event.eventPhase !== Event.NONE) {
-			throw new DOMException('Cannot redispatch an active event', 'InvalidStateError');
-		}
-
-		const path: Node[] = [this];
-		for (let current = this.parentNode; current; current = current.parentNode) {
-			path.push(current);
-		}
-
-		// Native dispatch retargets on each node. Keep the tree's original target
-		// and expose its current node and phase while each native dispatch runs.
-		Object.defineProperty(event, 'target', { configurable: true, value: this });
-		const originals = Object.getOwnPropertyDescriptors(event);
-
-		try {
-			Object.defineProperty(event, 'composedPath', {
-				value: () => [...path],
-				configurable: true,
-			});
-			const end = event.bubbles ? path.length : 1;
-			for (let i = 0; i < end; i++) {
-				Object.defineProperties(event, {
-					currentTarget: { value: path[i], configurable: true },
-					eventPhase: {
-						value: i === 0 ? Event.AT_TARGET : Event.BUBBLING_PHASE,
-						configurable: true,
-					},
-				});
-				super.dispatchEvent.call(path[i], event);
-				if (event.cancelBubble) {
-					break;
-				}
-			}
-			return !event.defaultPrevented;
-		} finally {
-			for (const name of ['currentTarget', 'eventPhase', 'composedPath']) {
-				const original = originals[name];
-				if (original) {
-					Object.defineProperty(event, name, original);
-				} else {
-					Reflect.deleteProperty(event, name);
-				}
-			}
-		}
+		return dispatchEvent(this, { event, isTrusted: false });
 	}
 
 	hasChildNodes(): boolean {
@@ -312,6 +269,14 @@ export class Document extends Node {
 
 	get nodeName(): string {
 		return '#document';
+	}
+
+	get activeElement(): Element | null {
+		return (
+			getActiveElement(this) ??
+			(this instanceof HTMLDocument ? this.body : null) ??
+			this.documentElement
+		);
 	}
 
 	get doctype(): DocumentType | null {
@@ -534,6 +499,18 @@ export class Element extends Node {
 
 	get attributes(): NamedNodeMap {
 		return this.#attributes;
+	}
+
+	override removeChild(node: Node): Node {
+		const result = super.removeChild(node);
+
+		// Removing the focused subtree clears focus without dispatching focus events.
+		const activeElement = this.ownerDocument.activeElement;
+		if (activeElement && findElement([node], (element) => element === activeElement)) {
+			setActiveElement(this.ownerDocument, null);
+		}
+
+		return result;
 	}
 
 	getAttribute(name: string): string | null {
@@ -841,7 +818,49 @@ export class HTMLDocument extends Document {
 	}
 }
 
-export class HTMLElement extends Element {}
+export class HTMLElement extends Element {
+	#onfocus: EventListener | undefined = undefined;
+	#onblur: EventListener | undefined = undefined;
+
+	focus(): void {
+		if (!this.isConnected) {
+			return;
+		}
+		transitionActiveElement(this.ownerDocument, this);
+	}
+
+	blur(): void {
+		if (!this.isConnected) {
+			return;
+		} else if (this === this.ownerDocument.activeElement) {
+			transitionActiveElement(this.ownerDocument, null);
+		}
+	}
+
+	get onfocus(): EventListener | undefined {
+		return this.#onfocus;
+	}
+
+	set onfocus(listener: EventListener) {
+		if (this.#onfocus) {
+			this.removeEventListener('focus', this.#onfocus);
+		}
+		this.#onfocus = listener;
+		this.addEventListener('focus', listener);
+	}
+
+	get onblur(): EventListener | undefined {
+		return this.#onblur;
+	}
+
+	set onblur(listener: EventListener) {
+		if (this.#onblur) {
+			this.removeEventListener('blur', this.#onblur);
+		}
+		this.#onblur = listener;
+		this.addEventListener('blur', listener);
+	}
+}
 
 export class HTMLHtmlElement extends HTMLElement {}
 
@@ -860,6 +879,135 @@ export class HTMLUnknownElement extends HTMLElement {}
 /** XML */
 
 export class XMLDocument extends Document {}
+
+/** Focus */
+
+const focii = new WeakMap<Document, Element>();
+
+function setActiveElement(document: Document, element: Element | null): void {
+	if (element === null) {
+		focii.delete(document);
+	} else {
+		focii.set(document, element);
+	}
+}
+
+function getActiveElement(document: Document): Element | null {
+	return focii.get(document) ?? null;
+}
+
+function transitionActiveElement(document: Document, to: Element | null): void {
+	const current = getActiveElement(document);
+	if (to === current) {
+		return;
+	}
+
+	setActiveElement(document, null);
+
+	if (current !== null) {
+		dispatchEvent(current, {
+			event: new FocusEvent('blur', {
+				relatedTarget: to,
+			}),
+			isTrusted: true,
+		});
+
+		dispatchEvent(current, {
+			event: new FocusEvent('focusout', {
+				relatedTarget: to,
+			}),
+			isTrusted: true,
+		});
+	}
+
+	setActiveElement(document, to);
+
+	if (to !== null) {
+		dispatchEvent(to, {
+			event: new FocusEvent('focus', {
+				relatedTarget: current,
+			}),
+			isTrusted: true,
+		});
+		dispatchEvent(to, {
+			event: new FocusEvent('focusin', {
+				relatedTarget: current,
+			}),
+			isTrusted: true,
+		});
+	}
+}
+
+export class FocusEvent extends Event {
+	override readonly type: 'focus' | 'focusin' | 'focusout' | 'blur';
+	readonly relatedTarget: Element | null;
+
+	constructor(
+		type: 'focus' | 'focusin' | 'focusout' | 'blur',
+		options: { relatedTarget: Element | null },
+	) {
+		super(type, {
+			bubbles: type === 'focusin' || type === 'focusout',
+			cancelable: false,
+		});
+		this.type = type;
+		this.relatedTarget = options.relatedTarget;
+	}
+}
+
+function dispatchEvent(
+	node: Node,
+	{ event, isTrusted }: { event: Event; isTrusted: boolean },
+): boolean {
+	if (event.eventPhase !== Event.NONE) {
+		throw new DOMException('Cannot redispatch an active event', 'InvalidStateError');
+	}
+
+	const path: Node[] = [node];
+	for (let current = node.parentNode; current; current = current.parentNode) {
+		path.push(current);
+	}
+
+	// Native dispatch retargets on each node. Keep the tree's original target
+	// and expose its current node and phase while each native dispatch runs.
+	Object.defineProperty(event, 'target', { configurable: true, value: node });
+	const originals = Object.getOwnPropertyDescriptors(event);
+
+	try {
+		Object.defineProperty(event, 'composedPath', {
+			value: () => [...path],
+			configurable: true,
+		});
+		const end = event.bubbles ? path.length : 1;
+		for (let i = 0; i < end; i++) {
+			Object.defineProperties(event, {
+				currentTarget: { value: path[i], configurable: true },
+				eventPhase: {
+					value: i === 0 ? Event.AT_TARGET : Event.BUBBLING_PHASE,
+					configurable: true,
+				},
+				isTrusted: {
+					value: isTrusted,
+					configurable: true,
+				},
+			});
+			EventTarget.prototype.dispatchEvent.call(path[i]!, event);
+			if (event.cancelBubble) {
+				break;
+			}
+		}
+		return !event.defaultPrevented;
+	} finally {
+		for (const name of ['currentTarget', 'eventPhase', 'composedPath']) {
+			const original = originals[name];
+			if (original) {
+				Object.defineProperty(event, name, original);
+			} else {
+				Reflect.deleteProperty(event, name);
+			}
+		}
+	}
+}
 
 /** internal helpers **/
 
