@@ -1,17 +1,16 @@
 # @bomb.sh/web-platform-tests
 
-Private workspace package containing reusable DOM compatibility assertions. It contains no DOM implementation. Only `@clack/ui` tests consume its package API; browser validation is development tooling.
+Run original [Web Platform Tests (WPT)](https://github.com/web-platform-tests/wpt)
+against a DOM implementation. This private workspace package supplies a CLI,
+HTML fixtures, and a Vitest transform. Each upstream source appears as a separate
+test file, with individually reported subtests.
 
-The suite includes adaptations of [Web Platform Tests (WPT)](https://github.com/web-platform-tests/wpt) covering DOM operations, state/style interactions, input, shadow DOM, forms, CSSOM, selection, traversal, and parsing.
+The [`wpt`](wpt) submodule pins the upstream sources at the revision recorded in
+[WPT_REVISION](WPT_REVISION). Upstream authorship and licenses remain in the
+checkout; see [WPT's license](wpt/LICENSE.md). The local harness uses the package's
+[MIT license](LICENSE).
 
-The suite uses one upstream WPT revision, recorded in [WPT_REVISION](WPT_REVISION). Browse that revision [here](https://github.com/web-platform-tests/wpt/tree/b719612f963a05ece9c89a7dd7598c1c59618874). Files under `src/wpt` mirror upstream paths with `.ts` appended; the revision applies to all files and cases. See [attribution and licenses](test/wpt/README.md).
-
-### Direct upstream checkpoint
-
-The `wpt` CLI runs original sources from the pinned `wpt` submodule. The initial
-[UI configuration](../ui/wpt.config.ts) selects 208 cases from
-`Node-parentNode.html` and `Document-createElementNS.html`. The adapted suite
-remains in place while coverage is migrated.
+## Running tests
 
 From the workspace root:
 
@@ -19,120 +18,84 @@ From the workspace root:
 git submodule update --init packages/web-platform-tests/wpt
 pnpm --filter @bomb.sh/web-platform-tests build
 pnpm --filter @clack/ui exec wpt
-# Subsequent runs need no rebuild unless the harness changes.
+```
+
+Subsequent runs need no rebuild unless the harness changes. The CLI accepts
+`--config path/to/wpt.config.ts`, optional filename filters, and `-t`/`--name` for
+subtest names:
+
+```sh
 pnpm --filter @clack/ui exec wpt Node-parentNode -t 'Root element'
+pnpm --filter @clack/ui exec wpt --config wpt.config.ts Document-createElementNS
 ```
 
-The CLI accepts `--config path/to/wpt.config.ts`, optional filename filters, and
-`-t`/`--name` for subtest names. Configurations import `WPTConfig` from
-`@bomb.sh/web-platform-tests/config` and supply `createDocument`, `globals`, and
-source/case selectors. Each upstream file appears separately in Vitest.
+`pnpm test` and `pnpm --filter @clack/ui test` build the harness, run the local
+implementation tests, and run the configured WPT cases.
 
-The harness populates fixtures with parse5 and executes unchanged scripts and
-static helpers in one window context per file. It uses upstream `testharness.js`
-in its shell environment, supplies the document and `defaultView`, then delivers
-window `load`. Entire files execute; selection filters the reported results.
-Source-loading, setup, and harness failures remain failures regardless of filters.
+## Configuration
 
-The excluded `Removed iframe` case in `Node-parentNode.html` is explicitly forced
-to time out after load and the selected cases finish. Selecting that case disables
-the exception. Iframe loading, parser-driven script timing, and module/async/defer
-scripts are outside this checkpoint.
-
-### Required WPT correspondence
-
-Each file under `src/wpt` corresponds to its upstream path with the final `.ts` removed. For example, `src/wpt/dom/nodes/Document-createElement.html.ts` adapts `dom/nodes/Document-createElement.html`. Keep upstream spelling and capitalization for tests, helpers, and data. Local harness code lives in `src/shared`; comments explain non-obvious adaptations.
-
-Keep ordinary `context.test` and `expect` calls and readable case names. Preserve upstream inputs, setup, operation order, assertions, exceptions, node identities, and relationships between documents. A file's presence identifies the selected adaptations, not coverage of every upstream case. [Omissions](docs/omissions.md) records skipped upstream cases and why.
-
-The WPT suite must contain only faithful adaptations of existing upstream cases. Do not invent scenarios, add local assertions, extend upstream input matrices, or create specification-derived cases here. Independently authored subtleties, regressions, and implementation-specific checks belong in separate tests outside this suite. Necessary harness adaptations must preserve the upstream behavior being tested. Tests of the harness itself are separate infrastructure tests.
-
-The shared suite is the long-term home of upstream WPT coverage for the UI. Implementation-specific rendering, notification, and lifecycle checks belong in the corresponding UI integration tests.
+A consumer needs only a `wpt.config.ts`. It supplies a document factory and the
+implementation's global bindings, then selects upstream source paths and original
+case names. See the [UI configuration](../ui/wpt.config.ts).
 
 ```ts
-import { testDOMCompatibility } from '@bomb.sh/web-platform-tests';
-import { describe, it, expect } from 'vitest';
-import { createDocument, dispose } from './implementation-fixture.ts';
-import config from './wpt.config.ts';
-
-testDOMCompatibility({
-  runner: { describe, it, expect },
-  config,
-  create: createDocument,
-  dispose,
-  // input: document => createHostInputSession(document),
-});
-```
-
-### Selecting tests
-
-The `config` option is optional; omitting it runs all adapted cases. A `WPTConfig` supplies source-path selectors in `include` and `exclude`; an explicit include always wins. Each value is `true` for the entire source file or an array of exact case names and regular expressions matching case names.
-
-When selection excludes every case, the harness registers a todo through `runner.it.todo` to start implementing DOM features and enable their WPT cases.
-
-```ts
-import type { WPTConfig } from '@bomb.sh/web-platform-tests';
-import { globals } from './implementation-fixture.ts';
+import type { WPTConfig } from '@bomb.sh/web-platform-tests/config';
+import { createHTMLDocument, Node, Document, Element } from './dom.ts';
 
 export default {
-  globals,
-  exclude: { 'dom/nodes/Node-insertBefore.html': true },
-  include: { 'dom/nodes/Node-insertBefore.html': [/reference child/] },
+  createDocument: () => createHTMLDocument(),
+  globals: { Node, Document, Element },
+  include: {
+    'dom/nodes/Node-parentNode.html': ['Document', 'Root element'],
+  },
+  exclude: { '**': true },
 } satisfies WPTConfig;
 ```
 
-Source paths support `*` within a path segment and `**` across directories; `**/` also matches zero directories. Other characters are literal. Case-name strings match exactly. Empty, invalid, or unmatched selectors fail configuration before any cases register, so stale exclusions remain visible.
+`createDocument()` returns a fresh document for each upstream file. The harness
+populates it with that file's HTML and installs `document.defaultView`.
+`globals` supplies the constructors and other bindings the tests use. `timeout`
+sets the maximum execution time per file in milliseconds; the default is 15,000.
 
-Cases have no test-to-test prerequisite gates. A selected case exercises its supporting DOM operations and reports failures normally. Globals and host input are resolved lazily when the case uses them. The runner can narrow selected cases further with its usual name filter.
+Source keys support `*` within a path segment and `**` across directories. Values
+are `true` for every subtest in a source or arrays of exact names and regular
+expressions. Explicit includes override exclusions; otherwise cases are included
+unless excluded. Use `exclude: { '**': true }` to enable cases incrementally.
+Invalid or unmatched selectors fail configuration.
 
-Run `pnpm generate` after adding, moving, or removing source files. The build also regenerates the registry from filenames. Only files exporting `register` are test entrypoints; upstream support files are imported by those tests. `node scripts/generate-registry.mjs --check` verifies that the checked-in registry is current.
+## Execution and limitations
 
-### Harness
+The harness parses HTML with parse5, populates the implementation's document,
+and executes the original inline scripts and static local helpers in source
+order within one window context per file. It loads upstream `testharness.js` in
+its shell environment and delivers window `load` after the scripts finish.
+Script elements are fixture nodes; parsing them does not execute their contents.
 
-* `create(options?)`: A synchronous or asynchronous factory for a fresh `Document`. Cases using the default HTML document expect its doctype, `html`, `head`, and `body` tree. When a case supplies `DOMDocumentOptions`, honor its markup, MIME type, and URL fragment; the selector matrix uses these to test HTML, XHTML, and `:target`.
-* `config.globals`: An object containing the implementation's global bindings, or a function that returns them for each fresh document. Tests destructure typed bindings from the fixture, such as `({ document, Node, Text })`. Omitting globals supplies no bindings; accessing a missing binding throws.
-* `input`: An optional factory for a `DOMInputDriver` session that delivers keyboard, text, and mouse input through the implementation's normal host input pipeline. This allows testing of default actions like focus on click, form submission on `Enter`, and trusted events.
-* `dispose(document)`: Optional cleanup for implementation-owned resources after each case, including failures.
+Entire selected files execute, including their unselected subtests. Configuration
+and CLI name filters select the results reported by Vitest. This preserves
+upstream shared state and setup. Source-loading, setup, and harness errors remain
+failures regardless of subtest selection.
 
-### Development
+The excluded `Removed iframe` case in `Node-parentNode.html` is explicitly forced
+to time out after window load and the selected cases finish. Selecting that case
+disables this exception. It depends on an iframe load the fixture cannot deliver.
+
+The runner supports HTML sources and window `.any.js`/`.window.js` sources with
+static helpers. It does not implement iframe navigation, parser-driven script
+timing, module/async/defer scripts, server substitutions, or remote helpers.
+Unsupported source features fail explicitly. Selecting part of a file does not
+claim coverage of its remaining subtests or complete standards conformance.
+
+## Development
 
 ```sh
-pnpm build
-pnpm test
+pnpm --filter @bomb.sh/web-platform-tests build
 pnpm --filter @bomb.sh/web-platform-tests typecheck
-pnpm --filter @bomb.sh/web-platform-tests exec playwright install chromium
-pnpm --filter @bomb.sh/web-platform-tests test:browser:build
-pnpm --filter @bomb.sh/web-platform-tests test:browser:input
-pnpm --filter @bomb.sh/web-platform-tests test:browser:run
-pnpm --filter @bomb.sh/web-platform-tests test:wpt-selectors
-# Manual, without input: open /compatibility.html on the printed URL
-pnpm --filter @bomb.sh/web-platform-tests test:browser
+pnpm lint --warnings
+pnpm format:check
+pnpm --filter @clack/ui exec wpt
 ```
-To validate the test suite itself, run it against an actual browser runtime. Browser dependencies are development-only.
 
-The automation CLI uses Playwright's Chromium with a fresh iframe per case and a new browser context every 500 cases to bound memory use.
-
-The [selector audit](scripts/check-wpt-selectors.mjs), run by `test:wpt-selectors` and CI, checks registered case names, matrix data, API masks, and fixture bytes against the pinned upstream sources. It covers selector API files in `dom/nodes` plus `is-where-basic.html` and `has-basic.html`; the script records exclusions. Downloads are cached in ignored `node_modules/.cache`, and reports go to stdout. After changing selector adaptations or the suite revision, run this audit and browser validation, and review the assertions against upstream.
-
-The suite asserts resulting DOM behavior, never browser pixel values. Browser target resolution uses the browser's own rectangles and iframe coordinate offsets; a terminal adapter must use its own renderer.
-
-#### Browser results
-
-Browser validation keeps upstream expectations intact. Failures remain enabled
-and produce a nonzero exit code.
-
-### Coverage boundaries
-
-The [adapted sources](src/wpt) and generated [registry](src/shared/registry.ts) describe the executable coverage. Harness tests check source identity, case selection, and reachability of every source module. The [UI configuration](../ui/test/wpt.config.ts) records the cases enforced by that integration; the [UI test README](../ui/test/README.md) explains how to select additional cases while implementing them. Passing selected cases does not imply complete standards conformance.
-
-Remaining test gaps include:
-
-- DOM mutation validity and adoption permutations, Web IDL conversions and brands, collection descriptors and iteration mutations, complete selector grammar and HTML reflection, and XML namespace/entity/PI/CDATA cases.
-- The full HTML tree-construction and contextual parsing corpora, malformed foreign markup, sanitization, and Trusted Types.
-- Legacy event initialization and listener-option conversions; overlapping observer registrations and custom-element/slotchange/promise ordering; complete Range endpoint and mutation matrices, NodeIterator filtering/mutations, and text-control selectionchange scheduling.
-- Complete control-type value/validity/stepping matrices, files and pickers, FormData and submission interleavings, network submission, and select UI policies.
-- Customized built-ins, scoped custom-element registries, ElementInternals and form-state restoration, reaction ordering, nested-slot redistribution, focus navigation scopes, focus-visible preferences, and modal/inert exceptions.
-- Full CSS property grammar and computed values, revert/revert-layer, layer/import interactions, stylesheet loading/CORS/grouping and cross-document adoption, media/container queries, and animation/transition timelines.
-- IME/composition, clipboard, repeat timing, drag/drop, touch/pen/wheel, multi-click selection, editing history and input target ranges, further textarea/contenteditable editing, nested-shadow navigation, and platform command bindings.
-
-Exact geometry, visual-line navigation, caret painting, scroll positioning, occlusion, hit-testing geometry matrices, and visual-output assertions require additional renderer integration. Shared input tests assert resulting behavior without assuming browser-equivalent pixels. Platform interaction policies and trusted-event support remain independently selectable.
+Read the original source and its helpers before enabling a case. Keep upstream
+inputs, assertions, and execution order intact. Extend the harness only to supply
+fixture capabilities; implement missing DOM behavior in the consumer.

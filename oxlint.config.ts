@@ -5,11 +5,7 @@ export default {
 	overrides: [
 		...(config.overrides ?? []),
 		{
-			files: [
-				'packages/web-platform-tests/src/**/*.ts',
-				'packages/web-platform-tests/test/browser/*.ts',
-				'packages/web-platform-tests/test/browser/*.mts',
-			],
+			files: ['packages/web-platform-tests/src/**/*.ts'],
 			rules: {
 				// Test registration and factories must return synchronously to the runner.
 				'bombshell-dev/exported-function-async': 'off',

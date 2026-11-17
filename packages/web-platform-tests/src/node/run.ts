@@ -33,6 +33,7 @@ interface WPTTest extends WPTTestResult {
 
 interface Harness {
 	setup(properties: object): void;
+	timeout(): void;
 	add_test_state_callback(callback: (test: WPTTest) => void): void;
 	add_result_callback(callback: (test: WPTTest) => void): void;
 	add_completion_callback(callback: (tests: WPTTest[], status: WPTHarnessStatus) => void): void;
@@ -56,6 +57,7 @@ export async function runWPTFile({
 	let watchdog: ReturnType<typeof setTimeout> | undefined;
 	let finished = false;
 	let failure: WPTHarnessStatus | undefined;
+	let harnessStatus: WPTHarnessStatus | undefined;
 	const fail = (error: unknown, status = 1): void => {
 		if (finished) {
 			return;
@@ -63,7 +65,8 @@ export async function runWPTFile({
 		failure ??= { status, ...describeError(error) };
 		completion.resolve({ tests: results, status: failure });
 	};
-	const onError = (error: unknown): void => fail(error);
+	let onError = (error: unknown): void => fail(error);
+	let onRejection = (reason: unknown): void => fail(reason);
 	try {
 		const timeout = config.timeout ?? 15_000;
 		if (!Number.isFinite(timeout) || timeout <= 0) {
@@ -89,7 +92,7 @@ export async function runWPTFile({
 				try {
 					callback.apply(scope, args);
 				} catch (error) {
-					fail(error);
+					onError(error);
 				}
 			}
 		};
@@ -123,14 +126,38 @@ export async function runWPTFile({
 			},
 		});
 		scope.clearInterval = scope.clearTimeout;
-		process.on('uncaughtException', onError);
-		process.on('unhandledRejection', onError);
-
 		// Upstream supplies its shell environment, assertions, scheduling, and cleanup.
-		// Supplying the document afterward avoids its browser-only HTML reporting APIs.
+		// Keep its environment view in shell mode, including later title/stack lookups.
+		// Test scripts still see the actual window and document through self.
+		scope.self = new Proxy(
+			{},
+			{
+				get: (_, key) => Reflect.get(scope, key),
+				set: (_, key, value) => Reflect.set(scope, key, value),
+				has: (_, key) => key !== 'document' && Reflect.has(scope, key),
+			},
+		);
 		execute({ file: harnessFile, code: harnessCode });
+		scope.self = scope;
 		const harness = scope as unknown as Harness;
 		harness.setup({ output: false });
+		onError = (error): void => {
+			const event = new Event('error', { cancelable: true });
+			Object.defineProperties(event, {
+				error: { value: error },
+				message: { value: describeError(error).message },
+			});
+			// Let upstream's error handler honor allow_uncaught_exception and let
+			// EventWatcher observe native listener errors just as window errors.
+			window.dispatchEvent.call(scope, event);
+		};
+		onRejection = (reason): void => {
+			const event = new Event('unhandledrejection', { cancelable: true });
+			Object.defineProperty(event, 'reason', { value: reason });
+			window.dispatchEvent.call(scope, event);
+		};
+		process.on('uncaughtException', onError);
+		process.on('unhandledRejection', onRejection);
 		const registered = new Set<WPTTest>();
 		const completed = new Set<WPTTest>();
 		let loaded = false;
@@ -157,6 +184,7 @@ export async function runWPTFile({
 			queueMicrotask(finishUnsupportedIframe);
 		});
 		harness.add_completion_callback((tests, status) => {
+			harnessStatus = status;
 			completion.resolve({
 				tests: Array.from(tests, copyTest),
 				status: { status: status.status, message: status.message, stack: status.stack },
@@ -175,7 +203,15 @@ export async function runWPTFile({
 		populateDocument(document, source.html);
 		watchdog = setTimeout(
 			() => {
-				fail(new WPTExecutionError(`WPT file did not complete within ${timeout}ms: ${file}`), 2);
+				// Upstream retains any earlier harness error when timing out pending tests.
+				try {
+					harness.timeout();
+				} catch (error) {
+					fail(error);
+				}
+				if (!harnessStatus) {
+					fail(new WPTExecutionError(`WPT file did not complete within ${timeout}ms: ${file}`), 2);
+				}
 			},
 			Math.max(1, deadline - Date.now()),
 		);
@@ -196,7 +232,11 @@ export async function runWPTFile({
 		// Native EventTarget reports listener exceptions after dispatch returns.
 		// Keep those errors associated with this file before releasing its context.
 		await setImmediate();
-		return failure ? { ...result, status: failure } : result;
+		const status = failure ?? harnessStatus ?? result.status;
+		return {
+			...result,
+			status: { status: status.status, message: status.message, stack: status.stack },
+		};
 	} catch (error) {
 		return { tests: results, status: { status: 1, ...describeError(error) } };
 	} finally {
@@ -206,7 +246,7 @@ export async function runWPTFile({
 			clearTimeout(timer);
 		}
 		process.off('uncaughtException', onError);
-		process.off('unhandledRejection', onError);
+		process.off('unhandledRejection', onRejection);
 	}
 }
 

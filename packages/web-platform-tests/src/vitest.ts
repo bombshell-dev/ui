@@ -131,6 +131,8 @@ export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
 				environment: 'node',
 				// Each upstream file owns its script globals and top-level lexical bindings.
 				pool: 'forks',
+				// WPT deliberately verifies that adding a null listener is a no-op.
+				execArgv: ['--disable-warning=AddEventListenerArgumentTypeWarning'],
 				isolate: true,
 				maxWorkers: 1,
 				passWithNoTests: true,
