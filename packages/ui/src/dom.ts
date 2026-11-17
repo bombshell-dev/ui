@@ -789,9 +789,27 @@ export class HTMLElement extends Element {
 	#onfocus: EventListener | undefined = undefined;
 	#onblur: EventListener | undefined = undefined;
 
+	get inert(): boolean {
+		return this.hasAttributeNS(null, 'inert');
+	}
+
+	set inert(value: boolean) {
+		if (value) {
+			this.setAttributeNS(null, 'inert', '');
+		} else {
+			this.removeAttributeNS(null, 'inert');
+		}
+	}
+
 	focus(): void {
 		if (!this.isConnected) {
 			return;
+		}
+		// inert nodes don't get focus
+		for (const node of lineage(this)) {
+			if (node instanceof HTMLElement && node.inert) {
+				return;
+			}
 		}
 		this.ownerDocument._setActiveElement(this);
 	}
@@ -913,5 +931,11 @@ function dispatchEvent(
 				Reflect.deleteProperty(event, name);
 			}
 		}
+	}
+}
+
+function* lineage(node: Node): Iterable<Node> {
+	for (let current: Node | null = node; current; current = current.parentNode) {
+		yield current;
 	}
 }
