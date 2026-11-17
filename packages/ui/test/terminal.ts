@@ -1,5 +1,5 @@
 import { PassThrough, Writable } from 'node:stream';
-import { keyToAnsi, parseKey, type Region } from '@termless/core';
+import { keyToAnsi, parseKey, type Cell, type Region } from '@termless/core';
 import {
 	createTestTerminal as createTermlessTerminal,
 	type SyncTestTerminalOptions,
@@ -9,6 +9,7 @@ export interface TestTerminal extends AsyncDisposable {
 	input: PassThrough;
 	output: Writable;
 	readonly screen: Region;
+	getCell(row: number, col: number): Cell;
 	type(text: string): void;
 	press(key: string): void;
 }
@@ -35,6 +36,9 @@ export function createTestTerminal(options: SyncTestTerminalOptions = {}): TestT
 		output,
 		get screen() {
 			return terminal.screen;
+		},
+		getCell(row, col) {
+			return terminal.backend.getCell(row, col);
 		},
 		type(text) {
 			input.write(text);
