@@ -129,7 +129,8 @@ describe('compatibility catalogue', () => {
 		}
 		const knownFiles = new Set(allFiles);
 		const reachable = new Set<string>();
-		const pending = ['index.ts', ...entrypoints];
+		// The CLI and generated Vitest modules are separate package entrypoints.
+		const pending = ['index.ts', 'cli.ts', 'vitest/runner.ts', ...entrypoints];
 		while (pending.length) {
 			const file = pending.pop()!;
 			if (reachable.has(file)) continue;
@@ -145,7 +146,7 @@ describe('compatibility catalogue', () => {
 		for (const file of files) {
 			expect(
 				reachable.has(file),
-				`${file} must be reachable from the package API or a WPT test`,
+				`${file} must be reachable from a package entrypoint or a WPT test`,
 			).toBe(true);
 		}
 	});
