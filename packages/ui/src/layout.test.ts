@@ -6,7 +6,8 @@ import { Layout } from './layout.ts';
 describe('Layout', () => {
 	it('groups adjacent text around nested and empty elements and keeps IDs stable', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.createElement('document');
+		document.body.appendChild(root);
 		const child = document.createElement('document');
 		const empty = document.createElement('document');
 		root.appendChild(document.createTextNode('before'));
@@ -35,7 +36,8 @@ describe('Layout', () => {
 
 	it('lays out a deeply nested tree without recursive generator delegation', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.createElement('document');
+		document.body.appendChild(root);
 		const depth = 20_000;
 		let current = root;
 		for (let i = 1; i < depth; i++) {
@@ -57,7 +59,8 @@ describe('Layout', () => {
 
 	it('closes active elements when iteration is returned early', () => {
 		const document = new Document(() => {});
-		const root = document.documentElement;
+		const root = document.createElement('document');
+		document.body.appendChild(root);
 		const child = document.createElement('document');
 		root.appendChild(child);
 		child.appendChild(document.createTextNode('inside'));
