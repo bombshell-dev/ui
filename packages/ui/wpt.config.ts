@@ -44,7 +44,6 @@ const config: WPTConfig = {
 		NamedNodeMap,
 		Node,
 		Text,
-		TypeError: globalThis.TypeError,
 		XMLDocument,
 	},
 	include: {

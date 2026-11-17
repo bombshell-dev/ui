@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { inject, test } from 'vitest';
 import type { WPTConfig } from '../config.ts';
-import { runWPTFile } from '../node/run.ts';
+import { runWPTFile } from '../node/isolated.ts';
 import { matchesName, matchesSource, selectsTest } from './selection.ts';
 
 declare module 'vitest' {
@@ -31,7 +31,7 @@ export async function registerWPTFile(file: string): Promise<void> {
 	const source = decodeURIComponent(
 		pathToFileURL(file).href.slice(pathToFileURL(`${sourceRoot}/`).href.length),
 	);
-	const result = await runWPTFile({ file, sourceRoot, config });
+	const result = await runWPTFile({ file, sourceRoot, configFile, timeout: config.timeout });
 	const expression = namePattern === undefined ? undefined : new RegExp(namePattern);
 
 	// Exact file selectors can be checked here without executing unrelated files.

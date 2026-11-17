@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { clearTimeout, setInterval, setTimeout } from 'node:timers';
 import { setImmediate } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createContext, Script } from 'node:vm';
+import { Script } from 'node:vm';
 import type { WPTConfig } from '../config.ts';
 import { selectsTest } from '../vitest/selection.ts';
 import { populateDocument } from './document.ts';
@@ -41,15 +41,19 @@ interface Harness {
 
 class WPTExecutionError extends Error {}
 
-/** Execute a whole upstream file in one window context before filtering its results. */
+const enqueueMicrotask = globalThis.queueMicrotask;
+
+/** Execute one upstream file in a disposable worker, sharing its consumer's realm. */
 export async function runWPTFile({
 	file,
 	sourceRoot,
 	config,
+	deadline = Date.now() + (config.timeout ?? 15_000),
 }: {
 	file: string;
 	sourceRoot: string;
 	config: WPTConfig;
+	deadline?: number;
 }): Promise<WPTFileResult> {
 	const results: WPTTestResult[] = [];
 	const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -77,16 +81,14 @@ export async function runWPTFile({
 		const sourcePath = decodeURIComponent(pathToFileURL(file).href.slice(rootURL.href.length));
 		const harnessFile = fileURLToPath(new URL('resources/testharness.js', rootURL));
 		const harnessCode = await readFile(harnessFile, 'utf8');
-		const deadline = Date.now() + timeout;
-		const window = new Window();
-		const context = createContext(window);
-		const scope = new Script('globalThis').runInContext(context) as Record<string, unknown>;
+		const scope = globalThis as unknown as Record<string, unknown>;
+		const window = new Window(scope);
 		const execute = (script: SourceScript): unknown =>
 			new Script(script.code, {
 				filename: script.file,
 				lineOffset: script.lineOffset,
 				columnOffset: script.columnOffset,
-			}).runInContext(context, { timeout: Math.max(1, deadline - Date.now()) });
+			}).runInThisContext({ timeout: Math.max(1, deadline - Date.now()) });
 		const invoke = (callback: (...args: unknown[]) => void, args: unknown[]): void => {
 			if (!finished) {
 				try {
@@ -96,14 +98,15 @@ export async function runWPTFile({
 				}
 			}
 		};
-		Object.assign(window, config.globals, {
+		const globals = {
+			...config.globals,
 			window: scope,
 			self: scope,
 			console,
-			// Bind bare global calls to the context's window, preserving listener receivers.
-			addEventListener: window.addEventListener.bind(scope),
-			removeEventListener: window.removeEventListener.bind(scope),
-			dispatchEvent: window.dispatchEvent.bind(scope),
+			// Delegate events to the fixture window while exposing the worker global to listeners.
+			addEventListener: window.addEventListener.bind(window),
+			removeEventListener: window.removeEventListener.bind(window),
+			dispatchEvent: window.dispatchEvent.bind(window),
 			setTimeout(callback: (...args: unknown[]) => void, delay = 0, ...args: unknown[]) {
 				const timer = setTimeout(() => {
 					timers.delete(timer);
@@ -122,9 +125,18 @@ export async function runWPTFile({
 				timers.delete(timer);
 			},
 			queueMicrotask(callback: () => void) {
-				queueMicrotask(() => invoke(callback, []));
+				enqueueMicrotask(() => invoke(callback, []));
 			},
-		});
+		};
+		for (const [name, value] of Object.entries(globals)) {
+			// Node exposes some globals, such as navigator, through getter-only accessors.
+			Object.defineProperty(scope, name, {
+				value,
+				writable: true,
+				enumerable: true,
+				configurable: true,
+			});
+		}
 		scope.clearInterval = scope.clearTimeout;
 		// Upstream supplies its shell environment, assertions, scheduling, and cleanup.
 		// Keep its environment view in shell mode, including later title/stack lookups.
@@ -149,12 +161,12 @@ export async function runWPTFile({
 			});
 			// Let upstream's error handler honor allow_uncaught_exception and let
 			// EventWatcher observe native listener errors just as window errors.
-			window.dispatchEvent.call(scope, event);
+			window.dispatchEvent(event);
 		};
 		onRejection = (reason): void => {
 			const event = new Event('unhandledrejection', { cancelable: true });
 			Object.defineProperty(event, 'reason', { value: reason });
-			window.dispatchEvent.call(scope, event);
+			window.dispatchEvent(event);
 		};
 		process.on('uncaughtException', onError);
 		process.on('unhandledRejection', onRejection);
@@ -181,7 +193,7 @@ export async function runWPTFile({
 		harness.add_result_callback((test) => {
 			completed.add(test);
 			results.push(copyTest(test));
-			queueMicrotask(finishUnsupportedIframe);
+			enqueueMicrotask(finishUnsupportedIframe);
 		});
 		harness.add_completion_callback((tests, status) => {
 			harnessStatus = status;
@@ -191,7 +203,7 @@ export async function runWPTFile({
 			});
 		});
 		const document = config.createDocument() as Document;
-		Object.defineProperty(window, 'document', { value: document, enumerable: true });
+		Object.defineProperty(scope, 'document', { value: document, enumerable: true });
 		Object.defineProperty(document, 'defaultView', {
 			get: () => scope,
 			enumerable: true,
