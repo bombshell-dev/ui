@@ -218,6 +218,7 @@ const config: WPTConfig = {
 			'Attribute with prefix in local name',
 			'getAttributeNames tests',
 		],
+		'dom/nodes/Node-isConnected.html': ['Test with ordinary child nodes'],
 		'dom/nodes/Node-nodeName.html': [
 			'For DocumentFragment nodes, nodeName should return "#document-fragment".',
 		],
