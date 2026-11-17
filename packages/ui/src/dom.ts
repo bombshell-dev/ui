@@ -151,6 +151,16 @@ export abstract class Node extends EventTarget {
 		//ignore
 	}
 
+	get isConnected(): boolean {
+		// oxlint-disable-next-line typescript/no-this-alias -- This cursor walks the node's ancestry.
+		for (let current: Node | null = this; current; current = current.parentNode) {
+			if (current instanceof Document) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	appendChild(node: Node): Node {
 		return this.insertBefore(node, null);
 	}
