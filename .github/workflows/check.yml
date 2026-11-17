@@ -38,6 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
@@ -51,9 +52,3 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @bomb.sh/web-platform-tests typecheck
-      - run: pnpm --filter @bomb.sh/web-platform-tests exec playwright install --with-deps chromium
-      - run: pnpm --filter @bomb.sh/web-platform-tests test:wpt-selectors
-      - name: Report Chromium input compatibility
-        # Browser conformance differences are informational, not UI build failures.
-        continue-on-error: true
-        run: pnpm --filter @bomb.sh/web-platform-tests test:browser:input

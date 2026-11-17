@@ -11,10 +11,6 @@
 		]
 	},
 	"include": [
-		"src/**/*.ts",
-		"test/**/*.ts"
-	],
-	"exclude": [
-		"test/browser/dist"
+		"src/**/*.ts"
 	]
 }
