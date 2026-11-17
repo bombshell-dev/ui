@@ -72,6 +72,17 @@ export function compile(selector: string): (node: Node) => boolean {
 	}
 }
 
+export function findElement(
+	nodes: Node[],
+	predicate: (element: Element) => boolean,
+): Element | null {
+	return selectOne(predicate, nodes, { adapter, xmlMode: true });
+}
+
+export function findElements(nodes: Node[], predicate: (element: Element) => boolean): Element[] {
+	return selectAll(predicate, nodes, { adapter, xmlMode: true });
+}
+
 export function querySelector(nodes: Node[], selector: string): Element | null {
 	const query = compile(selector);
 	return selectOne(query, nodes, { adapter });
