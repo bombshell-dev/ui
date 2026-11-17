@@ -1,5 +1,6 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
+import { querySelector } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import {
@@ -309,6 +310,10 @@ export class Document extends Node {
 			}
 		}
 		return null;
+	}
+
+	querySelector(selector: string): Element | null {
+		return querySelector(Array.from(this.childNodes), selector);
 	}
 
 	createElement(tagName: string): Element {
