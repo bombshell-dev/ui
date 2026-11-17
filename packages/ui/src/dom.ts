@@ -1,6 +1,7 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
-import { compile, querySelector } from './css-select.ts';
+import { compile, querySelector, querySelectorAll } from './css-select.ts';
+import { NodeList } from './node-list.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import { HTMLCollection } from './html-collection.ts';
@@ -385,6 +386,10 @@ export class Document extends Node {
 		return null;
 	}
 
+	querySelectorAll(selector: string): NodeList {
+		return new NodeList(querySelectorAll(Array.from(this.childNodes), selector));
+	}
+
 	createElement(tagName: string): Element {
 		if (arguments.length === 0) {
 			throw new TypeError('createElement requires a tag name');
@@ -483,6 +488,14 @@ export class DocumentFragment extends Node {
 		if (data !== '') {
 			this.appendChild(this.ownerDocument.createTextNode(data));
 		}
+	}
+
+	querySelector(selector: string): Element | null {
+		return querySelector(Array.from(this.childNodes), selector);
+	}
+
+	querySelectorAll(selector: string): NodeList {
+		return new NodeList(querySelectorAll(Array.from(this.childNodes), selector));
 	}
 }
 
@@ -635,6 +648,14 @@ export class Element extends Node {
 
 	matches(selector: string): boolean {
 		return compile(selector)(this);
+	}
+
+	querySelector(selector: string): Element | null {
+		return querySelector(Array.from(this.childNodes), selector);
+	}
+
+	querySelectorAll(selector: string): NodeList {
+		return new NodeList(querySelectorAll(Array.from(this.childNodes), selector));
 	}
 
 	get id(): string {
