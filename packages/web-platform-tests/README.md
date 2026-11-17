@@ -98,9 +98,20 @@ whole-file execution as explicit selectors.
 
 The harness parses HTML with parse5, populates the implementation's document,
 and executes the original inline scripts and static local helpers in source
-order within one window context per file. It loads upstream `testharness.js` in
+order within one fresh Node worker per file. It loads upstream `testharness.js` in
 its shell environment and delivers window `load` after the scripts finish.
 Script elements are fixture nodes; parsing them does not execute their contents.
+
+The worker loads the consumer configuration before installing its fixture globals,
+then executes the harness and test scripts in that same JavaScript realm. Consumer
+methods, native Node APIs, and fixture scripts therefore share the built-in error
+constructors and prototypes; no error-prototype patches or error-constructor
+bindings in `globals` are needed. Each worker is terminated after its file, so
+script globals, top-level lexical declarations, and module state cannot leak into
+the next file. The file's `timeout` includes worker startup and configuration
+loading. The harness reports ordinary timeouts at that shared deadline; a parent
+watchdog allows 250 ms for those results to arrive before terminating an
+unresponsive worker, including one blocked in an asynchronous callback.
 
 Entire selected files execute, including their unselected subtests. Configuration
 and CLI name filters select the results reported by Vitest. This preserves
@@ -114,6 +125,7 @@ disables this exception. It depends on an iframe load the fixture cannot deliver
 The runner supports HTML sources and window `.any.js`/`.window.js` sources with
 static helpers. It does not implement iframe navigation, parser-driven script
 timing, module/async/defer scripts, server substitutions, or remote helpers.
+Window event delegation currently requires extensible event objects.
 Unsupported source features fail explicitly. Selecting part of a file does not
 claim coverage of its remaining subtests or complete standards conformance.
 

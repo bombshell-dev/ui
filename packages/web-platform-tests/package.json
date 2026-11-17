@@ -25,7 +25,7 @@
 		}
 	},
 	"scripts": {
-		"build": "bsh build src/index.ts src/config.ts src/cli.ts src/vitest.ts src/vitest/runner.ts --dts",
+		"build": "bsh build src/index.ts src/config.ts src/cli.ts src/vitest.ts src/vitest/runner.ts src/node/worker.ts --dts",
 		"typecheck": "tsc -p tsconfig.json",
 		"format": "bsh format",
 		"lint": "bsh lint"
