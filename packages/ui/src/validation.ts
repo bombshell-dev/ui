@@ -34,6 +34,12 @@ export function validateAttributeNamespace(
 	});
 }
 
+export function validateDocumentTypeName(name: string): void {
+	if (/[\0\t\n\f\r\u0020>]/u.test(name)) {
+		throw new DOMException('Invalid document type name', 'InvalidCharacterError');
+	}
+}
+
 function validateNamespace(
 	namespaceURI: string | null,
 	{

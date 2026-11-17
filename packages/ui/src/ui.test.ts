@@ -6,7 +6,7 @@ describe('UI', () => {
 		await using ui = await createTestUI({ cols: 80, rows: 24 });
 		const { terminal, document } = ui;
 
-		document.documentElement.appendChild(document.createTextNode('hello world'));
+		document.documentElement!.appendChild(document.createTextNode('hello world'));
 
 		await expect.poll(() => terminal.screen, { timeout: 2000 }).toHaveText('hello world');
 	});
@@ -15,7 +15,7 @@ describe('UI', () => {
 		await using ui = await createTestUI({ cols: 12, rows: 2 });
 		const { terminal, document } = ui;
 		const text = document.createTextNode('before');
-		document.documentElement.appendChild(text);
+		document.documentElement!.appendChild(text);
 
 		await expect.poll(() => terminal.screen.getLines()).toEqual(['before', '']);
 		text.data = 'after';
