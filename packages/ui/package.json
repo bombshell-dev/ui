@@ -40,7 +40,9 @@
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:",
-		"css-select": "^7.0.0"
+		"css-select": "^7.0.0",
+		"@standard-schema/spec": "^1.1.0",
+		"hueful": "^0.8.1"
 	},
 	"devDependencies": {
 		"@bomb.sh/web-platform-tests": "workspace:*"

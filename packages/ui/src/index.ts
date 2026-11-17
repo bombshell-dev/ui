@@ -10,3 +10,12 @@ export {
 	HTMLTitleElement,
 	HTMLUnknownElement,
 } from './dom.ts';
+
+export type {
+	ColorValue,
+	BorderWidthValue,
+	FlexDirectionValue,
+	DisplayValue,
+	LengthValue,
+	BorderStyleValue,
+} from './style.ts';
