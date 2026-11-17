@@ -1,8 +1,9 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
-import { querySelector } from './css-select.ts';
+import { findElement, findElements, querySelector } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
+import { HTMLCollection } from './html-collection.ts';
 import {
 	validateElementName,
 	validateElementNamespace,
@@ -323,6 +324,36 @@ export class Document extends Node {
 
 	querySelector(selector: string): Element | null {
 		return querySelector(Array.from(this.childNodes), selector);
+	}
+
+	getElementsByTagName(qualifiedName: string): HTMLCollection {
+		if (arguments.length === 0) {
+			throw new TypeError('getElementsByTagName requires a qualified name');
+		}
+		const name = `${qualifiedName}`;
+		const lowerName = asciiLowercase(name);
+		return new HTMLCollection(() =>
+			findElements(Array.from(this.childNodes), (element) => {
+				const elementName =
+					element.prefix === null ? element.localName : `${element.prefix}:${element.localName}`;
+				return (
+					name === '*' ||
+					elementName ===
+						(this instanceof HTMLDocument && element.namespaceURI === HTML_NS ? lowerName : name)
+				);
+			}),
+		);
+	}
+
+	getElementById(id: string): Element | null {
+		if (arguments.length === 0) {
+			throw new TypeError('getElementById requires an ID');
+		}
+		const name = `${id}`;
+		if (name === '') {
+			return null;
+		}
+		return findElement(Array.from(this.childNodes), (element) => element.id === name);
 	}
 
 	createElement(tagName: string): Element {
@@ -765,6 +796,7 @@ export class HTMLDocument extends Document {
 		['title', HTMLTitleElement],
 		['body', HTMLBodyElement],
 		['span', HTMLSpanElement],
+		['div', HTMLDivElement],
 	]);
 	constructor(notify: Node['notify']) {
 		super(notify, (owner, localName, notifyElement, namespace) => {
@@ -810,6 +842,8 @@ export class HTMLTitleElement extends HTMLElement {}
 export class HTMLBodyElement extends HTMLElement {}
 
 export class HTMLSpanElement extends HTMLElement {}
+
+export class HTMLDivElement extends HTMLElement {}
 
 export class HTMLUnknownElement extends HTMLElement {}
 
