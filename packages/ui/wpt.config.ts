@@ -68,6 +68,9 @@ const config: WPTConfig = {
 			// Native EventTarget reads handleEvent at registration; the getter-timing
 			// case remains excluded until that behavior is implemented.
 		],
+		'html/editing/focus/focus-management/focusing-disconnected-noop.html': true,
+		'html/editing/focus/focus-management/focusing-focused-noop.html': true,
+		'html/interaction/focus/focus-management/focus-events.html': true,
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': [/^createElement\(.*\) in HTML document$/],
 		'dom/nodes/Document-createElementNS.html': [
