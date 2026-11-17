@@ -47,6 +47,14 @@ const config: WPTConfig = {
 		XMLDocument,
 	},
 	include: {
+		'html/dom/elements/global-attributes/id-name.html': true,
+		'html/dom/elements/global-attributes/id-attribute.html': [
+			'After setting id via id attribute, getElementById find the element by the new id.',
+			"After setting id via id attribute, getElementById doesn't find the element by the old id.",
+			'After setting id via setAttribute attribute, getElementById find the element by the new id.',
+			"After setting id via setAttribute attribute, getElementById doesn't find the element by the old id.",
+			// Other lookup and CSS cases require getElementsByTagName() or getComputedStyle().
+		],
 		'dom/events/Event-constructors.any.js': true,
 		'dom/events/EventTarget-addEventListener.any.js': true,
 		'dom/events/EventTarget-add-remove-listener.any.js': true,

@@ -72,6 +72,14 @@ export function compile(selector: string): (node: Node) => boolean {
 	}
 }
 
+export function getElementById(nodes: Node[], id: string): Element | null {
+	return selectOne((element) => element.id === id, nodes, {
+		adapter,
+		// Traverse template descendants like other elements for literal ID lookup.
+		xmlMode: true,
+	});
+}
+
 export function querySelector(nodes: Node[], selector: string): Element | null {
 	const query = compile(selector);
 	return selectOne(query, nodes, { adapter });

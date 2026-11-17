@@ -1,6 +1,6 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
-import { querySelector } from './css-select.ts';
+import { getElementById, querySelector } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import {
@@ -314,6 +314,18 @@ export class Document extends Node {
 
 	querySelector(selector: string): Element | null {
 		return querySelector(Array.from(this.childNodes), selector);
+	}
+
+	getElementById(id: string): Element | null {
+		if (arguments.length === 0) {
+			throw new TypeError('getElementById requires an ID');
+		}
+		const name = `${id}`;
+		if (name === '') {
+			return null;
+		}
+
+		return getElementById(Array.from(this.childNodes), name);
 	}
 
 	createElement(tagName: string): Element {
