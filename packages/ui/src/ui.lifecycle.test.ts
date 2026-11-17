@@ -25,7 +25,7 @@ describe('UI lifecycle', () => {
 		const controller = new AbortController();
 		controller.abort();
 		const ui = await createUI({ ...io, signal: controller.signal });
-		ui.document.documentElement.appendChild(ui.document.createTextNode('unused'));
+		ui.document.documentElement!.appendChild(ui.document.createTextNode('unused'));
 
 		await ui.main();
 		await ui.main();
@@ -82,11 +82,11 @@ describe('UI lifecycle', () => {
 
 		try {
 			const { document } = ui;
-			document.documentElement.appendChild(document.createTextNode('first'));
+			document.documentElement!.appendChild(document.createTextNode('first'));
 			await nextTurn();
 			expect(frames).toBe(1);
 
-			document.documentElement.appendChild(document.createTextNode(' second'));
+			document.documentElement!.appendChild(document.createTextNode(' second'));
 			await nextTurn();
 			expect(frames).toBe(2);
 
@@ -129,7 +129,7 @@ describe('UI lifecycle', () => {
 
 		try {
 			const failed = expect(running).rejects.toBe(failure);
-			ui.document.documentElement.appendChild(text);
+			ui.document.documentElement!.appendChild(text);
 			await failed;
 
 			controller.abort();

@@ -1,6 +1,6 @@
 import { alternateBuffer, createTerm, cursor, settings } from '@bomb.sh/tty';
 import type { Readable, Writable } from 'node:stream';
-import { Document } from './dom.ts';
+import { createHTMLDocument, type Document } from './dom.ts';
 import { RenderApi } from './render.ts';
 import { Layout } from './layout.ts';
 
@@ -25,9 +25,9 @@ export async function createUI(options: UIOptions): Promise<UI> {
 	const term = await createTerm({ width, height });
 	const render = new RenderApi(signal);
 
-	const document = new Document(() => render.request());
+	const document = createHTMLDocument(() => render.request());
 
-	const layout = new Layout(document.documentElement);
+	const layout = new Layout(document.documentElement!);
 
 	let running: Promise<void> | undefined = undefined;
 

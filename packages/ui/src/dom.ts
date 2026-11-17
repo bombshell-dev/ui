@@ -7,6 +7,7 @@ import {
 	validateElementNamespace,
 	validateAttributeName,
 	validateAttributeNamespace,
+	validateDocumentTypeName,
 } from './validation.ts';
 
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
@@ -18,6 +19,7 @@ export abstract class Node extends EventTarget {
 	static readonly PROCESSING_INSTRUCTION_NODE = 7;
 	static readonly COMMENT_NODE = 8;
 	static readonly DOCUMENT_NODE = 9;
+	static readonly DOCUMENT_TYPE_NODE = 10;
 
 	readonly ELEMENT_NODE = Node.ELEMENT_NODE;
 	readonly ATTRIBUTE_NODE = Node.ATTRIBUTE_NODE;
@@ -25,6 +27,7 @@ export abstract class Node extends EventTarget {
 	readonly PROCESSING_INSTRUCTION_NODE = Node.PROCESSING_INSTRUCTION_NODE;
 	readonly COMMENT_NODE = Node.COMMENT_NODE;
 	readonly DOCUMENT_NODE = Node.DOCUMENT_NODE;
+	readonly DOCUMENT_TYPE_NODE = Node.DOCUMENT_TYPE_NODE;
 
 	readonly #childNodes: Node[] = [];
 	readonly ownerDocument: Document | null;
@@ -135,6 +138,18 @@ export abstract class Node extends EventTarget {
 		return null;
 	}
 
+	set nodeValue(_: string | null) {
+		//ignore
+	}
+
+	get textContent(): string | null {
+		return null;
+	}
+
+	set textContent(_: string | null) {
+		//ignore
+	}
+
 	appendChild(node: Node): Node {
 		return this.insertBefore(node, null);
 	}
@@ -199,20 +214,53 @@ export abstract class Node extends EventTarget {
 	}
 }
 
+export class DOMImplementation {
+	#document: Document;
+	#notify: Node['notify'];
+	constructor(document: Document, notify: Node['notify']) {
+		this.#document = document;
+		this.#notify = notify;
+	}
+
+	createDocument(): Document {
+		return new Document(this.#notify);
+	}
+
+	createHTMLDocument(title?: string): HTMLDocument {
+		return createHTMLDocument(this.#notify, title);
+	}
+
+	// oxlint-disable-next-line bombshell-dev/max-params -- DOMImplementation.createDocumentType requires three positional arguments.
+	createDocumentType(name: string, publicId: string, systemId: string): DocumentType {
+		if (arguments.length < 3) {
+			throw new TypeError('createDocumentType requires a name, public ID, and system ID');
+		}
+		const options = {
+			owner: this.#document,
+			name: `${name}`,
+			publicId: `${publicId}`,
+			systemId: `${systemId}`,
+			notify: this.#notify,
+		};
+		validateDocumentTypeName(options.name);
+		return new DocumentType(options);
+	}
+}
+
 export class Document extends Node {
 	declare readonly ownerDocument: null;
 
-	readonly documentElement: Element;
-	readonly body: Element;
+	readonly implementation: DOMImplementation;
 
-	#registry: Map<string, typeof Element> = new Map([['span', HTMLSpanElement]]);
+	#factory: (...params: ConstructorParameters<typeof Element>) => Element;
 
-	constructor(notify: () => void) {
+	constructor(
+		notify: () => void,
+		factory?: (...params: ConstructorParameters<typeof Element>) => Element,
+	) {
 		super(null, notify);
-		this.documentElement = new Element(this, 'html', notify);
-		this.body = new Element(this, 'body', notify);
-		this.documentElement.appendChild(this.body);
-		this.appendChild(this.documentElement);
+		this.#factory = factory ?? ((...params) => new Element(...params));
+		this.implementation = new DOMImplementation(this, notify);
 	}
 
 	get nodeType(): number {
@@ -221,6 +269,24 @@ export class Document extends Node {
 
 	get nodeName(): string {
 		return '#document';
+	}
+
+	get doctype(): DocumentType | null {
+		for (const child of this.childNodes) {
+			if (child instanceof DocumentType) {
+				return child;
+			}
+		}
+		return null;
+	}
+
+	get documentElement(): Element | null {
+		for (const child of this.childNodes) {
+			if (child instanceof Element) {
+				return child;
+			}
+		}
+		return null;
 	}
 
 	createElement(tagName: string): Element {
@@ -274,9 +340,37 @@ export class Document extends Node {
 		if (namespace.namespaceURI !== HTML_NS) {
 			return new Element(this, localName, this.notify, namespace);
 		} else {
-			const ElementConstructor = this.#registry.get(localName) ?? HTMLUnknownElement;
-			return new ElementConstructor(this, localName, this.notify, namespace);
+			return this.#factory(this, localName, this.notify, namespace);
 		}
+	}
+}
+
+export class DocumentType extends Node {
+	declare readonly ownerDocument: Document;
+
+	readonly name: string;
+	readonly publicId: string;
+	readonly systemId: string;
+
+	constructor(options: {
+		owner: Document;
+		name: string;
+		publicId: string;
+		systemId: string;
+		notify: Node['notify'];
+	}) {
+		super(options.owner, options.notify);
+		this.name = options.name;
+		this.publicId = options.publicId;
+		this.systemId = options.systemId;
+	}
+
+	get nodeType(): number {
+		return Node.DOCUMENT_TYPE_NODE;
+	}
+
+	get nodeName(): string {
+		return this.name;
 	}
 }
 
@@ -407,12 +501,6 @@ export class Element extends Node {
 	}
 }
 
-export class HTMLElement extends Element {}
-
-export class HTMLSpanElement extends HTMLElement {}
-
-export class HTMLUnknownElement extends HTMLElement {}
-
 export class Attr extends Node {
 	declare readonly ownerDocument: Document;
 
@@ -471,7 +559,7 @@ export class Attr extends Node {
 		return this.value;
 	}
 
-	get textContent(): string {
+	override get textContent(): string {
 		return this.value;
 	}
 }
@@ -505,11 +593,11 @@ export abstract class CharacterData extends Node {
 		this.data = value ?? '';
 	}
 
-	get textContent(): string {
+	override get textContent(): string {
 		return this.data;
 	}
 
-	set textContent(value: string | null) {
+	override set textContent(value: string | null) {
 		this.data = value ?? '';
 	}
 
@@ -573,3 +661,82 @@ const Event = globalThis.Event as typeof globalThis.Event & {
 	readonly AT_TARGET: 2;
 	readonly BUBBLING_PHASE: 3;
 };
+
+/* HTML */
+
+export function createHTMLDocument(notify: Node['notify'], title?: string): HTMLDocument {
+	const titleText = title === undefined ? undefined : `${title}`;
+	const document = new HTMLDocument(notify);
+	const doctype = document.implementation.createDocumentType('html', '', '');
+	document.appendChild(doctype);
+
+	const root = document.createElement('html');
+	const head = document.createElement('head');
+	const body = document.createElement('body');
+
+	root.appendChild(head);
+	if (titleText !== undefined) {
+		const titleElement = document.createElement('title');
+		head.appendChild(titleElement);
+		titleElement.appendChild(document.createTextNode(titleText));
+	}
+	root.appendChild(body);
+	document.appendChild(root);
+
+	return document;
+}
+
+export class HTMLDocument extends Document {
+	#elements = new Map<string, typeof HTMLElement>([
+		['html', HTMLHtmlElement],
+		['head', HTMLHeadElement],
+		['title', HTMLTitleElement],
+		['body', HTMLBodyElement],
+		['span', HTMLSpanElement],
+	]);
+	constructor(notify: Node['notify']) {
+		super(notify, (owner, localName, notifyElement, namespace) => {
+			const ElementConstructor = this.#elements.get(localName) ?? HTMLUnknownElement;
+
+			return new ElementConstructor(owner, localName, notifyElement, namespace);
+		});
+	}
+
+	get head(): HTMLHeadElement | null {
+		const root = this.documentElement;
+		if (root instanceof HTMLHtmlElement) {
+			for (const child of root.childNodes) {
+				if (child instanceof HTMLHeadElement) {
+					return child;
+				}
+			}
+		}
+		return null;
+	}
+
+	get body(): HTMLBodyElement | null {
+		const root = this.documentElement;
+		if (root && root instanceof HTMLHtmlElement) {
+			for (const child of root.childNodes) {
+				if (child instanceof HTMLBodyElement) {
+					return child;
+				}
+			}
+		}
+		return null;
+	}
+}
+
+export class HTMLElement extends Element {}
+
+export class HTMLHtmlElement extends HTMLElement {}
+
+export class HTMLHeadElement extends HTMLElement {}
+
+export class HTMLTitleElement extends HTMLElement {}
+
+export class HTMLBodyElement extends HTMLElement {}
+
+export class HTMLSpanElement extends HTMLElement {}
+
+export class HTMLUnknownElement extends HTMLElement {}

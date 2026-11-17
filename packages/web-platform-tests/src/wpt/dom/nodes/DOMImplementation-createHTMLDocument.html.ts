@@ -94,16 +94,16 @@ export function register(context: CompatibilityContext): void {
 	}
 	context.test(
 		'Missing title argument',
-		({
-			document,
-			Document,
-			Node,
-			DocumentType,
-			HTMLHtmlElement,
-			HTMLHeadElement,
-			HTMLTitleElement,
-			HTMLBodyElement,
-		}) => {
+		(fixture) => {
+			const {
+				document,
+				Document,
+				Node,
+				DocumentType,
+				HTMLHtmlElement,
+				HTMLHeadElement,
+				HTMLBodyElement,
+			} = fixture;
 			function checkDoc(doc: Document, expectedtitle: string | undefined, normalizedtitle: string) {
 				expect(doc instanceof Document, 'Should be a Document').toBe(true);
 				expect(doc instanceof Node, 'Should be a Node').toBe(true);
@@ -134,6 +134,8 @@ export function register(context: CompatibilityContext): void {
 				expect(head.tagName).toBe('HEAD');
 
 				if (expectedtitle !== undefined) {
+					// Upstream reads this constructor only when a title was supplied.
+					const { HTMLTitleElement } = fixture;
 					expect(head.childNodes.length).toBe(1);
 
 					let title = head.firstChild as HTMLTitleElement;
