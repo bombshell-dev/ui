@@ -11,3 +11,11 @@ export interface WPTConfig {
 	/** Maximum execution time per source file, in milliseconds. Defaults to 15 seconds. */
 	timeout?: number;
 }
+
+/** Invalid framework or feature selection. */
+export class CompatibilityConfigurationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'CompatibilityConfigurationError';
+	}
+}

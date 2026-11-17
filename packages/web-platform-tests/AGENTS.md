@@ -20,6 +20,10 @@ source/case selectors. Explicit includes override exclusions. Use original WPT
 case names. Selecting some cases from a file does not establish coverage of the
 whole file. Unmatched selectors must remain visible configuration errors.
 
+Framework profiles and feature maps in `src/frameworks` are part of the public
+selection API. Preserve them when changing the runner, and check their source
+paths and case names against the original upstream files.
+
 When enabling coverage or changing the harness:
 
 1. Read the original source and any helpers at the pinned revision.

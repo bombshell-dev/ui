@@ -63,6 +63,37 @@ expressions. Explicit includes override exclusions; otherwise cases are included
 unless excluded. Use `exclude: { '**': true }` to enable cases incrementally.
 Invalid or unmatched selectors fail configuration.
 
+### Framework selections
+
+`framework()` returns selectors for the DOM features used by React, Preact, Vue,
+Solid, or Svelte. Pass them to `include` with `exclude: { '**': true }` to run
+that profile against the consumer's document factory and globals:
+
+```ts
+import { framework, type WPTConfig } from '@bomb.sh/web-platform-tests';
+import { createDocument, globals } from './dom.ts';
+
+export default {
+  createDocument,
+  globals,
+  include: framework('preact'),
+  exclude: { '**': true },
+} satisfies WPTConfig;
+```
+
+Pass optional modules as a second argument, such as
+`framework('vue', ['transitions'])` or `framework('preact', ['hydration'])`.
+`frameworks` exposes the required features and optional modules for each profile.
+`features` maps individual DOM members to upstream cases, and
+`featureSelectors(['Document#createElement', 'Node#textContent'])` combines their
+selections. Unknown optional modules throw `CompatibilityConfigurationError`.
+
+`uncoveredByWPT('preact')` lists required features that have no mapped cases yet.
+It describes gaps in the profile's mappings, not missing DOM support. A profile
+selects conformance work; passing the currently enabled UI cases does not mean
+the full profile passes. These selections use the same original sources and
+whole-file execution as explicit selectors.
+
 ## Execution and limitations
 
 The harness parses HTML with parse5, populates the implementation's document,
@@ -85,6 +116,12 @@ static helpers. It does not implement iframe navigation, parser-driven script
 timing, module/async/defer scripts, server substitutions, or remote helpers.
 Unsupported source features fail explicitly. Selecting part of a file does not
 claim coverage of its remaining subtests or complete standards conformance.
+
+Parsed `<template>` and `<frameset>` fixtures are currently rejected. This blocks
+`shadow-dom/event-composed-path.html`, selected by the React, Solid, and Svelte
+profiles, even for its case without shadow roots. These profiles describe the
+coverage to work toward; they can select cases needing further harness or DOM
+support.
 
 ## Development
 
