@@ -6,6 +6,39 @@ The suite includes adaptations of [Web Platform Tests (WPT)](https://github.com/
 
 The suite uses one upstream WPT revision, recorded in [WPT_REVISION](WPT_REVISION). Browse that revision [here](https://github.com/web-platform-tests/wpt/tree/b719612f963a05ece9c89a7dd7598c1c59618874). Files under `src/wpt` mirror upstream paths with `.ts` appended; the revision applies to all files and cases. See [attribution and licenses](test/wpt/README.md).
 
+### Direct upstream checkpoint
+
+The `wpt` CLI runs original sources from the pinned `wpt` submodule. The initial
+[UI configuration](../ui/wpt.config.ts) selects 208 cases from
+`Node-parentNode.html` and `Document-createElementNS.html`. The adapted suite
+remains in place while coverage is migrated.
+
+From the workspace root:
+
+```sh
+git submodule update --init packages/web-platform-tests/wpt
+pnpm --filter @bomb.sh/web-platform-tests build
+pnpm --filter @clack/ui exec wpt
+# Subsequent runs need no rebuild unless the harness changes.
+pnpm --filter @clack/ui exec wpt Node-parentNode -t 'Root element'
+```
+
+The CLI accepts `--config path/to/wpt.config.ts`, optional filename filters, and
+`-t`/`--name` for subtest names. Configurations import `WPTConfig` from
+`@bomb.sh/web-platform-tests/config` and supply `createDocument`, `globals`, and
+source/case selectors. Each upstream file appears separately in Vitest.
+
+The harness populates fixtures with parse5 and executes unchanged scripts and
+static helpers in one window context per file. It uses upstream `testharness.js`
+in its shell environment, supplies the document and `defaultView`, then delivers
+window `load`. Entire files execute; selection filters the reported results.
+Source-loading, setup, and harness failures remain failures regardless of filters.
+
+The excluded `Removed iframe` case in `Node-parentNode.html` is explicitly forced
+to time out after load and the selected cases finish. Selecting that case disables
+the exception. Iframe loading, parser-driven script timing, and module/async/defer
+scripts are outside this checkpoint.
+
 ### Required WPT correspondence
 
 Each file under `src/wpt` corresponds to its upstream path with the final `.ts` removed. For example, `src/wpt/dom/nodes/Document-createElement.html.ts` adapts `dom/nodes/Document-createElement.html`. Keep upstream spelling and capitalization for tests, helpers, and data. Local harness code lives in `src/shared`; comments explain non-obvious adaptations.
