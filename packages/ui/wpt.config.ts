@@ -142,6 +142,22 @@ const config: WPTConfig = {
 		'dom/nodes/CharacterData-data.html': true,
 		'dom/nodes/CharacterData-remove.html': true,
 		'dom/nodes/Element-remove.html': true,
+		'dom/nodes/Element-matches-namespaced-elements.html': [
+			'empty string namespace, matches',
+			'has a namespace, matches',
+		],
+		'dom/nodes/Element-matches-active-pseudo-class.html': [
+			'Regular div should not match :active by default',
+			'Button should not match :active by default',
+			'Link should not match :active by default',
+		],
+		'dom/nodes/ParentNode-querySelector-invalid-comment-like.html': [
+			'matches throws SyntaxError for comment-like selector',
+		],
+		'css/selectors/child-indexed-pseudo-class.html': [
+			// Defer the four detached :nth-*(n) cases until https://github.com/fb55/css-select/issues/1945 is fixed.
+			/^Expected DIV element to (?!.*\(n\)).* with matches$/,
+		],
 		'dom/nodes/Element-setAttribute.html': true,
 		'dom/nodes/Element-setAttributeNodeNS.html': true,
 		'dom/nodes/Element-removeAttribute.html': true,

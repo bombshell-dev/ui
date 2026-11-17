@@ -1,6 +1,6 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
-import { querySelector } from './css-select.ts';
+import { compile, querySelector } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import { HTMLCollection } from './html-collection.ts';
@@ -631,6 +631,10 @@ export class Element extends Node {
 
 	toggleAttribute(name: string, force?: boolean): boolean {
 		return this.#attributes.toggleAttribute(name, force);
+	}
+
+	matches(selector: string): boolean {
+		return compile(selector)(this);
 	}
 
 	get id(): string {
