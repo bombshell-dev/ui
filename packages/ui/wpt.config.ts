@@ -19,6 +19,7 @@ import {
 	XMLDocument,
 } from './src/dom.ts';
 import { NamedNodeMap } from './src/named-node-map.ts';
+import { DOMStringMap } from './src/dom-string-map.ts';
 
 const config: WPTConfig = {
 	createDocument: () => createHTMLDocument(() => {}),
@@ -31,6 +32,7 @@ const config: WPTConfig = {
 		Document,
 		DocumentType,
 		DOMException: globalThis.DOMException,
+		DOMStringMap,
 		Element,
 		Event: globalThis.Event,
 		EventTarget: globalThis.EventTarget,
@@ -47,6 +49,25 @@ const config: WPTConfig = {
 		XMLDocument,
 	},
 	include: {
+		'html/dom/elements/global-attributes/dataset.html': [
+			'HTML elements should have a .dataset',
+			"Should return 'undefined' before setting an attribute",
+			"Should return 'value' if that's the value",
+			"Should return the empty string if that's the value",
+			"Should return 'undefined' after removing an attribute",
+			'Should not have a .dataset on random elements',
+			// SVG and MathML coverage awaits their element interfaces.
+		],
+		'html/dom/elements/global-attributes/dataset-get.html': true,
+		'html/dom/elements/global-attributes/dataset-get-invalid-names.html': true,
+		'html/dom/elements/global-attributes/dataset-set.html': true,
+		'html/dom/elements/global-attributes/dataset-delete.html': true,
+		'html/dom/elements/global-attributes/dataset-enumeration.html': true,
+		'html/dom/elements/global-attributes/dataset-prototype.html': true,
+		'html/dom/elements/global-attributes/dataset-binding.window.js': true,
+		'html/dom/elements/global-attributes/custom-attrs.html': true,
+		'html/dom/elements/global-attributes/data_unicode_attr.html': true,
+		'dom/collections/domstringmap-supported-property-names.html': true,
 		'html/dom/elements/global-attributes/id-name.html': true,
 		'html/dom/elements/global-attributes/id-attribute.html': [
 			'After setting id via id attribute, getElementById find the element by the new id.',
