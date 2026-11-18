@@ -27,7 +27,17 @@ subtest names:
 ```sh
 pnpm --filter @clack/ui exec wpt Node-parentNode -t 'Root element'
 pnpm --filter @clack/ui exec wpt --config wpt.config.ts Document-createElementNS
+pnpm --filter @clack/ui exec wpt --watch Node-parentNode -t 'Root element'
 ```
+
+`--watch` (or `-w`) keeps the CLI running. It reruns the selected upstream files
+when `wpt.config.ts` or a local implementation module imported by that config
+changes, including transitive imports. Config edits reload source and case
+selection. Each rerun starts fresh Vitest and WPT workers, so implementation
+changes take effect and upstream scripts execute again. The watcher ignores the
+pinned WPT checkout, package helpers, dependencies, and generated output. Press
+Ctrl+C to stop. Without `--watch`, the CLI runs once and retains its usual exit
+status for CI.
 
 `pnpm test` and `pnpm --filter @clack/ui test` build the harness, run the local
 implementation tests, and run the configured WPT cases.

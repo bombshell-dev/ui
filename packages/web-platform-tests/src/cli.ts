@@ -10,9 +10,10 @@ import {
 	printErrors,
 	printHelp,
 	schema,
+	toggle,
 } from '@bomb.sh/router';
 import * as z from 'zod';
-import { runWPT } from './vitest.ts';
+import { runWPT, watchWPT } from './vitest.ts';
 
 const app = command(
 	name('wpt'),
@@ -30,6 +31,11 @@ const app = command(
 		),
 		schema(z.string().optional()),
 	),
+	toggle(
+		name('watch'),
+		cli(['--watch', '-w'], { switch: true }),
+		description('Rerun selected WPT cases when the config or its implementation changes.'),
+	),
 	argument(
 		name('files'),
 		description('Optional upstream filename filters, using Vitest file selection.'),
@@ -46,12 +52,17 @@ if (!result.ok) {
 	process.stdout.write(`${printHelp(result)}\n`);
 } else {
 	try {
-		const vitest = await runWPT({
+		const options = {
 			config: result.model.config,
 			files: [...result.model.files, ...Array.from(result.literals, (literal) => literal.text)],
 			namePattern: result.model.name,
-		});
-		await vitest.close();
+		};
+		if (result.model.watch) {
+			await watchWPT(options);
+		} else {
+			const vitest = await runWPT(options);
+			await vitest.close();
+		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;
