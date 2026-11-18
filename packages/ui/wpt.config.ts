@@ -131,8 +131,10 @@ const config: WPTConfig = {
 		'html/editing/focus/focus-management/focusing-disconnected-noop.html': true,
 		'html/editing/focus/focus-management/focusing-focused-noop.html': true,
 		'html/interaction/focus/focus-management/focus-events.html': true,
-		'inert/inert-node-is-unfocusable.html': true,
+		// inert/inert-node-is-unfocusable.html requires testdriver click setup:
+		// real layout, hit testing, and an input backend are not available yet.
 		'inert/nested-inert-unfocusable.html': true,
+		'html/dom/reflection-misc.html': [/^html\.inert:/],
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': [/^createElement\(.*\) in HTML document$/],
 		'dom/nodes/Document-createElementNS.html': [
