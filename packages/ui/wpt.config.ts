@@ -77,6 +77,15 @@ const config: WPTConfig = {
 		'html/dom/reflection-misc.html': [/^html\.inert:/, /^html\.tabIndex:/],
 		'html/dom/reflection-forms.html': [/^button\.tabIndex:/],
 		'html/interaction/focus/sequential-focus-navigation-and-the-tabindex-attribute/focus-tabindex-default-value.html': true,
+		'dom/nodes/NodeList-Iterable.html': [/^NodeList /],
+		'dom/nodes/ParentNode-querySelector-All-comma-selector.html': [
+			'Basic comma-separated selector',
+		],
+		'dom/nodes/ParentNode-querySelector-invalid-comment-like.html': [
+			'querySelectorAll throws SyntaxError for comment-like selector',
+		],
+		'dom/nodes/ParentNode-querySelectorAll-case-insensitive-attribute-flag.html': true,
+		'dom/nodes/ParentNode-querySelectorAll-nested-not-has.html': true,
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': [/^createElement\(.*\) in HTML document$/],
 		'dom/nodes/Document-createElementNS.html': [
