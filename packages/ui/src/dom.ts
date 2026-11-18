@@ -782,6 +782,7 @@ export class HTMLDocument extends Document {
 		['head', HTMLHeadElement],
 		['title', HTMLTitleElement],
 		['body', HTMLBodyElement],
+		['button', HTMLButtonElement],
 		['span', HTMLSpanElement],
 		['div', HTMLDivElement],
 	]);
@@ -828,10 +829,19 @@ export class HTMLElement extends Element {
 
 	set inert(value: boolean) {
 		if (value) {
-			this.setAttributeNS(null, 'inert', '');
+			this.setAttributeNS(null, 'inert', String());
 		} else {
 			this.removeAttributeNS(null, 'inert');
 		}
+	}
+
+	get tabIndex(): number {
+		const attr = this.getAttributeNS(null, 'tabindex');
+		return attr === null ? -1 : Number.parseInt(attr, 10) || 0;
+	}
+
+	set tabIndex(value: number) {
+		this.setAttributeNS(null, 'tabindex', String(value));
 	}
 
 	focus(): void {
@@ -891,6 +901,8 @@ export class HTMLBodyElement extends HTMLElement {}
 export class HTMLSpanElement extends HTMLElement {}
 
 export class HTMLDivElement extends HTMLElement {}
+
+export class HTMLButtonElement extends Focusable(HTMLElement) {}
 
 export class HTMLUnknownElement extends HTMLElement {}
 
@@ -954,6 +966,19 @@ function transitionActiveElement(document: Document, to: Element | null): void {
 			isTrusted: true,
 		});
 	}
+}
+
+function Focusable<Ctor extends new (...args: any[]) => HTMLElement>(ElementType: Ctor): Ctor {
+	return class FocusableElement extends ElementType {
+		override get tabIndex(): number {
+			const attr = this.getAttributeNS(null, 'tabindex');
+			return attr ? super.tabIndex : 0;
+		}
+
+		override set tabIndex(value: number) {
+			super.tabIndex = value;
+		}
+	};
 }
 
 export class FocusEvent extends Event {
