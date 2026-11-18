@@ -823,9 +823,19 @@ export class HTMLDocument extends Document {
 		['head', HTMLHeadElement],
 		['title', HTMLTitleElement],
 		['body', HTMLBodyElement],
+		['a', HTMLAnchorElement],
 		['button', HTMLButtonElement],
+		['input', HTMLInputElement],
+		['select', HTMLSelectElement],
+		['textarea', HTMLTextAreaElement],
+		['option', HTMLOptionElement],
+		['optgroup', HTMLOptGroupElement],
+		['fieldset', HTMLFieldSetElement],
 		['span', HTMLSpanElement],
 		['div', HTMLDivElement],
+		['iframe', HTMLIFrameElement],
+		['details', HTMLDetailsElement],
+		['summary', HTMLSummaryElement],
 	]);
 	constructor(notify: Node['notify']) {
 		super(notify, (owner, localName, notifyElement, namespace) => {
@@ -883,8 +893,16 @@ export class HTMLElement extends Element {
 	}
 
 	get tabIndex(): number {
-		const attr = this.getAttributeNS(null, 'tabindex');
-		return attr === null ? -1 : Number.parseInt(attr, 10) || 0;
+		const attr = this.getAttributeNodeNS(null, 'tabindex');
+		if (!attr) {
+			return -1;
+		} else {
+			const value = Number.parseInt(attr.value, 10);
+			if (Number.isNaN(value)) {
+				return -1;
+			}
+			return value === 0 ? 0 : value;
+		}
 	}
 
 	set tabIndex(value: number) {
@@ -892,7 +910,7 @@ export class HTMLElement extends Element {
 	}
 
 	focus(): void {
-		if (!this.isConnected) {
+		if (!isFocusable(this)) {
 			return;
 		}
 		// inert nodes don't get focus
@@ -937,6 +955,20 @@ export class HTMLElement extends Element {
 	}
 }
 
+export class DisableableElement extends HTMLElement {
+	get disabled(): boolean {
+		return this.hasAttributeNS(null, 'disabled');
+	}
+
+	set disabled(value: boolean) {
+		if (value) {
+			this.setAttributeNS(null, 'disabled', '');
+		} else {
+			this.removeAttributeNS(null, 'disabled');
+		}
+	}
+}
+
 export class HTMLHtmlElement extends HTMLElement {}
 
 export class HTMLHeadElement extends HTMLElement {}
@@ -949,7 +981,27 @@ export class HTMLSpanElement extends HTMLElement {}
 
 export class HTMLDivElement extends HTMLElement {}
 
-export class HTMLButtonElement extends Focusable(HTMLElement) {}
+export class HTMLAnchorElement extends Focusable(HTMLElement) {}
+
+export class HTMLButtonElement extends Focusable(DisableableElement) {}
+
+export class HTMLInputElement extends Focusable(DisableableElement) {}
+
+export class HTMLSelectElement extends Focusable(DisableableElement) {}
+
+export class HTMLTextAreaElement extends Focusable(DisableableElement) {}
+
+export class HTMLFieldSetElement extends DisableableElement {}
+
+export class HTMLOptionElement extends DisableableElement {}
+
+export class HTMLOptGroupElement extends DisableableElement {}
+
+export class HTMLIFrameElement extends Focusable(HTMLElement) {}
+
+export class HTMLDetailsElement extends HTMLElement {}
+
+export class HTMLSummaryElement extends HTMLElement {}
 
 export class HTMLUnknownElement extends HTMLElement {}
 
@@ -984,6 +1036,47 @@ export class FocusEvent extends Event {
 		});
 		this.type = type;
 		this.relatedTarget = options.relatedTarget;
+	}
+}
+
+function isFocusable(element: HTMLElement): boolean {
+	if (!element.isConnected) {
+		return false;
+	}
+
+	for (const node of lineage(element)) {
+		if (node instanceof HTMLElement && node.inert) {
+			return false;
+		}
+		if (node instanceof DisableableElement && node.disabled) {
+			return false;
+		}
+	}
+
+	const hasTabIndex = (target: HTMLElement): boolean => {
+		const attr = target.getAttributeNode('tabindex');
+		return !!attr && !isNaN(Number(attr.value));
+	};
+
+	switch (element.localName) {
+		case 'a':
+			return !!element.getAttributeNodeNS(null, 'href') || hasTabIndex(element);
+		case 'input':
+			return element.getAttributeNS(null, 'type') !== 'hidden';
+		case 'summary':
+			return (
+				hasTabIndex(element) ||
+				(element.parentElement instanceof HTMLDetailsElement &&
+					element.parentElement.children[0] === element)
+			);
+		default: {
+			const editable = element.getAttribute('contenteditable');
+			return (
+				(editable && ['true', '', 'plaintext-only'].includes(editable)) ||
+				hasTabIndex(element) ||
+				element.tabIndex === 0
+			);
+		}
 	}
 }
 
