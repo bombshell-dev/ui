@@ -125,7 +125,9 @@ const config: WPTConfig = {
 		// inert/inert-node-is-unfocusable.html requires testdriver click setup:
 		// real layout, hit testing, and an input backend are not available yet.
 		'inert/nested-inert-unfocusable.html': true,
-		'html/dom/reflection-misc.html': [/^html\.inert:/],
+		'html/dom/reflection-misc.html': [/^html\.inert:/, /^html\.tabIndex:/],
+		'html/dom/reflection-forms.html': [/^button\.tabIndex:/],
+		'html/interaction/focus/sequential-focus-navigation-and-the-tabindex-attribute/focus-tabindex-default-value.html': true,
 		'dom/nodes/Document-createTextNode.html': true,
 		'dom/nodes/Document-createElement.html': [/^createElement\(.*\) in HTML document$/],
 		'dom/nodes/Document-createElementNS.html': [
