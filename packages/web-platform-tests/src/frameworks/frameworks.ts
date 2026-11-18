@@ -1,4 +1,4 @@
-import { CompatibilityConfigurationError, type WPTSelectors } from '../shared/selection.ts';
+import { CompatibilityConfigurationError, type WPTSelectors } from '../config.ts';
 import { features, type DOMFeature } from './features.ts';
 
 interface FrameworkProfile {
@@ -204,8 +204,11 @@ export function featureSelectors(names: Iterable<DOMFeature>): WPTSelectors {
 	for (const name of names) {
 		for (const [source, cases] of Object.entries(features[name] as WPTSelectors)) {
 			const current = merged[source];
-			if (current === true || cases === true) merged[source] = true;
-			else merged[source] = [...new Set([...(current ?? []), ...cases])];
+			if (current === true || cases === true) {
+				merged[source] = true;
+			} else {
+				merged[source] = [...new Set([...(current ?? []), ...cases])];
+			}
 		}
 	}
 	return merged;
@@ -216,14 +219,15 @@ export function framework(name: Framework, modules: readonly string[] = []): WPT
 	const { required, optional } = frameworks[name] as FrameworkProfile;
 	const extra = modules.flatMap((module) => {
 		const listed = optional[module];
-		if (!listed)
+		if (!listed) {
 			throw new CompatibilityConfigurationError(`${name} has no optional module ${module}`);
+		}
 		return listed;
 	});
 	return featureSelectors([...required, ...extra]);
 }
 
-/** Required features with no adapted WPT coverage yet. */
+/** Required features without a mapped upstream WPT case yet. */
 export function uncoveredByWPT(name: Framework): DOMFeature[] {
 	return [...new Set(frameworks[name].required)].filter(
 		(feature) => Object.keys(features[feature]).length === 0,

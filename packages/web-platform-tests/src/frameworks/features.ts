@@ -1,8 +1,8 @@
-import type { WPTSelectors } from '../shared/selection.ts';
+import type { WPTSelectors } from '../config.ts';
 
 /**
- * DOM members measured in framework runtimes, keyed by interface member, mapped to the adapted
- * WPT cases that exercise them. An empty selector map means no adapted WPT source covers the
+ * DOM members measured in framework runtimes, keyed by interface member, mapped to the upstream
+ * WPT cases that exercise them. An empty selector map means no WPT source is mapped to the
  * member yet; it stays listed so profiles keep recording the requirement.
  */
 export const features = {
@@ -35,7 +35,7 @@ export const features = {
 	'Node#nodeType': {},
 	'Node#ownerDocument': {},
 	'Node#parentNode': {
-		'dom/nodes/Node-parentNode.html': ['sets the parent of an appended element', 'Root element'],
+		'dom/nodes/Node-parentNode.html': ['Element', 'Root element'],
 	},
 	'Node#firstChild': {},
 	'Node#lastChild': {},

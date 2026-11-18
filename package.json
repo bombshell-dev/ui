@@ -33,7 +33,7 @@
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
+		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test && pnpm --filter @clack/ui exec wpt"
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",

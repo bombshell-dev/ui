@@ -53,27 +53,38 @@ importers:
         version: link:../web-platform-tests
 
   packages/web-platform-tests:
-    devDependencies:
-      '@vitest/expect':
+    dependencies:
+      '@bomb.sh/router':
+        specifier: ^0.8.0
+        version: 0.8.0
+      parse5:
+        specifier: ^8.1.1
+        version: 8.1.1
+      vite:
+        specifier: ^8.1.0
+        version: 8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
         specifier: 5.0.5
-        version: 5.0.5
-      chai:
-        specifier: ^6.2.2
-        version: 6.3.0
+        version: 5.0.5(@types/node@22.20.0)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
       playwright:
-        specifier: ^1.64.1
+        specifier: 1.64.1
         version: 1.64.1
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
-      vite:
-        specifier: ^8.1.0
-        version: 8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1)
 
 packages:
 
   '@bomb.sh/args@0.3.1':
     resolution: {integrity: sha512-CwxKrfgcorUPP6KfYD59aRdBYWBTsfsxT+GmoLVnKo5Tmyoqbpo0UNcjngRMyU+6tiPbd18RuIYxhgAn44wU/Q==}
+
+  '@bomb.sh/router@0.8.0':
+    resolution: {integrity: sha512-9Y0fA76+dlFL8aRf8PVfgXrI0qHr4GQrLLv09E75tGRqCtCI5+E/ZzLnyTGJMo/j4CzYt44c4jdXDLv+m9/g9g==}
+    engines: {node: '>= 20'}
 
   '@bomb.sh/tools@0.8.0':
     resolution: {integrity: sha512-iaWws8S5kMuS6zImKXPSguUoQYA5M8XlK4ObVJI5jvubNeSlCI6feGPwex9GHyO+eIsi6izv/swO1ceO2MWEvw==}
@@ -1172,9 +1183,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@vitest/expect@5.0.5':
-    resolution: {integrity: sha512-mDBbYrXKpc+4TcSDwBW6adCMtPnide6Z1g8bI6gL0tY+nhdBxtGoOFW/kMrLDt6lJg3xjEUBkrY9yIPlgzpuig==}
-
   '@vitest/mocker@5.0.5':
     resolution: {integrity: sha512-xLL3lkDegJZw+MGoGaCCsFayDZthGgpAtr3Vziyfc4p7xH89K7KRPcRBBh/kEYm0Aqkt5DtTmkYpBtRV/FrHZg==}
     peerDependencies:
@@ -1186,14 +1194,8 @@ packages:
       vite:
         optional: true
 
-  '@vitest/pretty-format@5.0.5':
-    resolution: {integrity: sha512-24sSdIlMA9DVPXnYiB9siwU0bTd887Y9jX3+vabztCSsvHwo7ipvJ/a2L3Rljw8+2rK1f5fCj3h5U9I/Jsqgbw==}
-
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
-
-  '@vitest/utils@5.0.5':
-    resolution: {integrity: sha512-/rBu7gzLDQI/SC79Tn98b5DwOgaHU/Gt4I9OVeP3YofzNaYtbImRCOJQmT1S6vOJg9gEIlWC+r3QxKkjuSa1nQ==}
 
   '@yuku-core/binding-android-arm64@0.19.0':
     resolution: {integrity: sha512-wdL2XmTiZixAOaHk9Z0JJZ8u9Qm8d333Zjpc6gaxXFX+UR5BlsfxZ7a2+2Rm71pamppsPYGUGFq2oVLbh6DISw==}
@@ -1292,9 +1294,6 @@ packages:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
 
-  convert-source-map@2.0.0:
-    resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
-
   css-select@7.0.0:
     resolution: {integrity: sha512-snmjEVXy+1LnwXdxhYvTMj1d9tOh4HxkA1YmoayVBeeyR2C14Pum7fcxJIm4SswYspVy866eYNwlH6xC3/VH5g==}
     engines: {node: '>=20.19.0'}
@@ -1358,6 +1357,10 @@ packages:
 
   entities@8.1.0:
     resolution: {integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==}
+    engines: {node: '>=20.19.0'}
+
+  entities@9.0.0:
+    resolution: {integrity: sha512-oJFNDJg3kTPwAD1cNn2+WmUq4wFoo09npc3Ydf1D7ED4smRiWrsKnaLxykrTWgyGEcusc87P5dxlAleol9kpkg==}
     engines: {node: '>=20.19.0'}
 
   es-define-property@1.0.1:
@@ -1666,6 +1669,9 @@ packages:
   pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
 
+  parse5@8.1.1:
+    resolution: {integrity: sha512-EcR/6WDcU7b2N3vQSxKALCk9lXGtUMQxXio008OEMBE0kavu/7JLfBEeFPzi43nMqVDSbEn3QCK+BMCc9zO//w==}
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -1785,10 +1791,6 @@ packages:
   tinypool@2.2.0:
     resolution: {integrity: sha512-jBrmx4lYmaC9k/mgPbylxs7kBUxHtD8256up+HjLaDFfXScKJQyil+SWXSvhAtT7XHo+yTVlpB81PGmHP8oLSQ==}
     engines: {node: ^20.0.0 || >=22.0.0}
-
-  tinyrainbow@3.2.0:
-    resolution: {integrity: sha512-LgO3D9yZJjApUiuUfl9iFAwrtaX4+lok3wJIqttGoKCHlWUqHqbQpnxCf82L8FjgKsh4iGo78hqJwgL8F6To2A==}
-    engines: {node: '>=14.0.0'}
 
   tree-kill@1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
@@ -1993,6 +1995,10 @@ packages:
 snapshots:
 
   '@bomb.sh/args@0.3.1': {}
+
+  '@bomb.sh/router@0.8.0':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
 
   '@bomb.sh/tools@0.8.0(@types/node@22.20.0)(oxc-resolver@11.20.0)(unrun@0.2.39)(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
@@ -2796,15 +2802,6 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@vitest/expect@5.0.5':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@types/chai': 5.2.3
-      '@vitest/spy': 5.0.5
-      '@vitest/utils': 5.0.5
-      chai: 6.3.0
-      tinyrainbow: 3.2.0
-
   '@vitest/mocker@5.0.5(vite@8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
@@ -2814,17 +2811,7 @@ snapshots:
     optionalDependencies:
       vite: 8.3.5(@types/node@22.20.0)(jiti@2.7.0)(yaml@2.9.1)
 
-  '@vitest/pretty-format@5.0.5':
-    dependencies:
-      tinyrainbow: 3.2.0
-
   '@vitest/spy@5.0.5': {}
-
-  '@vitest/utils@5.0.5':
-    dependencies:
-      '@vitest/pretty-format': 5.0.5
-      convert-source-map: 2.0.0
-      tinyrainbow: 3.2.0
 
   '@yuku-core/binding-android-arm64@0.19.0':
     optional: true
@@ -2899,8 +2886,6 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
-  convert-source-map@2.0.0: {}
-
   css-select@7.0.0:
     dependencies:
       boolbase: 2.0.0
@@ -2952,6 +2937,8 @@ snapshots:
   empathic@2.1.0: {}
 
   entities@8.1.0: {}
+
+  entities@9.0.0: {}
 
   es-define-property@1.0.1: {}
 
@@ -3280,6 +3267,10 @@ snapshots:
   pako@1.0.11:
     optional: true
 
+  parse5@8.1.1:
+    dependencies:
+      entities: 9.0.0
+
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
@@ -3396,8 +3387,6 @@ snapshots:
       picomatch: 4.0.7
 
   tinypool@2.2.0: {}
-
-  tinyrainbow@3.2.0: {}
 
   tree-kill@1.2.2: {}
 

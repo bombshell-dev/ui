@@ -2,7 +2,7 @@
 	"name": "@bomb.sh/web-platform-tests",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Reusable DOM compatibility assertions and development browser validation",
+	"description": "Run upstream Web Platform Tests against a DOM implementation",
 	"type": "module",
 	"license": "MIT",
 	"exports": {
@@ -10,26 +10,44 @@
 			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./config": {
+			"types": "./dist/config.d.mts",
+			"import": "./dist/config.mjs"
+		},
+		"./vitest": {
+			"types": "./dist/vitest.d.mts",
+			"import": "./dist/vitest.mjs"
+		},
+		"./vitest/runner": {
+			"types": "./dist/vitest/runner.d.mts",
+			"import": "./dist/vitest/runner.mjs"
+		}
 	},
 	"scripts": {
-		"generate": "node scripts/generate-registry.mjs",
-		"build": "pnpm generate && bsh build src/index.ts --dts",
+		"build": "bsh build src/index.ts src/config.ts src/cli.ts src/vitest.ts src/vitest/runner.ts src/node/worker.ts --dts",
 		"test": "bsh test",
-		"typecheck": "tsc -p tsconfig.json && tsc -p test/browser/tsconfig.json",
-		"test:browser:build": "pnpm generate && vite build --config test/browser/vite.config.mjs",
-		"test:browser:run": "node test/browser/run-compatibility.mjs",
-		"test:wpt-selectors": "node scripts/check-wpt-selectors.mjs",
-		"test:browser:input": "node test/browser/run-compatibility.mjs --input-only",
-		"test:browser": "vite --config test/browser/vite.config.mjs --host 127.0.0.1",
+		"typecheck": "tsc -p tsconfig.json",
 		"format": "bsh format",
 		"lint": "bsh lint"
 	},
 	"devDependencies": {
-		"@vitest/expect": "5.0.5",
-		"chai": "^6.2.2",
-		"playwright": "^1.64.1",
-		"typescript": "^6.0.2",
-		"vite": "^8.1.0"
-	}
+		"playwright": "1.64.1",
+		"typescript": "^6.0.2"
+	},
+	"bin": {
+		"wpt": "./bin/wpt.mjs"
+	},
+	"dependencies": {
+		"@bomb.sh/router": "^0.8.0",
+		"parse5": "^8.1.1",
+		"vite": "^8.1.0",
+		"vitest": "5.0.5",
+		"zod": "^4.4.3"
+	},
+	"files": [
+		"dist",
+		"bin",
+		"WPT_REVISION"
+	]
 }
