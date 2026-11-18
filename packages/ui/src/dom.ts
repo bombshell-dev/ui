@@ -1,6 +1,6 @@
 /* oxlint-disable bombshell-dev/no-generic-error -- Web IDL requires TypeError for missing arguments. */
 
-import { findElement, findElements, querySelector } from './css-select.ts';
+import { findElement, findElements, querySelector, querySelectorAll } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import { HTMLCollection } from './html-collection.ts';
@@ -299,6 +299,14 @@ export class Document extends Node {
 
 	querySelector(selector: string): Element | null {
 		return querySelector(Array.from(this.childNodes), selector);
+	}
+
+	querySelectorAll(selector: string): Element[] {
+		if (arguments.length === 0) {
+			throw new TypeError('querySelectorAll requires a selector');
+		}
+		const selectors = `${selector}`;
+		return querySelectorAll(Array.from(this.childNodes), selectors);
 	}
 
 	getElementsByTagName(qualifiedName: string): HTMLCollection {
