@@ -11,6 +11,7 @@ import {
 	validateAttributeNamespace,
 	validateDocumentTypeName,
 } from './validation.ts';
+import { DOMStringMap } from './dom-string-map.ts';
 
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
@@ -830,6 +831,12 @@ export class HTMLDocument extends Document {
 export class HTMLElement extends Element {
 	#onfocus: EventListener | undefined = undefined;
 	#onblur: EventListener | undefined = undefined;
+
+	#dataset = new DOMStringMap(this);
+
+	get dataset(): DOMStringMap {
+		return this.#dataset;
+	}
 
 	get inert(): boolean {
 		return this.hasAttributeNS(null, 'inert');
