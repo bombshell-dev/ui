@@ -129,6 +129,17 @@ Window event delegation currently requires extensible event objects.
 Unsupported source features fail explicitly. Selecting part of a file does not
 claim coverage of its remaining subtests or complete standards conformance.
 
+Window named access resolves a single element by its nonempty `id`, or an HTML
+`embed`, `form`, `img`, or `object` by its nonempty `name`. Lookup follows the
+associated document's current tree, so insertion, removal, and attribute changes
+take effect immediately. Existing globals and inherited properties take priority;
+assignments shadow named access, and names are not enumerated. The worker installs
+this lookup in its global prototype chain and restores that chain during cleanup.
+Multiple matching elements and child browsing-context names fail explicitly:
+live `HTMLCollection` results and iframe windows are not implemented. An iframe's
+`id` can still expose the element itself. Window prototype descriptors and the
+full named-properties object are outside this fixture's supported scope.
+
 Parsed `<template>` and `<frameset>` fixtures are currently rejected. This blocks
 `shadow-dom/event-composed-path.html`, selected by the React, Solid, and Svelte
 profiles, even for its case without shadow roots. These profiles describe the

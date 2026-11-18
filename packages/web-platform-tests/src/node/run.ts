@@ -6,6 +6,7 @@ import { Script } from 'node:vm';
 import type { WPTConfig } from '../config.ts';
 import { selectsTest } from '../vitest/selection.ts';
 import { populateDocument } from './document.ts';
+import { installNamedProperties } from './named-properties.ts';
 import { loadSource, type SourceScript } from './source.ts';
 import { Window } from './window.ts';
 
@@ -59,6 +60,7 @@ export async function runWPTFile({
 	const timers = new Set<ReturnType<typeof setTimeout>>();
 	const completion = Promise.withResolvers<WPTFileResult>();
 	let watchdog: ReturnType<typeof setTimeout> | undefined;
+	let restoreNamedProperties: (() => void) | undefined;
 	let finished = false;
 	let failure: WPTHarnessStatus | undefined;
 	let harnessStatus: WPTHarnessStatus | undefined;
@@ -213,6 +215,7 @@ export async function runWPTFile({
 			scope.META_TITLE = source.title;
 		}
 		populateDocument(document, source.html);
+		restoreNamedProperties = installNamedProperties(scope, document);
 		watchdog = setTimeout(
 			() => {
 				// Upstream retains any earlier harness error when timing out pending tests.
@@ -259,6 +262,7 @@ export async function runWPTFile({
 		}
 		process.off('uncaughtException', onError);
 		process.off('unhandledRejection', onRejection);
+		restoreNamedProperties?.();
 	}
 }
 
