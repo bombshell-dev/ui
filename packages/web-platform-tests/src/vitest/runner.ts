@@ -38,10 +38,11 @@ export async function registerWPTFile(file: string): Promise<void> {
 	for (const [kind, selectors] of Object.entries({
 		include: config.include,
 		exclude: config.exclude,
+		forceTimeout: config.forceTimeout,
 	})) {
 		for (const [pattern, cases] of Object.entries(selectors ?? {})) {
 			if (
-				result.status.status !== 0 ||
+				(result.status.status !== 0 && kind !== 'forceTimeout') ||
 				pattern.includes('*') ||
 				!matchesSource(source, pattern) ||
 				cases === true

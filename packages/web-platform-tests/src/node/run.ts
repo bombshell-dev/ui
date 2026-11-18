@@ -6,6 +6,7 @@ import { Script } from 'node:vm';
 import type { WPTConfig } from '../config.ts';
 import { selectsTest } from '../vitest/selection.ts';
 import { populateDocument } from './document.ts';
+import { installNamedProperties } from './named-properties.ts';
 import { loadSource, type SourceScript } from './source.ts';
 import { Window } from './window.ts';
 
@@ -59,6 +60,7 @@ export async function runWPTFile({
 	const timers = new Set<ReturnType<typeof setTimeout>>();
 	const completion = Promise.withResolvers<WPTFileResult>();
 	let watchdog: ReturnType<typeof setTimeout> | undefined;
+	let restoreNamedProperties: (() => void) | undefined;
 	let finished = false;
 	let failure: WPTHarnessStatus | undefined;
 	let harnessStatus: WPTHarnessStatus | undefined;
@@ -173,8 +175,9 @@ export async function runWPTFile({
 		const registered = new Set<WPTTest>();
 		const completed = new Set<WPTTest>();
 		let loaded = false;
-		const finishUnsupportedIframe = (): void => {
-			if (!loaded || sourcePath !== 'dom/nodes/Node-parentNode.html') {
+		const forceTimeout = config.forceTimeout?.[sourcePath] ?? [];
+		const finishUnselected = (): void => {
+			if (!loaded || forceTimeout.length === 0) {
 				return;
 			}
 			const selected = (test: WPTTest): boolean =>
@@ -183,8 +186,7 @@ export async function runWPTFile({
 				return;
 			}
 			for (const test of registered) {
-				// This independent case waits on an iframe's own load event, which we cannot deliver.
-				if (test.name === 'Removed iframe' && !selected(test) && !completed.has(test)) {
+				if (forceTimeout.includes(test.name) && !selected(test) && !completed.has(test)) {
 					test.force_timeout();
 				}
 			}
@@ -193,7 +195,7 @@ export async function runWPTFile({
 		harness.add_result_callback((test) => {
 			completed.add(test);
 			results.push(copyTest(test));
-			enqueueMicrotask(finishUnsupportedIframe);
+			enqueueMicrotask(finishUnselected);
 		});
 		harness.add_completion_callback((tests, status) => {
 			harnessStatus = status;
@@ -213,6 +215,7 @@ export async function runWPTFile({
 			scope.META_TITLE = source.title;
 		}
 		populateDocument(document, source.html);
+		restoreNamedProperties = installNamedProperties(scope, document);
 		watchdog = setTimeout(
 			() => {
 				// Upstream retains any earlier harness error when timing out pending tests.
@@ -239,7 +242,7 @@ export async function runWPTFile({
 			}`,
 		});
 		loaded = true;
-		finishUnsupportedIframe();
+		finishUnselected();
 		const result = await completion.promise;
 		// Native EventTarget reports listener exceptions after dispatch returns.
 		// Keep those errors associated with this file before releasing its context.
@@ -259,6 +262,7 @@ export async function runWPTFile({
 		}
 		process.off('uncaughtException', onError);
 		process.off('unhandledRejection', onRejection);
+		restoreNamedProperties?.();
 	}
 }
 

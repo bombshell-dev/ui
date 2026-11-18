@@ -184,8 +184,34 @@ const config: WPTConfig = {
 			'Calling insertBefore with a reference child whose parent is not the context node must throw a NotFoundError.',
 			'Inserting a node before itself should not move the node',
 		],
+		'html/browsers/the-window-object/named-access-on-the-window-object/basics.html': [
+			'A named property must return an element as-is if its name attribute matches',
+			'A named property must not be set if the element is not reachable from the Document',
+			'A named property must not be enumerable',
+			'A named property must return any element for which the id attribute matches',
+			'A non element node in the document should not cause errors',
+			// Multiple matches require live HTMLCollection support.
+		],
+		'html/browsers/the-window-object/named-access-on-the-window-object/changing.html': true,
+		'html/browsers/the-window-object/named-access-on-the-window-object/removing.html': true,
+		'html/browsers/the-window-object/named-access-on-the-window-object/existing-prop.html': true,
+		'html/browsers/the-window-object/named-access-on-the-window-object/name-attribute-elements.html':
+			[
+				'Only elements with specific local names may be returned if their name attribute matches (negative test)',
+				'Removing an element for which the name attribute is not tracked, must not cause errors upon removing it',
+				// The positive case requires a live HTMLCollection.
+			],
+		'html/browsers/the-window-object/named-access-on-the-window-object/id-non-html-elements.html': [
+			'Parsed svg and math elements with an id are exposed',
+			// Other cases require append() or live HTMLCollection support.
+		],
 	},
 	exclude: { '**': true },
+	// excluded cases that run for their shared state, but we don't wait for
+	forceTimeout: {
+		// Waits on an iframe load the fixture cannot deliver.
+		'dom/nodes/Node-parentNode.html': ['Removed iframe'],
+	},
 };
 
 export default config;

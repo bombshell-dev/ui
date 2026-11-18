@@ -21,16 +21,22 @@ class WPTConfigurationError extends Error {
 
 function validateSelectors(
 	selectors: WPTSelectors | undefined,
-	{ files, kind }: { files: string[]; kind: string },
+	{ files, kind, exact = false }: { files: string[]; kind: string; exact?: boolean },
 ): void {
 	if (selectors === undefined) {
 		return;
 	}
 	if (!selectors || typeof selectors !== 'object' || Array.isArray(selectors)) {
-		throw new WPTConfigurationError(`${kind} must map source paths to true or case selectors`);
+		throw new WPTConfigurationError(
+			`${kind} must map source paths to ${exact ? 'case names' : 'true or case selectors'}`,
+		);
 	}
 	for (const [pattern, cases] of Object.entries(selectors)) {
-		if (!pattern || (cases !== true && (!Array.isArray(cases) || cases.length === 0))) {
+		if (
+			!pattern ||
+			(cases !== true && (!Array.isArray(cases) || cases.length === 0)) ||
+			(exact && (pattern.includes('*') || cases === true))
+		) {
 			throw new WPTConfigurationError(`Invalid ${kind} selector for ${JSON.stringify(pattern)}`);
 		}
 		if (!files.some((file) => matchesSource(file, pattern))) {
@@ -42,7 +48,7 @@ function validateSelectors(
 			for (const selector of cases) {
 				if (
 					(typeof selector !== 'string' || selector.length === 0) &&
-					!(selector instanceof RegExp)
+					(exact || !(selector instanceof RegExp))
 				) {
 					throw new WPTConfigurationError(`Invalid ${kind} case selector for ${pattern}`);
 				}
@@ -114,6 +120,7 @@ export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
 		.filter((file) => /(?:\.html|\.any\.js|\.window\.js)$/.test(file));
 	validateSelectors(config.include, { files, kind: 'include' });
 	validateSelectors(config.exclude, { files, kind: 'exclude' });
+	validateSelectors(config.forceTimeout, { files, kind: 'forceTimeout', exact: true });
 	const included = files.filter((file) => selectsFile(file, config));
 	if (included.length === 0) {
 		throw new WPTConfigurationError('WPT configuration selected no files.');
@@ -134,7 +141,6 @@ export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
 				// WPT deliberately verifies that adding a null listener is a no-op.
 				execArgv: ['--disable-warning=AddEventListenerArgumentTypeWarning'],
 				isolate: true,
-				maxWorkers: 1,
 				passWithNoTests: true,
 				experimental: { viteModuleRunner: true },
 			},

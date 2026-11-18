@@ -26,11 +26,13 @@
 	},
 	"scripts": {
 		"build": "bsh build src/index.ts src/config.ts src/cli.ts src/vitest.ts src/vitest/runner.ts src/node/worker.ts --dts",
+		"test": "bsh test",
 		"typecheck": "tsc -p tsconfig.json",
 		"format": "bsh format",
 		"lint": "bsh lint"
 	},
 	"devDependencies": {
+		"playwright": "1.64.1",
 		"typescript": "^6.0.2"
 	},
 	"bin": {

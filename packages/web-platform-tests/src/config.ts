@@ -8,6 +8,11 @@ export interface WPTConfig {
 	globals?: Record<string, unknown>;
 	include?: WPTSelectors;
 	exclude?: WPTSelectors;
+	/**
+	 * Excluded cases that run for their shared state, but we don't wait for.
+	 * Maps exact source paths to arrays of original case names.
+	 */
+	forceTimeout?: Readonly<Record<string, readonly string[]>>;
 	/** Maximum execution time per source file, in milliseconds. Defaults to 15 seconds. */
 	timeout?: number;
 }
