@@ -36,7 +36,8 @@
 		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test"
 	},
 	"dependencies": {
-		"@bomb.sh/tty": "catalog:"
+		"@bomb.sh/tty": "catalog:",
+		"css-select": "^7.0.0"
 	},
 	"devEngines": {
 		"packageManager": {
