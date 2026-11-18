@@ -15,6 +15,7 @@ import {
 	HTMLUnknownElement,
 	Node,
 	Text,
+	XMLDocument,
 } from '../src/dom.ts';
 import { NamedNodeMap } from '../src/named-node-map.ts';
 
@@ -42,6 +43,7 @@ const config: WPTConfig = {
 		Node,
 		Text,
 		TypeError: globalThis.TypeError,
+		XMLDocument,
 	},
 	include: {
 		'dom/events/Event-constructors.any.js': true,
@@ -61,6 +63,18 @@ const config: WPTConfig = {
 		'dom/nodes/Document-createElement.html': true,
 		'dom/nodes/Document-createElementNS.html': true,
 		'dom/nodes/Document-createComment.html': true,
+		'dom/nodes/DOMImplementation-createDocument.html': [
+			'createDocument row 0', // null qualified name: no root.
+			'createDocument row 1', // undefined qualified name: an "undefined" root.
+			'createDocument row 2', // A root without a namespace.
+			'createDocument row 3', // Invalid qualified name.
+			'createDocument row 23', // A prefix requires a namespace.
+			'createDocument row 63', // A root with a namespace and prefix.
+			'createDocument row 182', // A non-DocumentType doctype argument.
+			'createDocument row 183', // Empty qualified name: no root.
+			'createDocument row 185', // Explicit undefined arguments.
+			'createDocument with missing arguments',
+		],
 		'dom/nodes/DOMImplementation-createHTMLDocument.html': [
 			'createHTMLDocument()',
 			'createHTMLDocument(null)',
@@ -72,7 +86,7 @@ const config: WPTConfig = {
 			'createHTMLDocument(foo\r\rbar baz)',
 			'Missing title argument',
 		],
-		// XML factory cases require DOMImplementation.createDocument.
+		// XML cases also require createAttribute() to preserve name casing.
 		'dom/nodes/Document-createAttribute.html': [/^HTML document\.createAttribute\(/],
 		'dom/nodes/CharacterData-data.html': true,
 		'dom/nodes/CharacterData-remove.html': true,

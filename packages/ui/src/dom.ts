@@ -222,8 +222,30 @@ export class DOMImplementation {
 		this.#notify = notify;
 	}
 
-	createDocument(): Document {
-		return new Document(this.#notify);
+	// oxlint-disable-next-line bombshell-dev/max-params -- DOMImplementation.createDocument uses three positional arguments.
+	createDocument(
+		namespace: string | null,
+		qualifiedName: string | null,
+		doctype: DocumentType | null = null,
+	): XMLDocument {
+		if (arguments.length < 2) {
+			throw new TypeError('createDocument requires a namespace and qualified name');
+		}
+		const namespaceURI = namespace == null ? null : `${namespace}` || null;
+		const name = qualifiedName === null ? '' : `${qualifiedName}`;
+		if (doctype !== null && !(doctype instanceof DocumentType)) {
+			throw new TypeError('createDocument requires a DocumentType or null for its doctype');
+		}
+
+		const document = new XMLDocument(this.#notify);
+		const element = name === '' ? null : document.createElementNS(namespaceURI, name);
+		if (doctype !== null) {
+			document.appendChild(doctype);
+		}
+		if (element !== null) {
+			document.appendChild(element);
+		}
+		return document;
 	}
 
 	createHTMLDocument(title?: string): HTMLDocument {
@@ -740,3 +762,7 @@ export class HTMLBodyElement extends HTMLElement {}
 export class HTMLSpanElement extends HTMLElement {}
 
 export class HTMLUnknownElement extends HTMLElement {}
+
+/** XML */
+
+export class XMLDocument extends Document {}
