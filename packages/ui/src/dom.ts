@@ -21,6 +21,7 @@ export abstract class Node extends EventTarget {
 	static readonly COMMENT_NODE = 8;
 	static readonly DOCUMENT_NODE = 9;
 	static readonly DOCUMENT_TYPE_NODE = 10;
+	static readonly DOCUMENT_FRAGMENT_NODE = 11;
 
 	readonly ELEMENT_NODE = Node.ELEMENT_NODE;
 	readonly ATTRIBUTE_NODE = Node.ATTRIBUTE_NODE;
@@ -29,6 +30,7 @@ export abstract class Node extends EventTarget {
 	readonly COMMENT_NODE = Node.COMMENT_NODE;
 	readonly DOCUMENT_NODE = Node.DOCUMENT_NODE;
 	readonly DOCUMENT_TYPE_NODE = Node.DOCUMENT_TYPE_NODE;
+	readonly DOCUMENT_FRAGMENT_NODE = Node.DOCUMENT_FRAGMENT_NODE;
 
 	readonly #childNodes: Node[] = [];
 	readonly ownerDocument: Document | null;
@@ -194,6 +196,13 @@ export abstract class Node extends EventTarget {
 			throw new DOMException('cannot make a Node a child of itself', 'HierarchyRequestError');
 		}
 
+		if (node instanceof DocumentFragment) {
+			for (const child of node.childNodes.slice()) {
+				this.insertBefore(child, anchor);
+			}
+			return node;
+		}
+
 		if (node === anchor) {
 			return node;
 		}
@@ -355,6 +364,10 @@ export class Document extends Node {
 		return new Text(this, String(data), this.notify);
 	}
 
+	createDocumentFragment(): DocumentFragment {
+		return new DocumentFragment(this, this.notify);
+	}
+
 	createComment(data: string): Text {
 		return new Comment(this, String(data), this.notify);
 	}
@@ -369,6 +382,30 @@ export class Document extends Node {
 		} else {
 			return this.#factory(this, localName, this.notify, namespace);
 		}
+	}
+}
+
+export class DocumentFragment extends Node {
+	declare readonly ownerDocument: Document;
+
+	constructor(owner: Document, notify: Node['notify']) {
+		super(owner, notify);
+	}
+
+	get nodeType(): number {
+		return Node.DOCUMENT_FRAGMENT_NODE;
+	}
+
+	get nodeName(): string {
+		return '#document-fragment';
+	}
+
+	override get textContent(): string {
+		return getTextContent(this);
+	}
+
+	override set textContent(value: string | null) {
+		setTextContent(this, value == null ? '' : `${value}`);
 	}
 }
 
@@ -440,6 +477,14 @@ export class Element extends Node {
 
 	get tagName(): string {
 		return this.nodeName;
+	}
+
+	override get textContent(): string {
+		return getTextContent(this);
+	}
+
+	override set textContent(value: string | null) {
+		setTextContent(this, value == null ? '' : `${value}`);
 	}
 
 	get children(): Element[] {
@@ -771,3 +816,29 @@ export class HTMLUnknownElement extends HTMLElement {}
 /** XML */
 
 export class XMLDocument extends Document {}
+
+/** internal helpers **/
+
+function getTextContent(node: Element | DocumentFragment): string {
+	const parts: string[] = [];
+	const stack = node.childNodes.toReversed();
+	while (stack.length > 0) {
+		const descendant = stack.pop()!;
+		if (descendant instanceof Text) {
+			parts.push(descendant.data);
+		}
+		for (let index = descendant.childNodes.length - 1; index >= 0; index--) {
+			stack.push(descendant.childNodes[index]!);
+		}
+	}
+	return parts.join('');
+}
+
+function setTextContent(node: Element | DocumentFragment, content: string): void {
+	while (node.firstChild) {
+		node.removeChild(node.firstChild);
+	}
+	if (content !== '') {
+		node.appendChild(node.ownerDocument.createTextNode(content));
+	}
+}
