@@ -5,7 +5,7 @@
  * HTML/XML document fixtures. Prefer WPT coverage when its dependencies are met.
  */
 import { describe, expect, it } from 'vitest';
-import { createHTMLDocument } from '../src/dom.ts';
+import { createHTMLDocument, Disableable, type Element, Focusable } from '../src/dom.ts';
 
 describe('Node sibling properties outside WPT coverage', () => {
 	it.each(['createElement', 'createTextNode', 'createComment'] as const)(
@@ -111,5 +111,27 @@ describe('Node sibling properties outside WPT coverage', () => {
 		expect(first.nextSibling).toBeNull();
 		expect(last.previousSibling).toBeNull();
 		expect(last.nextSibling).toBeNull();
+	});
+});
+
+describe('element mixins', () => {
+	const document = createHTMLDocument(() => {});
+
+	it('narrows disableable elements with instanceof', () => {
+		const button = document.createElement('button');
+		const fieldset = document.createElement('fieldset');
+		const div = document.createElement('div');
+		expect(button instanceof Disableable).toBe(true);
+		expect(fieldset instanceof Disableable).toBe(true);
+		expect(div instanceof Disableable).toBe(false);
+		expect(fieldset instanceof Focusable).toBe(false);
+		expect(button instanceof Focusable).toBe(true);
+	});
+
+	it('reflects disabled through the narrowed type', () => {
+		const node: Element = document.createElement('input');
+		expect(node instanceof Disableable && node.disabled).toBe(false);
+		node.setAttribute('disabled', '');
+		expect(node instanceof Disableable && node.disabled).toBe(true);
 	});
 });

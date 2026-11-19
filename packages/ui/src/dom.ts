@@ -891,19 +891,94 @@ export class HTMLElement extends Element {
 	}
 }
 
-export class DisableableElement extends HTMLElement {
-	get disabled(): boolean {
-		return this.hasAttributeNS(null, 'disabled');
-	}
+type Constructor<T = object> = abstract new (...args: any[]) => T;
 
-	set disabled(value: boolean) {
-		if (value) {
-			this.setAttributeNS(null, 'disabled', '');
-		} else {
-			this.removeAttributeNS(null, 'disabled');
-		}
-	}
+type Mixin<Members, Base extends Constructor> = (<B extends Base>(
+	Base: B,
+) => B & Constructor<Members>) & {
+	[Symbol.hasInstance](value: unknown): value is Members;
+};
+
+/** Mixins applied to each prototype, so `instanceof Mixin` can walk the chain. */
+const mixins = new WeakMap<object, Set<Mixin<unknown, Constructor>>>();
+
+/**
+ * Define a class mixin that supports `instanceof`.
+ * TypeScript narrows through `Symbol.hasInstance`, so `node instanceof Disableable` exposes `node.disabled`.
+ */
+function defineMixin<Members, Base extends Constructor = Constructor>(
+	define: (Base: Base) => Constructor<Members>,
+): Mixin<Members, Base> {
+	const apply = (<B extends Base>(Base: B) => {
+		const Mixed = define(Base) as B & Constructor<Members>;
+		mixins.set(Mixed.prototype, new Set([...(mixins.get(Base.prototype) ?? []), apply]));
+		return Mixed;
+	}) as Mixin<Members, Base>;
+	return Object.defineProperty(apply, Symbol.hasInstance, {
+		value: (value: unknown): value is Members => {
+			for (let proto = Object.getPrototypeOf(value); proto; proto = Object.getPrototypeOf(proto)) {
+				const applied = mixins.get(proto);
+				if (applied) {
+					return applied.has(apply);
+				}
+			}
+			return false;
+		},
+	});
 }
+
+type Mixed<Base, Mixins> = Mixins extends [Mixin<infer Members, any>, ...infer Rest]
+	? Mixed<Base & Constructor<Members>, Rest>
+	: Base;
+
+/** Apply mixins to a base class in order, so later mixins override earlier ones. */
+function mixin<Base extends Constructor, const Mixins extends Mixin<unknown, Base>[]>(
+	Base: Base,
+	mixins: Mixins,
+): Mixed<Base, Mixins> {
+	let Mixed: Base = Base;
+	for (const apply of mixins) {
+		Mixed = apply(Mixed);
+	}
+	return Mixed as Mixed<Base, Mixins>;
+}
+
+export interface Focusable extends HTMLElement {}
+
+export const Focusable = defineMixin<Focusable, Constructor<HTMLElement>>(
+	(Base) =>
+		class extends Base {
+			override get tabIndex(): number {
+				const attr = this.getAttributeNS(null, 'tabindex');
+				return attr ? super.tabIndex : 0;
+			}
+
+			override set tabIndex(value: number) {
+				super.tabIndex = value;
+			}
+		},
+);
+
+export interface Disableable extends HTMLElement {
+	disabled: boolean;
+}
+
+export const Disableable = defineMixin<Disableable, Constructor<HTMLElement>>(
+	(Base) =>
+		class extends Base implements Disableable {
+			get disabled(): boolean {
+				return this.hasAttributeNS(null, 'disabled');
+			}
+
+			set disabled(value: boolean) {
+				if (value) {
+					this.setAttributeNS(null, 'disabled', '');
+				} else {
+					this.removeAttributeNS(null, 'disabled');
+				}
+			}
+		},
+);
 
 export class HTMLHtmlElement extends HTMLElement {}
 
@@ -917,23 +992,23 @@ export class HTMLDivElement extends HTMLElement {}
 
 export class HTMLSpanElement extends HTMLElement {}
 
-export class HTMLAnchorElement extends Focusable(HTMLElement) {}
+export class HTMLAnchorElement extends mixin(HTMLElement, [Focusable]) {}
 
-export class HTMLButtonElement extends Focusable(DisableableElement) {}
+export class HTMLButtonElement extends mixin(HTMLElement, [Disableable, Focusable]) {}
 
-export class HTMLInputElement extends Focusable(DisableableElement) {}
+export class HTMLInputElement extends mixin(HTMLElement, [Disableable, Focusable]) {}
 
-export class HTMLSelectElement extends Focusable(DisableableElement) {}
+export class HTMLSelectElement extends mixin(HTMLElement, [Disableable, Focusable]) {}
 
-export class HTMLTextAreaElement extends Focusable(DisableableElement) {}
+export class HTMLTextAreaElement extends mixin(HTMLElement, [Disableable, Focusable]) {}
 
-export class HTMLFieldSetElement extends DisableableElement {}
+export class HTMLFieldSetElement extends mixin(HTMLElement, [Disableable]) {}
 
-export class HTMLOptionElement extends DisableableElement {}
+export class HTMLOptionElement extends mixin(HTMLElement, [Disableable]) {}
 
-export class HTMLOptGroupElement extends DisableableElement {}
+export class HTMLOptGroupElement extends mixin(HTMLElement, [Disableable]) {}
 
-export class HTMLIFrameElement extends Focusable(HTMLElement) {}
+export class HTMLIFrameElement extends mixin(HTMLElement, [Focusable]) {}
 
 export class HTMLDetailsElement extends HTMLElement {}
 
@@ -944,19 +1019,6 @@ export class HTMLUnknownElement extends HTMLElement {}
 /** XML */
 
 export class XMLDocument extends Document {}
-
-function Focusable<Ctor extends new (...args: any[]) => HTMLElement>(ElementType: Ctor): Ctor {
-	return class FocusableElement extends ElementType {
-		override get tabIndex(): number {
-			const attr = this.getAttributeNS(null, 'tabindex');
-			return attr ? super.tabIndex : 0;
-		}
-
-		override set tabIndex(value: number) {
-			super.tabIndex = value;
-		}
-	};
-}
 
 export class FocusEvent extends Event {
 	override readonly type: 'focus' | 'focusin' | 'focusout' | 'blur';
@@ -984,7 +1046,7 @@ function isFocusable(element: HTMLElement): boolean {
 		if (node instanceof HTMLElement && node.inert) {
 			return false;
 		}
-		if (node instanceof DisableableElement && node.disabled) {
+		if (node instanceof Disableable && node.disabled) {
 			return false;
 		}
 	}
