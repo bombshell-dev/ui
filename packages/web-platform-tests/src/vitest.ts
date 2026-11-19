@@ -1,4 +1,6 @@
+import { realpathSync, unwatchFile, watchFile } from 'node:fs';
 import { access, readdir } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadConfigFromFile, normalizePath, type Plugin } from 'vite';
 import { startVitest, type Vitest } from 'vitest/node';
@@ -86,8 +88,10 @@ function wptTransform(options: { sourceRoot: string; files: string[] }): Plugin 
 	};
 }
 
-/** Run selected upstream files with the package's Vitest configuration. */
-export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
+async function startWPT(
+	options: RunWPTOptions,
+	onDependencies?: (dependencies: string[]) => void,
+): Promise<Vitest> {
 	const configFile = fileURLToPath(pathToFileURL(options.config));
 	const packageRoot = new URL(
 		'./',
@@ -108,6 +112,7 @@ export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
 	if (!loaded) {
 		throw new WPTConfigurationError(`Unable to load WPT configuration ${configFile}`);
 	}
+	onDependencies?.(loaded.dependencies);
 	const config = loaded.config as unknown as WPTConfig;
 	if (typeof config.createDocument !== 'function') {
 		throw new WPTConfigurationError('WPT configuration must provide createDocument().');
@@ -151,4 +156,110 @@ export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
 		throw new WPTConfigurationError('No configured WPT files matched the filename filters.');
 	}
 	return vitest;
+}
+
+/** Run selected upstream files with the package's Vitest configuration. */
+export async function runWPT(options: RunWPTOptions): Promise<Vitest> {
+	return startWPT(options);
+}
+
+/** Rerun with fresh Vitest and WPT workers when the consumer implementation changes. */
+export async function watchWPT(options: RunWPTOptions): Promise<void> {
+	const configFile = fileURLToPath(pathToFileURL(options.config));
+	const packageRoot = new URL(
+		'./',
+		import.meta.resolve('@bomb.sh/web-platform-tests/package.json'),
+	);
+	const ignoredParts = new Set([
+		'.git',
+		'node_modules',
+		'dist',
+		'build',
+		'coverage',
+		'generated',
+		'out',
+		'.next',
+		'.output',
+		'.turbo',
+		'.cache',
+	]);
+	const watched = new Set<string>();
+	let pending = true;
+	let stopping = false;
+	let signalExitCode: number | undefined;
+	let wake: (() => void) | undefined;
+	const changed = (): void => {
+		if (stopping) return;
+		pending = true;
+		wake?.();
+	};
+	const updateWatched = (dependencies: string[]): void => {
+		const next = new Set([configFile]);
+		for (const file of dependencies) {
+			let path = pathToFileURL(file);
+			try {
+				path = pathToFileURL(realpathSync(file));
+			} catch {
+				// An atomic save can briefly remove a dependency. Keep watching its path.
+			}
+			if (
+				path.href.startsWith(packageRoot.href) ||
+				path.pathname.split('/').some((part) => ignoredParts.has(part))
+			) {
+				continue;
+			}
+			next.add(fileURLToPath(pathToFileURL(file)));
+		}
+		for (const file of watched) {
+			if (next.has(file)) continue;
+			unwatchFile(file, changed);
+			watched.delete(file);
+		}
+		for (const file of next) {
+			if (watched.has(file)) continue;
+			watchFile(file, { interval: 250 }, changed);
+			watched.add(file);
+		}
+	};
+	const stop = (code: number): void => {
+		stopping = true;
+		signalExitCode = code;
+		wake?.();
+	};
+	const interrupt = (): void => stop(130);
+	const terminate = (): void => stop(143);
+	process.on('SIGINT', interrupt);
+	process.on('SIGTERM', terminate);
+	try {
+		updateWatched([]);
+		for (;;) {
+			if (stopping) break;
+			if (!pending) {
+				await new Promise<void>((resume) => {
+					wake = resume;
+				});
+				wake = undefined;
+			}
+			if (stopping) break;
+			await delay(100);
+			if (stopping) break;
+			pending = false;
+			process.exitCode = 0;
+			let vitest: Vitest | undefined;
+			try {
+				vitest = await startWPT(options, updateWatched);
+			} catch (error) {
+				console.error(error instanceof Error ? error.message : String(error));
+				process.exitCode = 1;
+			} finally {
+				await vitest?.close();
+			}
+			if (!stopping) console.info('WPT watch: waiting for config or implementation changes.');
+		}
+	} finally {
+		process.off('SIGINT', interrupt);
+		process.off('SIGTERM', terminate);
+		for (const file of watched) unwatchFile(file, changed);
+		if (signalExitCode !== undefined) process.exitCode = signalExitCode;
+	}
 }
