@@ -9,9 +9,10 @@ Fork the repo, then clone your fork:
 ```sh
 git clone https://github.com/<your-username>/ui.git
 cd ui
+git submodule update --init packages/web-platform-tests/wpt
 ```
 
-You need the exact Node and pnpm versions listed under `devEngines` in the root `package.json`. This part is picky. The wrong Node stops `pnpm install` right away, and pnpm 11 fails on the `node-pty` build.
+Use the Node and pnpm versions listed under `devEngines` in the root `package.json`. The build and test scripts rely on pnpm's workspace task runner.
 
 Any version manager works. If you use [mise](https://mise.jdx.dev), which is what our lint, format, and test checks use, export `MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS=node,pnpm` and run `mise install` so it reads those versions from `package.json`.
 
@@ -25,15 +26,20 @@ pnpm install
 
 Run these from the repo root. You don't need to build before you run the tests.
 
-| Command                                    | What it does                              |
-| ------------------------------------------ | ----------------------------------------- |
-| `pnpm test`                                | Runs every test                           |
-| `pnpm test packages/ui/src/layout.test.ts` | Runs one test file                        |
-| `pnpm lint`                                | Runs the linter                           |
-| `pnpm format`                              | Formats the code                          |
-| `pnpm format:check`                        | Checks the formatting and changes nothing |
-| `pnpm build`                               | Builds the packages                       |
-| `pnpm bench`                               | Runs the benchmarks                       |
+| Command                                         | What it does                                        |
+| ----------------------------------------------- | --------------------------------------------------- |
+| `pnpm test`                                     | Runs unit tests once, then builds and runs WPT      |
+| `pnpm test:unit`                                | Runs unit tests in watch mode                       |
+| `pnpm test:unit packages/ui/src/layout.test.ts`  | Watches one unit test file                          |
+| `pnpm test:unit:run`                            | Runs unit tests once, without watch mode            |
+| `pnpm test:wpt`                                 | Builds the WPT runner and runs only WPT             |
+| `pnpm lint`                                     | Runs the linter                                     |
+| `pnpm format`                                   | Formats the code                                    |
+| `pnpm format:check`                             | Checks the formatting and changes nothing          |
+| `pnpm build`                                    | Builds the packages                                 |
+| `pnpm bench`                                    | Runs the benchmarks                                 |
+
+`pnpm install` installs the Chromium browser used by WPT. The WPT submodule must also be initialized (as above). The WPT command builds its runner automatically; no manual build is needed.
 
 The benchmarks take a few minutes, so you only need them for changes that could affect rendering speed.
 

@@ -3,9 +3,15 @@ packages:
   - examples/*
 catalog:
   '@bomb.sh/tty': ^0.10.0
-onlyBuiltDependencies:
-  - node-pty
+allowBuilds:
+  node-pty: true
 publicHoistPattern:
   - oxlint
   - oxfmt
   - vitest
+tasks:
+  test:unit:run:
+    dependsOn: []
+  wpt:
+    dependsOn:
+      - ^build

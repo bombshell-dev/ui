@@ -24,6 +24,12 @@ const app = command(
 		schema(z.string().min(1).default('wpt.config.ts')),
 	),
 	option(
+		name('run'),
+		cli(['--run'], { switch: true }),
+		description('Accepted for compatibility; WPT always runs in one-shot mode.'),
+		schema(z.boolean().default(false)),
+	),
+	option(
 		name('name'),
 		cli(['--name', '-t']),
 		description(

@@ -41,7 +41,6 @@ jobs:
           submodules: true
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @bomb.sh/web-platform-tests exec playwright install --with-deps chromium
       - run: pnpm test
 
   dom-wpt:
