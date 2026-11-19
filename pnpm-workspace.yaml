@@ -12,6 +12,6 @@ publicHoistPattern:
 tasks:
   test:unit:run:
     dependsOn: []
-  wpt:
+  .wpt:
     dependsOn:
       - ^build
