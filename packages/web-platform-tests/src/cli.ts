@@ -23,10 +23,10 @@ const app = command(
 		description('WPT configuration path, relative to the current directory.'),
 		schema(z.string().min(1).default('wpt.config.ts')),
 	),
-	option(
+	toggle(
 		name('run'),
 		cli(['--run'], { switch: true }),
-		description('Accepted for compatibility; WPT always runs in one-shot mode.'),
+		description('Run and exit on completion.'),
 		schema(z.boolean().default(false)),
 	),
 	option(
@@ -41,6 +41,7 @@ const app = command(
 		name('watch'),
 		cli(['--watch', '-w'], { switch: true }),
 		description('Rerun selected WPT cases when the config or its implementation changes.'),
+		schema(z.boolean().default(process.stdout.isTTY === true)),
 	),
 	argument(
 		name('files'),
@@ -63,7 +64,8 @@ if (!result.ok) {
 			files: [...result.model.files, ...Array.from(result.literals, (literal) => literal.text)],
 			namePattern: result.model.name,
 		};
-		if (result.model.watch) {
+		const watch = !result.model.run && result.model.watch;
+		if (watch) {
 			await watchWPT(options);
 		} else {
 			const vitest = await runWPT(options);

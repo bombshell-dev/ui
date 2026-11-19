@@ -30,14 +30,15 @@ pnpm --filter @clack/ui exec wpt --config wpt.config.ts Document-createElementNS
 pnpm --filter @clack/ui exec wpt --watch Node-parentNode -t 'Root element'
 ```
 
-`--watch` (or `-w`) keeps the CLI running. It reruns the selected upstream files
-when `wpt.config.ts` or a local implementation module imported by that config
-changes, including transitive imports. Config edits reload source and case
-selection. Each rerun starts fresh Vitest and WPT workers, so implementation
+In an interactive terminal, the CLI watches by default similar to `vitest`. Using
+`--watch` (or `-w`) forces watch mode in a non-interactive terminal. It reruns the
+selected upstream files when `wpt.config.ts` or a local implementation module imported
+by that config changes, including transitive imports. Config edits reload source and
+case selection. Each rerun starts fresh Vitest and WPT workers, so implementation
 changes take effect and upstream scripts execute again. The watcher ignores the
 pinned WPT checkout, package helpers, dependencies, and generated output. Press
-Ctrl+C to stop. Without `--watch`, the CLI runs once and retains its usual exit
-status for CI.
+Ctrl+C to stop. In CI or when passing `--run`, it forces a single run and exits
+on completion.
 
 `pnpm test` and `pnpm --filter @clack/ui test` build the harness, run the local
 implementation tests, and run the configured WPT cases.
@@ -49,20 +50,20 @@ implementation's global bindings, then selects upstream source paths and origina
 case names. See the [UI configuration](../ui/wpt.config.ts).
 
 ```ts
-import type { WPTConfig } from '@bomb.sh/web-platform-tests/config';
-import { createHTMLDocument, Node, Document, Element } from './dom.ts';
+import type { WPTConfig } from "@bomb.sh/web-platform-tests/config";
+import { createHTMLDocument, Node, Document, Element } from "./dom.ts";
 
 export default {
   createDocument: () => createHTMLDocument(),
   globals: { Node, Document, Element },
   include: {
-    'dom/nodes/Node-parentNode.html': ['Document', 'Root element'],
+    "dom/nodes/Node-parentNode.html": ["Document", "Root element"],
   },
-  exclude: { '**': true },
+  exclude: { "**": true },
   // excluded cases that run for their shared state, but we don't wait for
   forceTimeout: {
     // Waits on an iframe load the fixture cannot deliver.
-    'dom/nodes/Node-parentNode.html': ['Removed iframe'],
+    "dom/nodes/Node-parentNode.html": ["Removed iframe"],
   },
 } satisfies WPTConfig;
 ```
@@ -90,14 +91,14 @@ Solid, or Svelte. Pass them to `include` with `exclude: { '**': true }` to run
 that profile against the consumer's document factory and globals:
 
 ```ts
-import { framework, type WPTConfig } from '@bomb.sh/web-platform-tests';
-import { createDocument, globals } from './dom.ts';
+import { framework, type WPTConfig } from "@bomb.sh/web-platform-tests";
+import { createDocument, globals } from "./dom.ts";
 
 export default {
   createDocument,
   globals,
-  include: framework('preact'),
-  exclude: { '**': true },
+  include: framework("preact"),
+  exclude: { "**": true },
 } satisfies WPTConfig;
 ```
 

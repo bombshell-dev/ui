@@ -32,7 +32,7 @@ Run these from the repo root. You don't need to build before you run the tests.
 | `pnpm test:unit`                                | Runs unit tests in watch mode                       |
 | `pnpm test:unit packages/ui/src/layout.test.ts`  | Watches one unit test file                          |
 | `pnpm test:unit:run`                            | Runs unit tests once, without watch mode            |
-| `pnpm test:wpt`                                 | Builds the WPT runner and runs only WPT             |
+| `pnpm test:wpt`                                 | Runs WPT watching for changes in interactive terminals |
 | `pnpm lint`                                     | Runs the linter                                     |
 | `pnpm format`                                   | Formats the code                                    |
 | `pnpm format:check`                             | Checks the formatting and changes nothing          |
