@@ -27,29 +27,20 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"dev": "bsh dev",
-		"bench": "vitest bench --config ../../vitest.config.mts --reporter=verbose",
 		"build": "bsh build --dts",
 		"format": "bsh format",
 		"lint": "bsh lint",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test && wpt"
+		"test:wpt": "pnpm -r --filter '{.}...' run .wpt",
+		".wpt": "wpt --config ./wpt.config.ts"
 	},
 	"dependencies": {
 		"@bomb.sh/tty": "catalog:",
 		"css-select": "^7.0.0"
-	},
-	"devEngines": {
-		"packageManager": {
-			"name": "pnpm",
-			"version": "^10.7.0",
-			"onFail": "error"
-		},
-		"runtime": {
-			"name": "node",
-			"version": "^22.14.0",
-			"onFail": "error"
-		}
 	},
 	"devDependencies": {
 		"@bomb.sh/web-platform-tests": "workspace:*"

@@ -1,5 +1,6 @@
 {
-	"name": "@bomb.sh/ui-workspace",
+	"name": "root",
+	"private": "true",
 	"version": "0.0.0",
 	"keywords": [
 		"bombshell",
@@ -27,13 +28,17 @@
 		"access": "public"
 	},
 	"scripts": {
+		"prepare": "pnpm --filter @bomb.sh/web-platform-tests exec playwright install --with-deps chromium",
 		"dev": "bsh dev",
-		"build": "pnpm --filter @bomb.sh/web-platform-tests build && pnpm --filter \"@clack/*\" run build",
-		"bench": "vitest bench --reporter=verbose",
+		"build": "pnpm -r --filter '@clack/*...' run build",
+		"bench": "vitest bench --project 'bench (bench)' --reporter=verbose",
 		"format": "bsh format",
 		"format:check": "bsh format --check",
 		"lint": "bsh lint .",
-		"test": "pnpm --filter @bomb.sh/web-platform-tests build && bsh test && pnpm --filter @clack/ui exec wpt"
+		"test": "pnpm -r --filter root run --workspace-concurrency=1 '/^test:(unit:run|wpt)$/' --run",
+		"test:unit": "vitest --config vitest.config.mts --project unit",
+		"test:unit:run": "vitest run --config vitest.config.mts --project unit",
+		"test:wpt": "pnpm --filter @clack/ui test:wpt"
 	},
 	"devDependencies": {
 		"@bomb.sh/tools": "^0.8.0",
@@ -48,13 +53,13 @@
 	"devEngines": {
 		"packageManager": {
 			"name": "pnpm",
-			"version": "10.7.0",
+			"version": "11.28.13",
 			"onFail": "warn"
 		},
 		"runtime": {
 			"name": "node",
-			"version": "22.23.4",
-			"onFail": "error"
+			"version": "22.23.5",
+			"onFail": "warn"
 		}
 	}
 }

@@ -86,6 +86,7 @@ export async function setupUI(
 	shape: (typeof shapes)[number],
 ): Promise<UIWorkloadFixture> {
 	const input = new PassThrough();
+	const controller = new AbortController();
 	let writes = 0;
 	const output = new Writable({
 		write(_chunk, _encoding, callback) {
@@ -95,10 +96,11 @@ export async function setupUI(
 			});
 		},
 	});
-	const ui = await createUI({ input, output, width: 80, height: 24 });
+	const ui = await createUI({ input, output, width: 80, height: 24, signal: controller.signal });
 	const { texts } = createTree({ document: ui.document, nodeCount, shape });
 	const initialWrites = writes;
 	let started = false;
+	let running: Promise<void> | undefined;
 	return {
 		document: ui.document,
 		root: ui.document.documentElement,
@@ -110,13 +112,18 @@ export async function setupUI(
 		async start() {
 			if (started) return;
 			started = true;
-			void ui.main();
+			running = ui.main();
+			void running.catch(() => {});
 			await waitFor(() => writes > initialWrites);
 		},
 		async close() {
-			await ui[Symbol.asyncDispose]();
-			input.destroy();
-			output.destroy();
+			controller.abort();
+			try {
+				await running;
+			} finally {
+				input.destroy();
+				output.destroy();
+			}
 		},
 	};
 }
