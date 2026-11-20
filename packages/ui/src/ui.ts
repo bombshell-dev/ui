@@ -1,11 +1,11 @@
 import { alternateBuffer, createTerm, cursor, settings } from '@bomb.sh/tty';
 import type { Readable, Writable } from 'node:stream';
-import { createHTMLDocument, type Document } from './dom.ts';
+import { createHTMLDocument, type HTMLDocument } from './dom.ts';
 import { RenderApi } from './render.ts';
 import { Layout } from './layout.ts';
 
 export interface UI {
-	document: Document;
+	document: HTMLDocument;
 	main(): Promise<void>;
 }
 
