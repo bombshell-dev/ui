@@ -4,6 +4,7 @@ import { findElement, findElements, querySelector } from './css-select.ts';
 import { asciiUppercase, asciiLowercase } from './ascii.ts';
 import { NamedNodeMap } from './named-node-map.ts';
 import { HTMLCollection } from './html-collection.ts';
+import { StyleDeclaration } from './style.ts';
 import {
 	validateElementName,
 	validateElementNamespace,
@@ -476,6 +477,7 @@ export interface EventListener {
 export class Element extends Node {
 	declare readonly ownerDocument: Document;
 
+	readonly style: StyleDeclaration;
 	readonly localName: string;
 	readonly nodeName: string;
 	readonly namespaceURI: string | null;
@@ -490,6 +492,7 @@ export class Element extends Node {
 		{ namespaceURI = HTML_NS, prefix = null }: Partial<ElementNamespace> = {},
 	) {
 		super(owner, notify);
+		this.style = new StyleDeclaration(this.notify);
 		this.localName = localName;
 		this.namespaceURI = namespaceURI;
 		this.prefix = prefix;
