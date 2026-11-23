@@ -1,5 +1,8 @@
 export { createUI } from './ui.ts';
 export {
+	Document,
+	Element,
+	Text,
 	createHTMLDocument,
 	HTMLDocument,
 	HTMLElement,
