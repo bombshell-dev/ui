@@ -112,6 +112,23 @@ const config: WPTConfig = {
 		],
 		'css/css-flexbox/parsing/flex-direction-invalid.html': true,
 		'css/cssom/cssstyledeclaration-properties.html': true,
+		'css/cssom/cssstyledeclaration-csstext.html': [
+			'uppercase property',
+			'uppercase value',
+			'overwriting with invalid value',
+			'use rgb',
+			// Other cases use unsupported properties, shorthands, or computed styles.
+		],
+		'css/cssom/cssstyledeclaration-csstext-final-delimiter.html': [
+			'inline style - text - delimiters - zero declarations',
+			// The other cases use the unsupported left and right properties.
+		],
+		'css/cssom/serialization-CSSDeclaration-with-important.html': [
+			"Inline style declaration without whitespace between '!' and 'important'.",
+			"Style set dynamically via cssText without whitespace between '!' and 'important'.",
+			"Style set dynamically via cssText with whitespace between '!' and 'important'.",
+			// The remaining case uses the unsupported background-color property.
+		],
 		'css/cssom/cssstyledeclaration-setter-attr.html': true,
 		'dom/events/Event-constructors.any.js': true,
 		'dom/events/EventTarget-addEventListener.any.js': true,

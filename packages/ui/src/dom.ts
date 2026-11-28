@@ -474,6 +474,19 @@ export interface EventListener {
 	(this: EventTarget, event: Event): void;
 }
 
+/** Mirrors the DOM spec's attribute change steps: https://dom.spec.whatwg.org/#concept-element-attributes-change-ext */
+function attributeChanged(attr: Attr, value: string | null): void {
+	const element = attr.ownerElement;
+	if (element === null || attr.namespaceURI !== null) {
+		return;
+	}
+	switch (attr.localName) {
+		case 'style':
+			element.style.cssText = value ?? '';
+			break;
+	}
+}
+
 export class Element extends Node {
 	declare readonly ownerDocument: Document;
 
@@ -502,6 +515,7 @@ export class Element extends Node {
 			ownerElement: this,
 			createAttribute: (name, namespace) => new Attr(owner, name, notify, namespace),
 			notify,
+			attributeChanged,
 		});
 	}
 
@@ -657,6 +671,7 @@ export class Attr extends Node {
 		const normal = `${value}`;
 		if (this.#value !== normal) {
 			this.#value = normal;
+			attributeChanged(this, normal);
 			this.notify();
 		}
 	}

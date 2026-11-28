@@ -1,6 +1,6 @@
 // Independent tests for our terminal style subset; upstream coverage runs through WPT.
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { createHTMLDocument, Document } from './dom.ts';
+import { createHTMLDocument, Document, type Element } from './dom.ts';
 import { StyleDeclaration, type ColorValue } from './style.ts';
 
 describe('inline style declarations', () => {
@@ -362,5 +362,121 @@ describe('inline style declarations', () => {
 			style[property] = '';
 			expect(style[property], property).toBe('');
 		}
+	});
+});
+
+describe('string styles', () => {
+	const createDiv = (): Element => new Document(() => {}).createElement('div');
+
+	it('reads back the declarations assigned to cssText', () => {
+		const style = createDiv().style;
+		style.cssText = 'color: red; padding-top: 2px; display: flex';
+
+		expect(style.color).toBe('red');
+		expect(style.paddingTop).toBe('2px');
+		expect(style.display).toBe('flex');
+		expect(style.cssText).toBe('color: red; padding-top: 2px; display: flex;');
+
+		style.cssText = 'gap:1px';
+		expect(style.color).toBe('');
+		expect(style.cssText).toBe('gap: 1px;');
+
+		style.cssText = '';
+		expect(style.cssText).toBe('');
+		expect(style.gap).toBe('');
+	});
+
+	it('round-trips !important declarations', () => {
+		const style = createDiv().style;
+		style.cssText = 'color: red ! IMPORTANT; gap: 1px';
+
+		expect(style.getPropertyPriority('color')).toBe('important');
+		expect(style.getPropertyPriority('gap')).toBe('');
+		expect(style.cssText).toBe('color: red !important; gap: 1px;');
+	});
+
+	it('serializes declarations set through properties in insertion order', () => {
+		const style = createDiv().style;
+		style.paddingLeft = '1px';
+		style.setProperty('border-color', 'blue', 'important');
+		style.flexDirection = 'column';
+
+		expect(style.cssText).toBe(
+			'padding-left: 1px; border-color: blue !important; flex-direction: column;',
+		);
+	});
+
+	it('ignores unknown properties, invalid values, and malformed declarations', () => {
+		const style = createDiv().style;
+		style.cssText =
+			'unknown: 1; color: not-a-color; padding-top: -1px; nonsense; : red; gap: 3px; ;';
+
+		expect(style.cssText).toBe('gap: 3px;');
+	});
+
+	it('notifies once per cssText assignment', () => {
+		let changes = 0;
+		const style = new StyleDeclaration(() => changes++);
+		style.cssText = 'color: red; gap: 1px; display: flex';
+		expect(changes).toBe(1);
+	});
+
+	it('applies the style attribute to the element style', () => {
+		const div = createDiv();
+		div.setAttribute('style', 'color: red; gap: 2px');
+		expect(div.style.color).toBe('red');
+		expect(div.style.gap).toBe('2px');
+
+		div.setAttribute('style', 'padding-top: 1px');
+		expect(div.style.color).toBe('');
+		expect(div.style.paddingTop).toBe('1px');
+	});
+
+	it('applies the style attribute when it is set on an attached Attr', () => {
+		const div = createDiv();
+		div.setAttribute('style', 'color: red');
+		div.getAttributeNode('style')!.value = 'color: blue';
+		expect(div.style.color).toBe('blue');
+
+		const attr = div.ownerDocument.createAttribute('style');
+		attr.value = 'gap: 4px';
+		div.setAttributeNode(attr);
+		expect(div.style.color).toBe('');
+		expect(div.style.gap).toBe('4px');
+	});
+
+	it('does not change the style of an element when a detached style Attr changes', () => {
+		const div = createDiv();
+		div.setAttribute('style', 'color: red');
+		const attr = div.removeAttributeNode(div.getAttributeNode('style')!);
+		attr.value = 'color: blue';
+		expect(div.style.color).toBe('');
+	});
+
+	it('clears the style when the style attribute is removed', () => {
+		const div = createDiv();
+		div.setAttribute('style', 'color: red');
+		div.removeAttribute('style');
+		expect(div.style.color).toBe('');
+
+		div.setAttribute('style', 'color: red');
+		expect(div.toggleAttribute('style')).toBe(false);
+		expect(div.style.color).toBe('');
+	});
+
+	it('clears the style when toggleAttribute adds an empty style attribute', () => {
+		const div = createDiv();
+		div.style.color = 'red';
+		expect(div.toggleAttribute('style')).toBe(true);
+		expect(div.style.color).toBe('');
+	});
+
+	it('ignores namespaced style attributes', () => {
+		const div = createDiv();
+		div.style.color = 'red';
+		div.setAttributeNS('http://example.com', 'style', 'color: blue');
+		expect(div.style.color).toBe('red');
+		div.removeAttributeNS('http://example.com', 'style');
+		expect(div.style.color).toBe('red');
 	});
 });
