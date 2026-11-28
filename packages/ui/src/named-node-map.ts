@@ -6,6 +6,8 @@ const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
 type AttributeNamespace = Pick<Attr, 'namespaceURI' | 'prefix'>;
 type AttributeFactory = (localName: string, namespace: AttributeNamespace) => Attr;
+/** Called with `null` when the attribute is removed. */
+export type AttributeChanged = (attr: Attr, value: string | null) => void;
 
 /**
  * Holds Element attributes: https://dom.spec.whatwg.org/#interface-namednodemap
@@ -18,6 +20,7 @@ export class NamedNodeMap {
 	readonly #ownerElement: Element;
 	readonly #createAttribute: AttributeFactory;
 	readonly #notify: () => void;
+	readonly #attributeChanged: AttributeChanged;
 	readonly #attributes: Attr[] = [];
 	#properties: string[] = [];
 
@@ -25,14 +28,17 @@ export class NamedNodeMap {
 		ownerElement,
 		createAttribute,
 		notify,
+		attributeChanged,
 	}: {
 		ownerElement: Element;
 		createAttribute: AttributeFactory;
 		notify: () => void;
+		attributeChanged: AttributeChanged;
 	}) {
 		this.#ownerElement = ownerElement;
 		this.#createAttribute = createAttribute;
 		this.#notify = notify;
+		this.#attributeChanged = attributeChanged;
 	}
 
 	get length(): number {
@@ -76,6 +82,7 @@ export class NamedNodeMap {
 			this.#attributes.push(attr);
 		}
 		attr.ownerElement = this.#ownerElement;
+		this.#attributeChanged(attr, attr.value);
 		this.#changed();
 		return previous;
 	}
@@ -98,6 +105,7 @@ export class NamedNodeMap {
 			throw new DOMException('Attribute is not attached to this element', 'NotFoundError');
 		}
 		this.#attributes.splice(index, 1);
+		this.#attributeChanged(attr, null);
 		attr.ownerElement = null;
 		this.#changed();
 		return attr;

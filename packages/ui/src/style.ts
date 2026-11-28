@@ -71,6 +71,28 @@ export class StyleDeclaration {
 		return key !== undefined && this.#important.has(key) ? 'important' : '';
 	}
 
+	get cssText(): string {
+		return Object.entries(this.#values)
+			.map(([key, { representation }]) => {
+				const important = this.#important.has(key as keyof StyleValues) ? ' !important' : '';
+				return `${dashedNames[key as keyof StyleValues]}: ${representation}${important};`;
+			})
+			.join(' ');
+	}
+
+	set cssText(text: string) {
+		const source = `${text}`;
+		this.#values = {};
+		this.#important.clear();
+		for (let start = 0; start < source.length;) {
+			const semicolon = source.indexOf(';', start);
+			const end = semicolon === -1 ? source.length : semicolon;
+			this.#declare(source.slice(start, end));
+			start = end + 1;
+		}
+		this.#changed();
+	}
+
 	setProperty(property: string, value: string | null, priority: string | null = ''): void {
 		if (arguments.length < 2) {
 			throw new TypeError('setProperty requires a property name and value');
@@ -288,15 +310,37 @@ export class StyleDeclaration {
 		return this.borderColor;
 	}
 
+	#declare(declaration: string): void {
+		const colon = declaration.indexOf(':');
+		const key = colon === -1 ? undefined : styleProperty(declaration.slice(0, colon).trim());
+		if (key === undefined) {
+			return;
+		}
+		let value = declaration.slice(colon + 1).trim();
+		const bang = value.lastIndexOf('!');
+		const important = bang !== -1 && asciiLowercase(value.slice(bang + 1).trim()) === 'important';
+		if (important) {
+			value = value.slice(0, bang);
+		}
+		this.#store(key, value, important);
+	}
+
 	#setProperty<K extends keyof StyleValues>(key: K, input: unknown, important = false): void {
+		if (this.#store(key, input, important)) {
+			this.#changed();
+		}
+	}
+
+	/** Applies one declaration and reports whether it changed anything, leaving notification to the caller. */
+	#store<K extends keyof StyleValues>(key: K, input: unknown, important: boolean): boolean {
 		const value = input === null ? '' : `${input}`;
 		if (value === '') {
-			if (this.#values[key] !== undefined) {
-				delete this.#values[key];
-				this.#important.delete(key);
-				this.#changed();
+			if (this.#values[key] === undefined) {
+				return false;
 			}
-			return;
+			delete this.#values[key];
+			this.#important.delete(key);
+			return true;
 		}
 		const representation = value.trim() as StyleValues[K]['representation'];
 		const result = propertySchemas[key]['~standard'].validate(
@@ -305,7 +349,7 @@ export class StyleDeclaration {
 
 		// ignore styles that can't be validated and converted;
 		if (result.issues) {
-			return; //todo: issue warning.
+			return false; //todo: issue warning.
 		}
 
 		this.#values[key] = { value: result.value, representation } as StyleValues[K];
@@ -314,7 +358,7 @@ export class StyleDeclaration {
 		} else {
 			this.#important.delete(key);
 		}
-		this.#changed();
+		return true;
 	}
 
 	#getProperty<K extends keyof StyleValues>(property: K): StyleValues[K]['representation'] | '' {
@@ -338,6 +382,10 @@ const propertyNames = {
 	'border-left-width': 'borderLeftWidth',
 	'border-color': 'borderColor',
 } as const satisfies Record<string, keyof StyleValues>;
+
+const dashedNames = Object.fromEntries(
+	Object.entries(propertyNames).map(([dashed, key]) => [key, dashed]),
+) as Record<keyof StyleValues, keyof typeof propertyNames>;
 
 function styleProperty(property: string): keyof StyleValues | undefined {
 	const name = asciiLowercase(property);
